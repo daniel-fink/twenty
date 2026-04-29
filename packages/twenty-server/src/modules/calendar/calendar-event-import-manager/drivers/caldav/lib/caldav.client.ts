@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { isNonEmptyString } from '@sniptt/guards';
 import * as ical from 'node-ical';
+import { isDefined } from 'twenty-shared/utils';
 import {
   calendarMultiGet,
   createAccount,
@@ -489,8 +491,11 @@ export class CalDAVClient {
     const storedEtags = options.syncCursor?.etags?.[calendar.url] ?? {};
 
     // Tier 2: cs:getctag — calendar-level version. Skip work entirely if unchanged.
-    const newCtag =
-      typeof calendar.ctag === 'string' ? calendar.ctag : undefined;
+    // Some servers (SabreDAV / all-inkl) return the value as plain digits, which
+    // tsdav's XML parser coerces to a JS number. Treat it as opaque text.
+    const newCtag = isDefined(calendar.ctag)
+      ? String(calendar.ctag)
+      : undefined;
     const storedCtag = options.syncCursor?.ctags?.[calendar.url];
 
     if (newCtag && storedCtag && newCtag === storedCtag) {
@@ -537,8 +542,8 @@ export class CalDAVClient {
       const etag = response.props?.getetag;
 
       if (
-        typeof href !== 'string' ||
-        typeof etag !== 'string' ||
+        !isNonEmptyString(href) ||
+        !isNonEmptyString(etag) ||
         !this.isValidFormat(href)
       ) {
         return map;

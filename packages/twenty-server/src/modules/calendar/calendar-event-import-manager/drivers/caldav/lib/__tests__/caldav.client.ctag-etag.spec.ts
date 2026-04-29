@@ -251,6 +251,33 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
     );
   });
 
+  it('treats a numeric CTag as an opaque string so SabreDAV-style sequence numbers still trigger Tier-2 skip', async () => {
+    mockFetchCalendars.mockResolvedValue([
+      {
+        url: CALENDAR_URL,
+        components: ['VEVENT'],
+        reports: [],
+        ctag: 1004 as unknown as string,
+      },
+    ]);
+
+    const client = buildClient();
+
+    const result = await client.getEvents({
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2027-01-01'),
+      syncCursor: {
+        syncTokens: {},
+        ctags: { [CALENDAR_URL]: '1004' },
+        etags: { [CALENDAR_URL]: { [FIRST_HREF]: '"keep"' } },
+      },
+    });
+
+    expect(result.events).toEqual([]);
+    expect(result.syncCursor.ctags).toEqual({ [CALENDAR_URL]: '1004' });
+    expect(mockPropfind).not.toHaveBeenCalled();
+  });
+
   it('takes the sync-collection branch when the calendar advertises it', async () => {
     mockFetchCalendars.mockResolvedValue([buildSyncCollectionCalendar()]);
 
