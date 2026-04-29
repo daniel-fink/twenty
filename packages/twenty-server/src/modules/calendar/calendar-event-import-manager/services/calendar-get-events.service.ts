@@ -16,7 +16,6 @@ export type GetCalendarEventsResponse = {
   fullEvents: boolean;
   calendarEvents?: FetchedCalendarEvent[];
   calendarEventIds?: string[];
-  cancelledEventExternalIds?: string[];
   nextSyncCursor: string;
 };
 

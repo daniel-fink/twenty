@@ -115,7 +115,6 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
     });
 
     expect(result.events).toEqual([]);
-    expect(result.cancelledEventExternalIds).toEqual([]);
     expect(result.syncCursor.ctags).toEqual({ [CALENDAR_URL]: 'ctag-v1' });
     expect(result.syncCursor.etags).toEqual({ [CALENDAR_URL]: previousEtags });
     expect(mockPropfind).not.toHaveBeenCalled();
@@ -177,7 +176,7 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
       'uid-1',
       'uid-2',
     ]);
-    expect(result.cancelledEventExternalIds).toEqual([]);
+    expect(result.events.every((event) => !event.isCanceled)).toBe(true);
     expect(result.syncCursor.ctags).toEqual({ [CALENDAR_URL]: 'ctag-v1' });
     expect(result.syncCursor.etags).toEqual({
       [CALENDAR_URL]: {
@@ -194,7 +193,7 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
     );
   });
 
-  it('only fetches changed hrefs and reports cancelled hrefs when CTag differs', async () => {
+  it('only fetches changed hrefs and emits cancelled stub events for vanished hrefs when CTag differs', async () => {
     mockFetchCalendars.mockResolvedValue([buildLegacyCalendar('ctag-v2')]);
 
     mockPropfind.mockResolvedValue([
@@ -237,8 +236,12 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
       },
     });
 
-    expect(result.events.map((event) => event.iCalUid)).toEqual(['uid-1']);
-    expect(result.cancelledEventExternalIds).toEqual([SECOND_HREF]);
+    const liveEvents = result.events.filter((event) => !event.isCanceled);
+    const cancelledEvents = result.events.filter((event) => event.isCanceled);
+
+    expect(liveEvents.map((event) => event.iCalUid)).toEqual(['uid-1']);
+    expect(cancelledEvents.map((event) => event.id)).toEqual([SECOND_HREF]);
+    expect(cancelledEvents[0].status).toBe('CANCELLED');
     expect(result.syncCursor.ctags).toEqual({ [CALENDAR_URL]: 'ctag-v2' });
     expect(result.syncCursor.etags).toEqual({
       [CALENDAR_URL]: { [FIRST_HREF]: '"etag-1-updated"' },
@@ -251,7 +254,7 @@ describe('CalDAVClient — CTag/ETag fallback', () => {
     );
   });
 
-  it('treats a numeric CTag as an opaque string so SabreDAV-style sequence numbers still trigger Tier-2 skip', async () => {
+  it('treats a numeric CTag as an opaque string so SabreDAV-style sequence numbers still trigger the unchanged-calendar skip', async () => {
     mockFetchCalendars.mockResolvedValue([
       {
         url: CALENDAR_URL,

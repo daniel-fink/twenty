@@ -57,7 +57,6 @@ type CalDAVSyncResult = {
   newSyncToken?: string;
   newCtag?: string;
   newEtags?: HrefEtagMap;
-  cancelledEventExternalIds: string[];
 };
 
 type CalDAVSyncCursor = {
@@ -71,7 +70,6 @@ export type CalDAVServerCapability = 'sync-collection' | 'ctag-etag';
 type CalDAVGetEventsResponse = {
   events: FetchedCalendarEvent[];
   syncCursor: CalDAVSyncCursor;
-  cancelledEventExternalIds: string[];
 };
 
 @Injectable()
@@ -383,7 +381,6 @@ export class CalDAVClient {
           events: [],
           newSyncToken: options.syncCursor?.syncTokens[calendar.url],
           newCtag: options.syncCursor?.ctags?.[calendar.url],
-          cancelledEventExternalIds: [],
         });
       }
     });
@@ -392,9 +389,6 @@ export class CalDAVClient {
 
     const allEvents = Array.from(results.values()).flatMap(
       (result) => result.events,
-    );
-    const cancelledEventExternalIds = Array.from(results.values()).flatMap(
-      (result) => result.cancelledEventExternalIds,
     );
 
     const syncTokens: Record<string, string> = {};
@@ -422,7 +416,6 @@ export class CalDAVClient {
         ...(Object.keys(ctags).length > 0 ? { ctags } : {}),
         ...(Object.keys(etags).length > 0 ? { etags } : {}),
       },
-      cancelledEventExternalIds,
     };
   }
 
@@ -480,19 +473,34 @@ export class CalDAVClient {
     return {
       events,
       newSyncToken,
-      cancelledEventExternalIds: [],
     };
   }
 
+  /**
+   * Fallback sync path for legacy CalDAV servers that don't support
+   * RFC 6578 sync-collection (e.g. SabreDAV ≤ 4.6, all-inkl shared hosting).
+   *
+   * The server won't tell us what changed, so we figure it out with two
+   * standard CalDAV features, cheapest first:
+   *
+   *   1. CTag check — a single version number on the whole calendar.
+   *      If it matches what we stored last sync, nothing changed. Done.
+   *
+   *   2. Per-event ETag diff — list every event's href + ETag (no bodies),
+   *      compare against the per-event ETags we stored. Fetch only the
+   *      hrefs that are new or whose ETag changed. Hrefs that disappeared
+   *      get emitted as cancelled stubs (matches the Google/Microsoft
+   *      cancellation shape so the orchestrator routes them through the
+   *      same delete path).
+   */
   private async fetchEventsViaCtagEtag(
     calendar: DAVCalendar,
     options: FetchEventsOptions,
   ): Promise<CalDAVSyncResult> {
     const storedEtags = options.syncCursor?.etags?.[calendar.url] ?? {};
 
-    // Tier 2: cs:getctag — calendar-level version. Skip work entirely if unchanged.
-    // Some servers (SabreDAV / all-inkl) return the value as plain digits, which
-    // tsdav's XML parser coerces to a JS number. Treat it as opaque text.
+    // Some servers (SabreDAV / all-inkl) return cs:getctag as plain digits,
+    // which tsdav's XML parser coerces to a JS number. Treat as opaque text.
     const newCtag = isDefined(calendar.ctag)
       ? String(calendar.ctag)
       : undefined;
@@ -503,11 +511,9 @@ export class CalDAVClient {
         events: [],
         newCtag,
         newEtags: storedEtags,
-        cancelledEventExternalIds: [],
       };
     }
 
-    // Tier 3: PROPFIND Depth:1 → diff href→etag against stored.
     const currentEtags = await this.fetchHrefEtagMap(calendar.url);
 
     const { changedHrefs, cancelledHrefs } = diffHrefEtagMap(
@@ -515,17 +521,45 @@ export class CalDAVClient {
       currentEtags,
     );
 
-    const events = await this.fetchAndParseEvents(
+    const fetchedEvents = await this.fetchAndParseEvents(
       calendar.url,
       changedHrefs,
       options,
     );
 
+    const cancelledStubs = cancelledHrefs.map((href) =>
+      this.buildCancelledEventStub(href),
+    );
+
     return {
-      events,
+      events: [...fetchedEvents, ...cancelledStubs],
       newCtag,
       newEtags: currentEtags,
-      cancelledEventExternalIds: cancelledHrefs,
+    };
+  }
+
+  private buildCancelledEventStub(href: string): FetchedCalendarEvent {
+    // The href vanished from the server's listing — we have no iCal payload
+    // or metadata for it. Mirror Google/Microsoft's cancelled-event shape so
+    // filterEventsAndReturnCancelledEvents routes this to the association
+    // delete path via event.id.
+    return {
+      id: href,
+      title: '',
+      iCalUid: '',
+      description: '',
+      startsAt: '',
+      endsAt: '',
+      location: '',
+      isFullDay: false,
+      isCanceled: true,
+      conferenceLinkLabel: '',
+      conferenceLinkUrl: '',
+      externalCreatedAt: '',
+      externalUpdatedAt: '',
+      conferenceSolution: '',
+      participants: [],
+      status: 'CANCELLED',
     };
   }
 

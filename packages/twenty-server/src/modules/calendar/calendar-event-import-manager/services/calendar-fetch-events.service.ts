@@ -84,8 +84,6 @@ export class CalendarFetchEventsService {
           ? getCalendarEventsResponse.calendarEvents
           : null;
         const calendarEventIds = getCalendarEventsResponse.calendarEventIds;
-        const cancelledEventExternalIds =
-          getCalendarEventsResponse.cancelledEventExternalIds ?? [];
         const nextSyncCursor = getCalendarEventsResponse.nextSyncCursor;
 
         if (!calendarEvents || calendarEvents?.length === 0) {
@@ -115,7 +113,6 @@ export class CalendarFetchEventsService {
             connectedAccount,
             workspaceId,
             calendarEvents,
-            cancelledEventExternalIds,
           );
         } else if (!hasFullEvents && calendarEventIds) {
           await this.cacheStorage.setAdd(
