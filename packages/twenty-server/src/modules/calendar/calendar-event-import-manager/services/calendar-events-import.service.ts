@@ -57,6 +57,7 @@ export class CalendarEventsImportService {
     connectedAccount: ConnectedAccountEntity,
     workspaceId: string,
     fetchedCalendarEvents?: FetchedCalendarEvent[],
+    cancelledEventExternalIdsFromDriver: string[] = [],
   ): Promise<void> {
     await this.calendarChannelSyncStatusService.markAsCalendarEventsImportOngoing(
       [calendarChannel.id],
@@ -158,8 +159,11 @@ export class CalendarEventsImportService {
             blocklist.map((blocklist) => blocklist.handle ?? ''),
           );
 
-        const cancelledEventExternalIds = cancelledEvents.map(
-          (event) => event.id,
+        const cancelledEventExternalIds = Array.from(
+          new Set([
+            ...cancelledEvents.map((event) => event.id),
+            ...cancelledEventExternalIdsFromDriver,
+          ]),
         );
 
         const BATCH_SIZE = 1000;
@@ -180,10 +184,12 @@ export class CalendarEventsImportService {
             'calendarChannelEventAssociation',
           );
 
-        await calendarChannelEventAssociationRepository.delete({
-          eventExternalId: Any(cancelledEventExternalIds),
-          calendarChannelId: calendarChannel.id,
-        });
+        if (cancelledEventExternalIds.length > 0) {
+          await calendarChannelEventAssociationRepository.delete({
+            eventExternalId: Any(cancelledEventExternalIds),
+            calendarChannelId: calendarChannel.id,
+          });
+        }
 
         await this.calendarEventCleanerService.cleanWorkspaceCalendarEvents(
           workspaceId,

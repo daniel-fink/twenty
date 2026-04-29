@@ -53,6 +53,7 @@ export class CalDavGetEventsService {
       return {
         fullEvents: true,
         calendarEvents: result.events,
+        cancelledEventExternalIds: result.cancelledEventExternalIds,
         nextSyncCursor: JSON.stringify(result.syncCursor),
       };
     } catch (error) {
