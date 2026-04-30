@@ -102,6 +102,11 @@ export class CreateViewInput {
   @IsOptional()
   @IsUUID()
   @Field(() => UUIDScalarType, { nullable: true })
+  mapFieldMetadataId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  @Field(() => UUIDScalarType, { nullable: true })
   mainGroupByFieldMetadataId?: string;
 
   @IsOptional()

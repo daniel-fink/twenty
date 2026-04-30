@@ -101,6 +101,7 @@ export const fromFieldMetadataEntityToFlatFieldMetadata = ({
     kanbanAggregateOperationViewIds:
       fieldMetadataEntity.kanbanAggregateOperationViews.map(({ id }) => id),
     calendarViewIds: fieldMetadataEntity.calendarViews.map(({ id }) => id),
+    mapViewIds: fieldMetadataEntity.mapViews?.map(({ id }) => id) ?? [],
     mainGroupByFieldMetadataViewIds:
       fieldMetadataEntity.mainGroupByFieldMetadataViews?.map(({ id }) => id) ??
       [],
@@ -125,6 +126,10 @@ export const fromFieldMetadataEntityToFlatFieldMetadata = ({
     calendarViewUniversalIdentifiers: fieldMetadataEntity.calendarViews.map(
       ({ universalIdentifier }) => universalIdentifier,
     ),
+    mapViewUniversalIdentifiers:
+      fieldMetadataEntity.mapViews?.map(
+        ({ universalIdentifier }) => universalIdentifier,
+      ) ?? [],
     mainGroupByFieldMetadataViewUniversalIdentifiers:
       fieldMetadataEntity.mainGroupByFieldMetadataViews?.map(
         ({ universalIdentifier }) => universalIdentifier,

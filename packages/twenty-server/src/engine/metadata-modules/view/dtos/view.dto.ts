@@ -74,6 +74,9 @@ export class ViewDTO {
   @Field(() => UUIDScalarType, { nullable: true })
   calendarFieldMetadataId?: string | null;
 
+  @Field(() => UUIDScalarType, { nullable: true })
+  mapFieldMetadataId?: string | null;
+
   @Field(() => UUIDScalarType, { nullable: false })
   workspaceId: string;
 

@@ -40,6 +40,7 @@ import { SyncableEntity } from 'src/engine/workspace-manager/types/syncable-enti
 ])
 @Index('IDX_VIEW_VISIBILITY', ['visibility'])
 @Index('IDX_VIEW_CALENDAR_FIELD_METADATA', ['calendarFieldMetadataId'])
+@Index('IDX_VIEW_MAP_FIELD_METADATA', ['mapFieldMetadataId'])
 @Index('IDX_VIEW_KANBAN_FIELD_METADATA', [
   'kanbanAggregateOperationFieldMetadataId',
 ])
@@ -48,6 +49,10 @@ import { SyncableEntity } from 'src/engine/workspace-manager/types/syncable-enti
 @Check(
   'CHK_VIEW_CALENDAR_INTEGRITY',
   `("type" != 'CALENDAR' OR ("calendarLayout" IS NOT NULL AND "calendarFieldMetadataId" IS NOT NULL))`,
+)
+@Check(
+  'CHK_VIEW_MAP_INTEGRITY',
+  `("type"::text != 'MAP' OR "mapFieldMetadataId" IS NOT NULL)`,
 )
 export class ViewEntity extends SyncableEntity implements Required<ViewEntity> {
   @PrimaryGeneratedColumn('uuid')
@@ -144,6 +149,20 @@ export class ViewEntity extends SyncableEntity implements Required<ViewEntity> {
   )
   @JoinColumn({ name: 'calendarFieldMetadataId' })
   calendarFieldMetadata: Relation<FieldMetadataEntity> | null;
+
+  @Column({ nullable: true, type: 'uuid' })
+  mapFieldMetadataId: string | null;
+
+  @ManyToOne(
+    () => FieldMetadataEntity,
+    (fieldMetadata) => fieldMetadata.mapViews,
+    {
+      onDelete: 'CASCADE',
+      nullable: true,
+    },
+  )
+  @JoinColumn({ name: 'mapFieldMetadataId' })
+  mapFieldMetadata: Relation<FieldMetadataEntity> | null;
 
   @Column({ nullable: true, type: 'uuid' })
   mainGroupByFieldMetadataId: string | null;

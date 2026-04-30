@@ -9,4 +9,5 @@ export type ObjectOptionsContentId =
   | 'recordGroupSort'
   | 'calendarFields'
   | 'calendarView'
+  | 'mapFields'
   | 'visibility';

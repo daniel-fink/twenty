@@ -42,7 +42,9 @@ describe('deleteFlatEntityFromFlatEntityAndRelatedEntityMapsThroughMutationOrThr
       viewFilterIds: [],
       workspaceId,
       calendarViewIds: [viewId],
+      mapViewIds: [],
       calendarViewUniversalIdentifiers: [viewUniversalIdentifier],
+      mapViewUniversalIdentifiers: [],
       mainGroupByFieldMetadataViewIds: [],
       applicationId,
     });
@@ -113,7 +115,9 @@ describe('deleteFlatEntityFromFlatEntityAndRelatedEntityMapsThroughMutationOrThr
       }),
     ).toMatchObject<Partial<FlatFieldMetadata>>({
       calendarViewIds: [],
+      mapViewIds: [],
       calendarViewUniversalIdentifiers: [],
+      mapViewUniversalIdentifiers: [],
     });
   });
 });

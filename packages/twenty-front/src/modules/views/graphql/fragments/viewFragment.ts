@@ -30,6 +30,7 @@ export const VIEW_FRAGMENT = gql`
     shouldHideEmptyGroups
     anyFieldFilterValue
     calendarFieldMetadataId
+    mapFieldMetadataId
     calendarLayout
     visibility
     createdByUserWorkspaceId

@@ -94,6 +94,7 @@ export const createStandardViewFlatMetadata = <
         calendarFieldName
       ].id
     : null;
+  const mapFieldMetadataId = null;
 
   const kanbanAggregateOperationFieldMetadataUniversalIdentifier =
     kanbanAggregateOperationFieldName
@@ -112,9 +113,11 @@ export const createStandardViewFlatMetadata = <
     ? // @ts-expect-error ignore
       STANDARD_OBJECTS[objectName].fields[calendarFieldName].universalIdentifier
     : null;
+  const mapFieldMetadataUniversalIdentifier = null;
 
   return {
     calendarFieldMetadataUniversalIdentifier,
+    mapFieldMetadataUniversalIdentifier,
     kanbanAggregateOperationFieldMetadataUniversalIdentifier,
     mainGroupByFieldMetadataUniversalIdentifier,
     objectMetadataUniversalIdentifier,
@@ -139,6 +142,7 @@ export const createStandardViewFlatMetadata = <
     shouldHideEmptyGroups: false,
     calendarLayout: null,
     calendarFieldMetadataId,
+    mapFieldMetadataId,
     anyFieldFilterValue: null,
     visibility: ViewVisibility.WORKSPACE,
     createdByUserWorkspaceId: null,

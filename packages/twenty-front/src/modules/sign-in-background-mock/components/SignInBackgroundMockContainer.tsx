@@ -13,6 +13,7 @@ import { SignInBackgroundMockContainerEffect } from '@/sign-in-background-mock/c
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { ViewBar } from '@/views/components/ViewBar';
 import { ViewComponentInstanceContext } from '@/views/states/contexts/ViewComponentInstanceContext';
+import { ViewType } from '@/views/types/ViewType';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -92,6 +93,7 @@ export const SignInBackgroundMockContainer = () => {
                   <>
                     <ViewBar
                       viewBarId={viewBarId}
+                      viewType={ViewType.TABLE}
                       optionsDropdownButton={<></>}
                       isReadOnly
                     />

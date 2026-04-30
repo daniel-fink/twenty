@@ -2,6 +2,7 @@ export enum ViewType {
   TABLE = 'TABLE',
   KANBAN = 'KANBAN',
   CALENDAR = 'CALENDAR',
+  MAP = 'MAP',
   FIELDS_WIDGET = 'FIELDS_WIDGET',
   TABLE_WIDGET = 'TABLE_WIDGET',
 }

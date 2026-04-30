@@ -101,7 +101,8 @@ export const useGetBrowsingContext = () => {
 
     if (
       viewType === ContextStoreViewType.Table ||
-      viewType === ContextStoreViewType.Kanban
+      viewType === ContextStoreViewType.Kanban ||
+      viewType === ContextStoreViewType.Map
     ) {
       const currentViewId = store.get(
         contextStoreCurrentViewIdComponentState.atomFamily({

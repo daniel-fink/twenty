@@ -31,6 +31,7 @@ export type View = {
   mainGroupByFieldMetadataId?: string | null;
   shouldHideEmptyGroups: boolean;
   calendarFieldMetadataId?: string | null;
+  mapFieldMetadataId?: string | null;
   calendarLayout?: ViewCalendarLayout | null;
   position: number;
   icon: string;

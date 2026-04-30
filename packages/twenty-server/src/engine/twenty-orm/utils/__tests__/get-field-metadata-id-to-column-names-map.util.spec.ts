@@ -71,6 +71,7 @@ describe('getFieldMetadataIdToColumnNamesMap', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       mainGroupByFieldMetadataViewIds: [],
       applicationId: null,
     }) as unknown as FlatFieldMetadata;

@@ -29,6 +29,7 @@ describe('computeCursorArgFilter', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
       label: overrides.name,
       ...overrides,
