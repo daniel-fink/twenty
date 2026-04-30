@@ -55,4 +55,17 @@ export const buildCompanyStandardFlatIndexMetadatas = ({
     twentyStandardApplicationId,
     now,
   }),
+  locationGistIndex: createStandardIndexFlatMetadata({
+    objectName,
+    workspaceId,
+    context: {
+      indexName: 'locationGistIndex',
+      relatedFieldNames: ['location'],
+      indexType: IndexType.GIST,
+    },
+    standardObjectMetadataRelatedEntityIds,
+    dependencyFlatEntityMaps,
+    twentyStandardApplicationId,
+    now,
+  }),
 });

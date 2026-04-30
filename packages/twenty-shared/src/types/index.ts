@@ -124,6 +124,14 @@ export { FILTERABLE_FIELD_TYPES } from './FilterableFieldType';
 export { FirstDayOfTheWeek } from './FirstDayOfTheWeek';
 export type { FormatRecordSerializedRelationProperties } from './FormatRecordSerializedRelationProperties.type';
 export type { FromTo } from './FromToType';
+export type {
+  GeoJsonPoint,
+  FieldMetadataGeometrySettings,
+} from './GeoJsonPoint';
+export {
+  DEFAULT_GEOMETRY_FIELD_SETTINGS,
+  isGeoJsonPoint,
+} from './GeoJsonPoint';
 export { HTTPMethod } from './HttpMethod';
 export type { IndexOf } from './IndexOf.type';
 export type { IsEmptyObject } from './IsEmptyObject.type';

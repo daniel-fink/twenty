@@ -12,6 +12,7 @@ export const isNonCompositeField = (type: FieldType) => {
     FieldMetadataType.NUMBER,
     FieldMetadataType.NUMERIC,
     FieldMetadataType.BOOLEAN,
+    FieldMetadataType.GEOMETRY,
     FieldMetadataType.RATING,
     FieldMetadataType.SELECT,
     FieldMetadataType.MULTI_SELECT,

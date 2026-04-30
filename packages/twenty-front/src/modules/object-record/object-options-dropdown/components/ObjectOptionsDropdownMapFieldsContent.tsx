@@ -46,7 +46,7 @@ export const ObjectOptionsDropdownMapFieldsContent = () => {
           />
         }
       >
-        {t`Address field`}
+        {t`Map field`}
       </DropdownMenuHeader>
       <DropdownMenuSearchInput
         autoFocus

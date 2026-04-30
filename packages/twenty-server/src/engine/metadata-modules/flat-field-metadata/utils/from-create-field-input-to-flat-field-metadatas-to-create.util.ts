@@ -167,6 +167,19 @@ export const fromCreateFieldInputToFlatFieldMetadatasToCreate = async ({
         ],
       };
     }
+    case FieldMetadataType.GEOMETRY: {
+      return {
+        status: 'fail',
+        errors: [
+          {
+            code: FieldMetadataExceptionCode.INVALID_FIELD_INPUT,
+            message:
+              'Geometry fields are not supported for custom field creation',
+            userFriendlyMessage: msg`Geometry fields cannot be created yet.`,
+          },
+        ],
+      };
+    }
     case FieldMetadataType.UUID:
     case FieldMetadataType.TEXT:
     case FieldMetadataType.PHONES:

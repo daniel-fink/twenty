@@ -14,6 +14,12 @@ describe('getColumnsForIndex', () => {
     expect(result).toEqual([]);
   });
 
+  it('should return an empty array when indexType is IndexType.GIST', () => {
+    const result = getColumnsForIndex(IndexType.GIST);
+
+    expect(result).toEqual([]);
+  });
+
   it('should return ["deletedAt"] when indexType is IndexType.BTREE', () => {
     const result = getColumnsForIndex(IndexType.BTREE);
 

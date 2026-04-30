@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { objectMetadataItemsSelector } from '@/object-metadata/states/objectMetadataItemsSelector';
+import { isValidMapFieldMetadataItem } from '@/object-record/record-map/utils/isValidMapFieldMetadataItem';
 import { navigationMemorizedUrlState } from '@/ui/navigation/states/navigationMemorizedUrlState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
@@ -26,10 +27,8 @@ export const useGetAvailableFieldsForMap = () => {
   );
 
   const availableFieldsForMap =
-    objectMetadataItem?.readableFields.filter(
-      (field) =>
-        field.type === FieldMetadataType.ADDRESS && field.isActive === true,
-    ) ?? [];
+    objectMetadataItem?.readableFields.filter(isValidMapFieldMetadataItem) ??
+    [];
 
   const navigate = useNavigateSettings();
 

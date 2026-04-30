@@ -23,7 +23,10 @@ export const getAvailableAggregationsFromObjectFields = (
 ): Record<string, AggregationField> => {
   return fields.reduce<Record<string, AggregationField>>(
     (acc, field) => {
-      if (field.type === FieldMetadataType.RELATION) {
+      if (
+        field.type === FieldMetadataType.RELATION ||
+        field.type === FieldMetadataType.GEOMETRY
+      ) {
         return acc;
       }
 

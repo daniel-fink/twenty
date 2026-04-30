@@ -2,6 +2,7 @@ import { type FieldMetadataType } from 'twenty-shared/types';
 
 type FieldMetadataTypesNotTestedForFilterInputValidation =
   | 'TS_VECTOR'
+  | 'GEOMETRY'
   | 'POSITION'
   | 'ACTOR'
   | 'NUMERIC'
@@ -9,6 +10,7 @@ type FieldMetadataTypesNotTestedForFilterInputValidation =
 
 type FieldMetadataTypesNotTestedForCreateInputValidation =
   | 'TS_VECTOR'
+  | 'GEOMETRY'
   | 'ACTOR'
   | 'NUMERIC';
 

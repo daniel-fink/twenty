@@ -1,4 +1,5 @@
 import {
+  DEFAULT_GEOMETRY_FIELD_SETTINGS,
   FieldMetadataType,
   ViewOpenRecordIn,
   ViewType,
@@ -70,11 +71,13 @@ const buildValidationArgs = ({
   mapFieldType = FieldMetadataType.ADDRESS,
   mapFieldIsActive = true,
   mapFieldObjectUniversalIdentifier = objectUniversalIdentifier,
+  mapFieldSettings = null,
 }: {
   flatView: UniversalFlatView;
   mapFieldType?: FieldMetadataType;
   mapFieldIsActive?: boolean;
   mapFieldObjectUniversalIdentifier?: string;
+  mapFieldSettings?: object | null;
 }) => ({
   flatEntityToValidate: flatView,
   optimisticFlatEntityMapsAndRelatedFlatEntityMaps: {
@@ -92,6 +95,7 @@ const buildValidationArgs = ({
         objectMetadataId: 'object-id',
         objectMetadataUniversalIdentifier: mapFieldObjectUniversalIdentifier,
         type: mapFieldType,
+        settings: mapFieldSettings,
         isActive: mapFieldIsActive,
       }),
     ]),
@@ -107,12 +111,14 @@ const buildUpdateValidationArgs = ({
   mapFieldType = FieldMetadataType.ADDRESS,
   mapFieldIsActive = true,
   mapFieldObjectUniversalIdentifier = objectUniversalIdentifier,
+  mapFieldSettings = null,
 }: {
   existingFlatView?: UniversalFlatView;
   flatEntityUpdate: Partial<UniversalFlatView>;
   mapFieldType?: FieldMetadataType;
   mapFieldIsActive?: boolean;
   mapFieldObjectUniversalIdentifier?: string;
+  mapFieldSettings?: object | null;
 }) => ({
   universalIdentifier: existingFlatView.universalIdentifier,
   flatEntityUpdate,
@@ -125,6 +131,7 @@ const buildUpdateValidationArgs = ({
         objectMetadataId: 'object-id',
         objectMetadataUniversalIdentifier: mapFieldObjectUniversalIdentifier,
         type: mapFieldType,
+        settings: mapFieldSettings,
         isActive: mapFieldIsActive,
       }),
     ]),
@@ -138,6 +145,18 @@ describe('FlatViewValidatorService', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
+      }) as never,
+    );
+
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('accepts a map view backed by an active point geometry field on the same object', () => {
+    const result = service.validateFlatViewCreation(
+      buildValidationArgs({
+        flatView: baseFlatView(),
+        mapFieldType: FieldMetadataType.GEOMETRY,
+        mapFieldSettings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
       }) as never,
     );
 
@@ -161,7 +180,7 @@ describe('FlatViewValidatorService', () => {
     );
   });
 
-  it('rejects a map view backed by a non-address field', () => {
+  it('rejects a map view backed by a non-address, non-point-geometry field', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
@@ -172,7 +191,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS field',
+        message: 'Map field must be an ADDRESS or Point GEOMETRY field',
       }),
     );
   });
@@ -222,7 +241,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('rejects updating a view to map when backed by a non-address field', () => {
+  it('rejects updating a view to map when backed by a non-address, non-point-geometry field', () => {
     const result = service.validateFlatViewUpdate(
       buildUpdateValidationArgs({
         flatEntityUpdate: {
@@ -236,7 +255,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS field',
+        message: 'Map field must be an ADDRESS or Point GEOMETRY field',
       }),
     );
   });

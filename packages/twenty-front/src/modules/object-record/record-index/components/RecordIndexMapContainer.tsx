@@ -1,11 +1,14 @@
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
-import { FieldMetadataType } from '~/generated-metadata/graphql';
 
 import { RecordMap } from '@/object-record/record-map/components/RecordMap';
 import { RecordIndexMapDataLoaderEffect } from '@/object-record/record-map/components/RecordIndexMapDataLoaderEffect';
 import { RecordMapSSESubscribeEffect } from '@/object-record/record-map/components/RecordMapSSESubscribeEffect';
 import { useRecordMapRecords } from '@/object-record/record-map/hooks/useRecordMapRecords';
 import { type MapFieldSource } from '@/object-record/record-map/types/MapFieldSource';
+import {
+  isValidMapFieldMetadataItem,
+  type MapFieldMetadataItem,
+} from '@/object-record/record-map/utils/isValidMapFieldMetadataItem';
 import { RecordComponentInstanceContextsWrapper } from '@/object-record/components/RecordComponentInstanceContextsWrapper';
 import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
 import { isDefined } from 'twenty-shared/utils';
@@ -22,10 +25,9 @@ export const RecordIndexMapContainer = ({
     useRecordIndexContextOrThrow();
 
   const mapFieldMetadataItem = objectMetadataItem.readableFields.find(
-    (field) =>
+    (field): field is MapFieldMetadataItem =>
       field.id === currentView?.mapFieldMetadataId &&
-      field.type === FieldMetadataType.ADDRESS &&
-      field.isActive === true,
+      isValidMapFieldMetadataItem(field),
   );
 
   if (!isDefined(currentView?.mapFieldMetadataId)) {
@@ -39,7 +41,7 @@ export const RecordIndexMapContainer = ({
   const mapFieldSource = {
     fieldMetadataId: mapFieldMetadataItem.id,
     fieldName: mapFieldMetadataItem.name,
-    type: FieldMetadataType.ADDRESS,
+    type: mapFieldMetadataItem.type,
   } satisfies MapFieldSource;
 
   return (

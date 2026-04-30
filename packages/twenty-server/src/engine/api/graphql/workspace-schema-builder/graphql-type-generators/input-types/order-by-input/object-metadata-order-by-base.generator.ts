@@ -124,6 +124,10 @@ export class ObjectMetadataOrderByBaseGenerator {
     logger: Logger;
     isForGroupBy?: boolean;
   }) {
+    if (fieldMetadata.type === FieldMetadataType.GEOMETRY) {
+      return {};
+    }
+
     if (
       isForGroupBy === true &&
       (fieldMetadata.type === FieldMetadataType.DATE ||

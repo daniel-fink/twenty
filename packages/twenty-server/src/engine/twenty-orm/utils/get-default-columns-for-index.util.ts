@@ -2,6 +2,7 @@ import { IndexType } from 'src/engine/metadata-modules/index-metadata/types/inde
 
 export const getColumnsForIndex = (indexType?: IndexType) => {
   switch (indexType) {
+    case IndexType.GIST:
     case IndexType.GIN:
       return [];
     default:

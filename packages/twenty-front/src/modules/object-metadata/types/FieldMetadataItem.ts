@@ -5,6 +5,7 @@ import {
 } from '@/object-record/record-field/ui/types/FieldMetadata';
 
 import {
+  type FieldMetadataGeometrySettings,
   type FieldMetadataMultiItemSettings,
   type PartialFieldMetadataItemOption,
 } from 'twenty-shared/types';
@@ -34,6 +35,7 @@ export type FieldMetadataItem = Omit<
   morphRelations?: FieldMetadataItemRelation[] | null;
   settings?:
     | FieldDateMetadataSettings
+    | FieldMetadataGeometrySettings
     | FieldMetadataMultiItemSettings
     | FieldRelationMetadataSettings
     | null;
