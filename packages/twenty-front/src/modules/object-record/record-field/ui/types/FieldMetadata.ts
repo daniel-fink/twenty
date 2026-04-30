@@ -139,6 +139,14 @@ export type FieldPositionMetadata = BaseFieldMetadata & {
   settings?: null;
 };
 
+export type FieldGeometryMetadata = BaseFieldMetadata & {
+  settings?: {
+    geometryType: 'POINT';
+    srid: 4326;
+    isGeography: false;
+  };
+};
+
 export type FieldRelationMetadataSettings = {
   relationType?: RelationType;
   // Join column name for the foreign key (e.g., "petId" for a "pet" relation)
@@ -208,6 +216,7 @@ export type FieldMetadata =
   | FieldEmailsMetadata
   | FieldFilesMetadata
   | FieldFullNameMetadata
+  | FieldGeometryMetadata
   | FieldLinkMetadata
   | FieldLinksMetadata
   | FieldNumberMetadata
@@ -265,6 +274,10 @@ export type FieldAddressValue = {
   addressLat: number | null;
   addressLng: number | null;
 };
+export type FieldGeometryValue = {
+  type: 'Point';
+  coordinates: [number, number];
+} | null;
 export type FieldSelectValue = string | null;
 export type FieldMultiSelectValue = string[] | null;
 

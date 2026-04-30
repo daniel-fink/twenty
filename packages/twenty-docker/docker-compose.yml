@@ -105,7 +105,7 @@ services:
     restart: always
 
   db:
-    image: postgres:16
+    image: postgis/postgis:16-3.5
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:

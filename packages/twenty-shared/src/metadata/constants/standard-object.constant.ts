@@ -668,6 +668,9 @@ export const STANDARD_OBJECTS = {
         universalIdentifier: '20202020-0c28-43d8-8ba5-3659924d3489',
       },
       address: { universalIdentifier: '20202020-c5ce-4adc-b7b6-9c0979fc55e7' },
+      location: {
+        universalIdentifier: '20202020-845d-4f6d-97e1-2f6d5d7c6a3b',
+      },
       employees: {
         universalIdentifier: '20202020-8965-464a-8a75-74bafc152a0b',
       },
@@ -720,6 +723,9 @@ export const STANDARD_OBJECTS = {
       },
       searchVectorGinIndex: {
         universalIdentifier: 'c3eb62df-2cc1-4cc3-b7aa-e96a4d65c633',
+      },
+      locationGistIndex: {
+        universalIdentifier: 'c7421d18-c375-4aa7-9a7c-9c5c0a3a3c55',
       },
     },
     views: {

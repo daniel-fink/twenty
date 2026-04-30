@@ -375,6 +375,7 @@ export const buildRecordFromImportedStructuredRow = ({
         }
         break;
       case FieldMetadataType.FILES:
+      case FieldMetadataType.GEOMETRY:
       case FieldMetadataType.MORPH_RELATION:
       case FieldMetadataType.POSITION:
       case FieldMetadataType.TS_VECTOR:

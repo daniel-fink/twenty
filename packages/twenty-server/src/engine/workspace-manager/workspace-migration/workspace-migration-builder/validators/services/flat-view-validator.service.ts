@@ -1,6 +1,10 @@
 import { msg, t } from '@lingui/core/macro';
 import { type ALL_METADATA_NAME } from 'twenty-shared/metadata';
-import { FieldMetadataType, ViewType } from 'twenty-shared/types';
+import {
+  type FieldMetadataGeometrySettings,
+  FieldMetadataType,
+  ViewType,
+} from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 
 import { findFlatEntityByUniversalIdentifier } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-universal-identifier.util';
@@ -57,11 +61,22 @@ export class FlatViewValidatorService {
       return;
     }
 
-    if (mapFieldMetadata.type !== FieldMetadataType.ADDRESS) {
+    const isAddressMapField =
+      mapFieldMetadata.type === FieldMetadataType.ADDRESS;
+    const mapFieldMetadataSettings = (
+      mapFieldMetadata as unknown as {
+        settings: FieldMetadataGeometrySettings | null;
+      }
+    ).settings;
+    const isPointGeometryMapField =
+      mapFieldMetadata.type === FieldMetadataType.GEOMETRY &&
+      mapFieldMetadataSettings?.geometryType === 'POINT';
+
+    if (!isAddressMapField && !isPointGeometryMapField) {
       validationResult.errors.push({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: t`Map field must be an ADDRESS field`,
-        userFriendlyMessage: msg`Map field must be an address field`,
+        message: t`Map field must be an ADDRESS or Point GEOMETRY field`,
+        userFriendlyMessage: msg`Map field must be an address or point geometry field`,
       });
     }
 

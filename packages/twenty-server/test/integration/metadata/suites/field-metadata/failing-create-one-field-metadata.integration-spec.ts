@@ -86,4 +86,30 @@ describe('Failing create field metadata tests suite', () => {
       expect(errorDetails).toContain(expectedMessage);
     },
   );
+
+  it('should fail to create GEOMETRY field type via API', async () => {
+    const { data, errors } = await createOneFieldMetadata({
+      expectToFail: true,
+      input: {
+        objectMetadataId: createdObjectMetadataId,
+        type: FieldMetadataType.GEOMETRY,
+        name: 'geometryField',
+        label: 'geometryField',
+        isLabelSyncedWithName: false,
+      },
+      gqlFields: `
+        id
+        type
+        name
+        label
+      `,
+    });
+
+    expect(data).toBeNull();
+    expect(errors).toBeDefined();
+    expect(errors[0].extensions.code).toBe('METADATA_VALIDATION_FAILED');
+    expect(JSON.stringify(errors[0].extensions.errors)).toContain(
+      'Geometry fields are not supported for custom field creation',
+    );
+  });
 });

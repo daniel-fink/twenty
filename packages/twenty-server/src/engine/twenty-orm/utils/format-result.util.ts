@@ -13,6 +13,7 @@ import {
   DEFAULT_COMPOSITE_FIELDS_NULL_EQUIVALENT_VALUE,
   DEFAULT_TEXT_FIELD_NULL_EQUIVALENT_VALUE,
 } from 'src/engine/api/common/common-args-processors/data-arg-processor/constants/null-equivalent-values.constant';
+import { parsePostgisPoint } from 'src/engine/core-modules/geo-map/utils/parse-postgis-point.util';
 import { getFlatFieldsFromFlatObjectMetadata } from 'src/engine/api/graphql/workspace-schema-builder/utils/get-flat-fields-for-flat-object-metadata.util';
 import { computeCompositeColumnName } from 'src/engine/metadata-modules/field-metadata/utils/compute-column-name.util';
 import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
@@ -273,6 +274,10 @@ function formatFieldMetadataValue(
     }
 
     return value;
+  }
+
+  if (fieldMetadataType === FieldMetadataType.GEOMETRY) {
+    return parsePostgisPoint(value);
   }
 
   return value;

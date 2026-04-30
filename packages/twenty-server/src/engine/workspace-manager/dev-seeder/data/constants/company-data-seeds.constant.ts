@@ -8,6 +8,7 @@ type CompanyDataSeed = {
   addressAddressCountry?: string | null;
   addressAddressLat?: number | null;
   addressAddressLng?: number | null;
+  location?: (() => string) | null;
   addressAddressPostcode?: string | null;
   addressAddressState?: string | null;
   addressAddressStreet1?: string | null;
@@ -44,6 +45,7 @@ export const COMPANY_DATA_SEED_COLUMNS: (keyof CompanyDataSeed)[] = [
   'addressAddressCountry',
   'addressAddressLat',
   'addressAddressLng',
+  'location',
   'employees',
   'linkedinLinkPrimaryLinkUrl',
   'createdBySource',
@@ -8657,6 +8659,14 @@ export const COMPANY_DATA_SEEDS: CompanyDataSeed[] = COMPANY_DATA_SEEDS_RAW.map(
     addressAddressCountry: company.addressAddressCountry ?? null,
     addressAddressLat: company.addressAddressLat ?? null,
     addressAddressLng: company.addressAddressLng ?? null,
+    location:
+      company.addressAddressLng === null ||
+      company.addressAddressLng === undefined ||
+      company.addressAddressLat === null ||
+      company.addressAddressLat === undefined
+        ? null
+        : () =>
+            `ST_SetSRID(ST_MakePoint(${company.addressAddressLng}, ${company.addressAddressLat}), 4326)`,
     employees: company.employees,
     linkedinLinkPrimaryLinkUrl: company.linkedinLinkPrimaryLinkUrl,
     createdBySource: company.createdBySource,

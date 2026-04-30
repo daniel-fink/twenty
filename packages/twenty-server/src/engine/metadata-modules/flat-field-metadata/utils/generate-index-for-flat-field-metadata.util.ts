@@ -1,3 +1,4 @@
+import { FieldMetadataType } from 'twenty-shared/types';
 import { v4 } from 'uuid';
 
 import { IndexType } from 'src/engine/metadata-modules/index-metadata/types/indexType.types';
@@ -33,7 +34,10 @@ export const generateIndexForFlatFieldMetadata = ({
             updatedAt: createdAt,
           },
         ],
-        indexType: IndexType.BTREE,
+        indexType:
+          flatFieldMetadata.type === FieldMetadataType.GEOMETRY
+            ? IndexType.GIST
+            : IndexType.BTREE,
         indexWhereClause: null,
         isCustom: true,
         isUnique: flatFieldMetadata.isUnique ?? false,
