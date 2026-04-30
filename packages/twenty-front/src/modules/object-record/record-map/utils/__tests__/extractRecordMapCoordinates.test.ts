@@ -4,7 +4,6 @@ import { FieldMetadataType } from '~/generated-metadata/graphql';
 const mapFieldSource = {
   fieldMetadataId: 'address-field-id',
   fieldName: 'address',
-  fieldLabel: 'Address',
   type: FieldMetadataType.ADDRESS,
 } as const;
 
@@ -62,6 +61,22 @@ describe('extractRecordMapCoordinates', () => {
           address: {
             addressLat: null,
             addressLng: -74.006,
+          },
+        },
+        mapFieldSource,
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null when coordinates are invalid strings', () => {
+    expect(
+      extractRecordMapCoordinates({
+        record: {
+          __typename: 'Company',
+          id: 'record-id',
+          address: {
+            addressLat: 'not-a-coordinate',
+            addressLng: '-74.006',
           },
         },
         mapFieldSource,

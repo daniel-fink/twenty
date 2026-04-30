@@ -3,12 +3,16 @@ import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { styled } from '@linaria/react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
-import maplibregl, { type Marker } from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+const DEFAULT_MAP_CENTER = { latitude: 20, longitude: 0 };
+const DEFAULT_MAP_ZOOM = 1.4;
+const SINGLE_POINT_MAP_ZOOM = 12;
 
 const StyledContainer = styled.div`
   background: ${themeCssVariables.color.gray10};
@@ -43,17 +47,22 @@ const StyledEmptyState = styled.div`
   text-align: center;
 `;
 
-const buildMarkerElement = () => {
+const buildMarkerElement = (recordName?: string) => {
   const markerElement = document.createElement('button');
+  const accessibleName = isDefined(recordName)
+    ? `Open ${recordName}`
+    : 'Open map record';
 
   markerElement.type = 'button';
+  markerElement.setAttribute('aria-label', accessibleName);
   markerElement.style.background = themeCssVariables.color.blue;
-  markerElement.style.border = '2px solid #fff';
+  markerElement.style.border = `2px solid ${themeCssVariables.background.primary}`;
   markerElement.style.borderRadius = '50%';
-  markerElement.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.28)';
+  markerElement.style.boxShadow = themeCssVariables.boxShadow.strong;
   markerElement.style.cursor = 'pointer';
   markerElement.style.height = '18px';
   markerElement.style.padding = '0';
+  markerElement.title = accessibleName;
   markerElement.style.width = '18px';
 
   return markerElement;
@@ -66,58 +75,46 @@ export const RecordMap = ({
   loading: boolean;
   recordMapPoints: RecordMapPoint[];
 }) => {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRefs = useRef<Marker[]>([]);
+  const [mapContainerElement, setMapContainerElement] =
+    useState<HTMLDivElement | null>(null);
+  const [map, setMap] = useState<maplibregl.Map | null>(null);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
-
-  const center = useMemo(() => {
-    const firstPoint = recordMapPoints[0];
-
-    if (!isDefined(firstPoint)) {
-      return { latitude: 20, longitude: 0 };
-    }
-
-    return firstPoint;
-  }, [recordMapPoints]);
+  const shouldRenderMap =
+    hasMapStyle && (loading || recordMapPoints.length > 0);
 
   useEffect(() => {
-    if (!hasMapStyle || !isDefined(mapContainerRef.current)) {
+    if (!shouldRenderMap || !isDefined(mapContainerElement)) {
       return;
     }
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
+    const mapInstance = new maplibregl.Map({
+      container: mapContainerElement,
       style: REACT_APP_MAP_VIEW_STYLE_URL,
-      center: [center.longitude, center.latitude],
-      zoom: recordMapPoints.length === 0 ? 1.4 : 10,
+      center: [DEFAULT_MAP_CENTER.longitude, DEFAULT_MAP_CENTER.latitude],
+      zoom: DEFAULT_MAP_ZOOM,
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-    mapRef.current = map;
+    mapInstance.addControl(
+      new maplibregl.NavigationControl({ showCompass: false }),
+    );
+    setMap(mapInstance);
 
     return () => {
-      markerRefs.current.forEach((marker) => marker.remove());
-      markerRefs.current = [];
-      map.remove();
-      mapRef.current = null;
+      setMap((currentMap) => (currentMap === mapInstance ? null : currentMap));
+      mapInstance.remove();
     };
-  }, [center.latitude, center.longitude, hasMapStyle, recordMapPoints.length]);
+  }, [mapContainerElement, shouldRenderMap]);
 
   useEffect(() => {
-    const map = mapRef.current;
-
     if (!isDefined(map)) {
       return;
     }
 
-    markerRefs.current.forEach((marker) => marker.remove());
-    markerRefs.current = [];
-
-    recordMapPoints.forEach((point) => {
-      const markerElement = buildMarkerElement();
+    const markers = recordMapPoints.map((point) => {
+      const recordName = point.record.name ?? point.record.displayName;
+      const markerElement = buildMarkerElement(recordName);
 
       markerElement.addEventListener('click', () => {
         openRecordFromIndexView({ recordId: point.record.id });
@@ -127,7 +124,7 @@ export const RecordMap = ({
         .setLngLat([point.longitude, point.latitude])
         .addTo(map);
 
-      markerRefs.current.push(marker);
+      return marker;
     });
 
     const firstPoint = recordMapPoints[0];
@@ -135,7 +132,7 @@ export const RecordMap = ({
     if (recordMapPoints.length === 1 && isDefined(firstPoint)) {
       map.flyTo({
         center: [firstPoint.longitude, firstPoint.latitude],
-        zoom: 12,
+        zoom: SINGLE_POINT_MAP_ZOOM,
         essential: true,
       });
     }
@@ -152,7 +149,11 @@ export const RecordMap = ({
         maxZoom: 12,
       });
     }
-  }, [openRecordFromIndexView, recordMapPoints]);
+
+    return () => {
+      markers.forEach((marker) => marker.remove());
+    };
+  }, [map, openRecordFromIndexView, recordMapPoints]);
 
   if (!hasMapStyle) {
     return (
@@ -162,7 +163,7 @@ export const RecordMap = ({
     );
   }
 
-  if (!loading && recordMapPoints.length === 0) {
+  if (!shouldRenderMap) {
     return (
       <StyledContainer>
         <StyledEmptyState>No records with coordinates to map.</StyledEmptyState>
@@ -172,7 +173,7 @@ export const RecordMap = ({
 
   return (
     <StyledContainer>
-      <StyledMapCanvas ref={mapContainerRef} />
+      <StyledMapCanvas ref={setMapContainerElement} />
     </StyledContainer>
   );
 };

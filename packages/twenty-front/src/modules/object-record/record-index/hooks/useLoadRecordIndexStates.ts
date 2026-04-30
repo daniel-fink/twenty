@@ -18,7 +18,6 @@ import { recordIndexFieldDefinitionsState } from '@/object-record/record-index/s
 import { recordIndexGroupAggregateFieldMetadataItemComponentState } from '@/object-record/record-index/states/recordIndexGroupAggregateFieldMetadataItemComponentState';
 import { recordIndexGroupAggregateOperationComponentState } from '@/object-record/record-index/states/recordIndexGroupAggregateOperationComponentState';
 import { recordIndexOpenRecordInState } from '@/object-record/record-index/states/recordIndexOpenRecordInState';
-import { recordIndexMapFieldMetadataIdState } from '@/object-record/record-index/states/recordIndexMapFieldMetadataIdState';
 import { recordIndexShouldHideEmptyRecordGroupsComponentState } from '@/object-record/record-index/states/recordIndexShouldHideEmptyRecordGroupsComponentState';
 import { recordIndexViewTypeState } from '@/object-record/record-index/states/recordIndexViewTypeState';
 import { viewFieldAggregateOperationState } from '@/object-record/record-table/record-table-footer/states/viewFieldAggregateOperationState';
@@ -266,10 +265,6 @@ export const useLoadRecordIndexStates = () => {
           batchSet(
             recordIndexCalendarFieldMetadataIdState.atom,
             view.calendarFieldMetadataId ?? null,
-          );
-          batchSet(
-            recordIndexMapFieldMetadataIdState.atom,
-            view.mapFieldMetadataId ?? null,
           );
 
           batchSet(

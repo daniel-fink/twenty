@@ -27,12 +27,11 @@ export const useRecordMapRecords = ({
     additionalFieldMetadataId: mapFieldSource.fieldMetadataId,
   });
 
-  const { records, loading, error, totalCount } =
-    useFindManyRecords<ObjectRecord>({
-      ...params,
-      recordGqlFields,
-      limit: RECORD_MAP_QUERY_LIMIT,
-    });
+  const { records, loading } = useFindManyRecords<ObjectRecord>({
+    ...params,
+    recordGqlFields,
+    limit: RECORD_MAP_QUERY_LIMIT,
+  });
 
   const recordMapPoints = useMemo(
     () =>
@@ -51,7 +50,5 @@ export const useRecordMapRecords = ({
     records,
     recordMapPoints,
     loading,
-    error,
-    totalCount,
   };
 };

@@ -22,9 +22,10 @@ usage() {
 Usage:
   ./deploy.sh local
   ./deploy.sh start
+  ./deploy.sh watch
   ./deploy.sh reset-map-dev-data
-  ./deploy.sh check
   ./deploy.sh test-map-view
+  ./deploy.sh check
   ./deploy.sh help
 
 Commands:
@@ -36,15 +37,19 @@ Commands:
     Start frontend, backend, and worker through the existing monorepo start
     command.
 
+  watch
+    Start the frontend Vite dev server and backend Nest watcher for hot-reload
+    development. This does not start the worker.
+
   reset-map-dev-data
     Reset the database and reseed development records, including company
     address latitude and longitude fixtures used by map-view work.
 
-  check
-    Verify required tooling and run lightweight initialization checks.
-
   test-map-view
     Build required workspace packages and run focused Epic 2 map-view tests.
+
+  check
+    Verify required tooling and run lightweight initialization checks.
 
 Local URLs after start:
   Frontend: http://localhost:3001
@@ -116,32 +121,35 @@ run_start() {
   yarn start
 }
 
+run_watch() {
+  check_required_tools
+
+  local watch_ulimit="${TWENTY_GEO_WATCH_ULIMIT:-65536}"
+  local watch_polling="${TWENTY_GEO_WATCH_POLLING:-1}"
+  local watch_interval="${TWENTY_GEO_WATCH_INTERVAL:-1000}"
+
+  if ulimit -n "$watch_ulimit" 2>/dev/null; then
+    log "File descriptor limit set to $(ulimit -n) for watch processes"
+  else
+    log "Could not raise file descriptor limit to $watch_ulimit; continuing with $(ulimit -n)"
+  fi
+
+  if [[ "$watch_polling" != "0" && "$watch_polling" != "false" ]]; then
+    log "Backend watcher polling enabled with ${watch_interval}ms interval"
+  else
+    log "Backend watcher polling disabled; native file watching may hit EMFILE"
+  fi
+
+  log "Starting frontend and backend hot-reload processes"
+  npx concurrently --kill-others --names twenty-server,twenty-front \
+    "env -u NO_COLOR CHOKIDAR_USEPOLLING=$watch_polling CHOKIDAR_INTERVAL=$watch_interval yarn nx run twenty-server:start --excludeTaskDependencies" \
+    "env -u NO_COLOR yarn nx run twenty-front:start --excludeTaskDependencies"
+}
+
 run_reset_map_dev_data() {
   check_required_tools
   log "Resetting and seeding map development data"
   npx nx database:reset twenty-server
-}
-
-run_check() {
-  check_required_tools
-
-  log "Checking shell scripts"
-  bash -n deploy.sh
-  bash -n scripts/local/bootstrap-twenty-map-dev.sh
-  bash -n scripts/local/start-twenty-dev.sh
-  bash -n scripts/local/reset-map-dev-data.sh
-  bash -n scripts/local/check-map-view.sh
-
-  if [[ -f node_modules/.yarn-state.yml ]]; then
-    log "Checking Nx project metadata"
-    yarn nx show project twenty-front >/dev/null
-    yarn nx show project twenty-server >/dev/null
-  else
-    log "Skipping Nx project metadata because dependencies are not installed"
-    log "Run yarn install --immutable or ./deploy.sh local to enable Nx checks"
-  fi
-
-  log "Initialization checks passed"
 }
 
 run_test_map_view() {
@@ -166,6 +174,29 @@ run_test_map_view() {
   log "Map view checks passed"
 }
 
+run_check() {
+  check_required_tools
+
+  log "Checking shell scripts"
+  bash -n deploy.sh
+  bash -n scripts/local/bootstrap-twenty-map-dev.sh
+  bash -n scripts/local/start-twenty-dev.sh
+  bash -n scripts/local/watch-twenty-dev.sh
+  bash -n scripts/local/reset-map-dev-data.sh
+  bash -n scripts/local/check-map-view.sh
+
+  if [[ -f node_modules/.yarn-state.yml ]]; then
+    log "Checking Nx project metadata"
+    yarn nx show project twenty-front >/dev/null
+    yarn nx show project twenty-server >/dev/null
+  else
+    log "Skipping Nx project metadata because dependencies are not installed"
+    log "Run yarn install --immutable or ./deploy.sh local to enable Nx checks"
+  fi
+
+  log "Initialization checks passed"
+}
+
 main() {
   local command="${1:-help}"
 
@@ -176,14 +207,17 @@ main() {
     start)
       run_start
       ;;
+    watch)
+      run_watch
+      ;;
     reset-map-dev-data)
       run_reset_map_dev_data
       ;;
-    check)
-      run_check
-      ;;
     test-map-view)
       run_test_map_view
+      ;;
+    check)
+      run_check
       ;;
     help | --help | -h)
       usage

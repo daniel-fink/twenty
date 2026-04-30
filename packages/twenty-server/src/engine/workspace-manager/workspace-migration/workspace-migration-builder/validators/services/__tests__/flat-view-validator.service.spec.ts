@@ -98,6 +98,39 @@ const buildValidationArgs = ({
   },
 });
 
+const buildUpdateValidationArgs = ({
+  existingFlatView = baseFlatView({
+    type: ViewType.TABLE,
+    mapFieldMetadataUniversalIdentifier: null,
+  }),
+  flatEntityUpdate,
+  mapFieldType = FieldMetadataType.ADDRESS,
+  mapFieldIsActive = true,
+  mapFieldObjectUniversalIdentifier = objectUniversalIdentifier,
+}: {
+  existingFlatView?: UniversalFlatView;
+  flatEntityUpdate: Partial<UniversalFlatView>;
+  mapFieldType?: FieldMetadataType;
+  mapFieldIsActive?: boolean;
+  mapFieldObjectUniversalIdentifier?: string;
+}) => ({
+  universalIdentifier: existingFlatView.universalIdentifier,
+  flatEntityUpdate,
+  optimisticFlatEntityMapsAndRelatedFlatEntityMaps: {
+    flatViewMaps: buildMaps([existingFlatView]),
+    flatFieldMetadataMaps: buildMaps([
+      getFlatFieldMetadataMock({
+        id: 'address-field-id',
+        universalIdentifier: addressFieldUniversalIdentifier,
+        objectMetadataId: 'object-id',
+        objectMetadataUniversalIdentifier: mapFieldObjectUniversalIdentifier,
+        type: mapFieldType,
+        isActive: mapFieldIsActive,
+      }),
+    ]),
+  },
+});
+
 describe('FlatViewValidatorService', () => {
   const service = new FlatViewValidatorService();
 
@@ -172,6 +205,38 @@ describe('FlatViewValidatorService', () => {
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
         message: 'Map field must belong to the view object',
+      }),
+    );
+  });
+
+  it('accepts updating a view to map when backed by an active address field on the same object', () => {
+    const result = service.validateFlatViewUpdate(
+      buildUpdateValidationArgs({
+        flatEntityUpdate: {
+          type: ViewType.MAP,
+          mapFieldMetadataUniversalIdentifier: addressFieldUniversalIdentifier,
+        },
+      }) as never,
+    );
+
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('rejects updating a view to map when backed by a non-address field', () => {
+    const result = service.validateFlatViewUpdate(
+      buildUpdateValidationArgs({
+        flatEntityUpdate: {
+          type: ViewType.MAP,
+          mapFieldMetadataUniversalIdentifier: addressFieldUniversalIdentifier,
+        },
+        mapFieldType: FieldMetadataType.TEXT,
+      }) as never,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: 'Map field must be an ADDRESS field',
       }),
     );
   });

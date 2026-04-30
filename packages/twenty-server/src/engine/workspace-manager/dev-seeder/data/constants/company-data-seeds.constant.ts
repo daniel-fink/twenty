@@ -24,6 +24,14 @@ type CompanyDataSeed = {
   position: number;
 };
 
+type CompanyDataSeedRaw = Omit<
+  CompanyDataSeed,
+  | 'updatedBySource'
+  | 'updatedByWorkspaceMemberId'
+  | 'updatedByName'
+  | 'position'
+>;
+
 export const COMPANY_DATA_SEED_COLUMNS: (keyof CompanyDataSeed)[] = [
   'id',
   'name',
@@ -652,7 +660,7 @@ export const COMPANY_DATA_SEED_IDS = {
 };
 
 // prettier-ignore
-const COMPANY_DATA_SEEDS_RAW = [
+const COMPANY_DATA_SEEDS_RAW: CompanyDataSeedRaw[] = [
   {
     id: COMPANY_DATA_SEED_IDS.ID_1,
     name: 'Google',

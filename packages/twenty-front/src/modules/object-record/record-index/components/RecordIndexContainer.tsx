@@ -57,6 +57,7 @@ export const RecordIndexContainer = () => {
           <ViewBar
             isReadOnly={hasCurrentViewNonReadableFields}
             viewBarId={recordIndexId}
+            viewType={recordIndexViewType ?? ViewType.TABLE}
             optionsDropdownButton={
               <ObjectOptionsDropdown
                 recordIndexId={recordIndexId}

@@ -1,13 +1,11 @@
 import { type FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
 import { useObjectOptionsDropdown } from '@/object-record/object-options-dropdown/hooks/useObjectOptionsDropdown';
-import { recordIndexMapFieldMetadataIdState } from '@/object-record/record-index/states/recordIndexMapFieldMetadataIdState';
 import { DropdownContent } from '@/ui/layout/dropdown/components/DropdownContent';
 import { DropdownMenuHeader } from '@/ui/layout/dropdown/components/DropdownMenuHeader/DropdownMenuHeader';
 import { DropdownMenuHeaderLeftComponent } from '@/ui/layout/dropdown/components/DropdownMenuHeader/internal/DropdownMenuHeaderLeftComponent';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { DropdownMenuSearchInput } from '@/ui/layout/dropdown/components/DropdownMenuSearchInput';
 import { DropdownMenuSeparator } from '@/ui/layout/dropdown/components/DropdownMenuSeparator';
-import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { useUpdateCurrentView } from '@/views/hooks/useUpdateCurrentView';
 import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
@@ -27,16 +25,11 @@ export const ObjectOptionsDropdownMapFieldsContent = () => {
   const { availableFieldsForMap, navigateToAddressFieldSettings } =
     useGetAvailableFieldsForMap();
 
-  const setRecordIndexMapFieldMetadataId = useSetAtomState(
-    recordIndexMapFieldMetadataIdState,
-  );
-
   const filteredMapFields = availableFieldsForMap.filter((field) =>
     field.label.toLowerCase().includes(searchInput.toLowerCase()),
   );
 
   const handleMapFieldChange = async (fieldMetadataItem: FieldMetadataItem) => {
-    setRecordIndexMapFieldMetadataId(fieldMetadataItem.id);
     await updateCurrentView({
       mapFieldMetadataId: fieldMetadataItem.id,
     });

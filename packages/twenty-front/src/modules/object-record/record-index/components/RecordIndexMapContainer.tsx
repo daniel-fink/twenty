@@ -39,7 +39,6 @@ export const RecordIndexMapContainer = ({
   const mapFieldSource = {
     fieldMetadataId: mapFieldMetadataItem.id,
     fieldName: mapFieldMetadataItem.name,
-    fieldLabel: mapFieldMetadataItem.label,
     type: FieldMetadataType.ADDRESS,
   } satisfies MapFieldSource;
 
