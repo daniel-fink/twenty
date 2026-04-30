@@ -14,6 +14,7 @@ import { SpreadsheetImportProvider } from '@/spreadsheet-import/provider/compone
 import { RecordIndexCalendarContainer } from '@/object-record/record-index/components/RecordIndexCalendarContainer';
 import { RecordIndexEmptyStateNotShared } from '@/object-record/record-index/components/RecordIndexEmptyStateNotShared';
 import { RecordIndexFiltersToContextStoreEffect } from '@/object-record/record-index/components/RecordIndexFiltersToContextStoreEffect';
+import { RecordIndexMapContainer } from '@/object-record/record-index/components/RecordIndexMapContainer';
 import { useHasCurrentViewNonReadableFields } from '@/object-record/record-index/hooks/useHasCurrentViewNonReadableFields';
 import { ViewBar } from '@/views/components/ViewBar';
 import { ViewType } from '@/views/types/ViewType';
@@ -56,6 +57,7 @@ export const RecordIndexContainer = () => {
           <ViewBar
             isReadOnly={hasCurrentViewNonReadableFields}
             viewBarId={recordIndexId}
+            viewType={recordIndexViewType ?? ViewType.TABLE}
             optionsDropdownButton={
               <ObjectOptionsDropdown
                 recordIndexId={recordIndexId}
@@ -94,6 +96,11 @@ export const RecordIndexContainer = () => {
                   recordCalendarInstanceId={recordIndexId}
                   viewBarInstanceId={recordIndexId}
                 />
+              </StyledContainerWithPadding>
+            )}
+            {recordIndexViewType === ViewType.MAP && (
+              <StyledContainerWithPadding>
+                <RecordIndexMapContainer recordMapInstanceId={recordIndexId} />
               </StyledContainerWithPadding>
             )}
           </>

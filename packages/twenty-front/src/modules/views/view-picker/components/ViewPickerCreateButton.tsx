@@ -3,11 +3,13 @@ import { ViewType } from '@/views/types/ViewType';
 import { useCreateViewFromCurrentState } from '@/views/view-picker/hooks/useCreateViewFromCurrentState';
 import { useDestroyViewFromCurrentState } from '@/views/view-picker/hooks/useDestroyViewFromCurrentState';
 import { useGetAvailableFieldsForCalendar } from '@/views/view-picker/hooks/useGetAvailableFieldsForCalendar';
+import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
 import { useGetAvailableFieldsToGroupRecordsBy } from '@/views/view-picker/hooks/useGetAvailableFieldsToGroupRecordsBy';
 import { useViewPickerMode } from '@/views/view-picker/hooks/useViewPickerMode';
 import { viewPickerCalendarFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerCalendarFieldMetadataIdComponentState';
 import { viewPickerIsPersistingComponentState } from '@/views/view-picker/states/viewPickerIsPersistingComponentState';
 import { viewPickerMainGroupByFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMainGroupByFieldMetadataIdComponentState';
+import { viewPickerMapFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMapFieldMetadataIdComponentState';
 import { viewPickerTypeComponentState } from '@/views/view-picker/states/viewPickerTypeComponentState';
 import { useLingui } from '@lingui/react/macro';
 import { Button } from 'twenty-ui/input';
@@ -18,6 +20,8 @@ export const ViewPickerCreateButton = () => {
     useGetAvailableFieldsToGroupRecordsBy();
   const { availableFieldsForCalendar, navigateToDateFieldSettings } =
     useGetAvailableFieldsForCalendar();
+  const { availableFieldsForMap, navigateToAddressFieldSettings } =
+    useGetAvailableFieldsForMap();
 
   const { viewPickerMode } = useViewPickerMode();
   const viewPickerType = useAtomComponentStateValue(
@@ -31,6 +35,9 @@ export const ViewPickerCreateButton = () => {
   );
   const viewPickerCalendarFieldMetadataId = useAtomComponentStateValue(
     viewPickerCalendarFieldMetadataIdComponentState,
+  );
+  const viewPickerMapFieldMetadataId = useAtomComponentStateValue(
+    viewPickerMapFieldMetadataIdComponentState,
   );
 
   const { createViewFromCurrentState } = useCreateViewFromCurrentState();
@@ -88,6 +95,19 @@ export const ViewPickerCreateButton = () => {
     );
   }
 
+  if (viewPickerType === ViewType.MAP && availableFieldsForMap.length === 0) {
+    return (
+      <Button
+        title={t`Go to Settings`}
+        onClick={navigateToAddressFieldSettings}
+        size="small"
+        accent="blue"
+        fullWidth
+        justify="center"
+      />
+    );
+  }
+
   if (
     viewPickerType !== ViewType.KANBAN ||
     viewPickerMainGroupByFieldMetadataId !== ''
@@ -106,7 +126,9 @@ export const ViewPickerCreateButton = () => {
           (viewPickerType === ViewType.KANBAN &&
             viewPickerMainGroupByFieldMetadataId === '') ||
           (viewPickerType === ViewType.CALENDAR &&
-            viewPickerCalendarFieldMetadataId === '')
+            viewPickerCalendarFieldMetadataId === '') ||
+          (viewPickerType === ViewType.MAP &&
+            viewPickerMapFieldMetadataId === '')
         }
       />
     );

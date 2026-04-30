@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { ObjectSortDropdownButton } from '@/object-record/object-sort-dropdown/components/ObjectSortDropdownButton';
+import { RecordMapLayersDropdownButton } from '@/object-record/record-map/components/RecordMapLayersDropdownButton';
 import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
 import { TopBar } from '@/ui/layout/top-bar/components/TopBar';
 import { QueryParamsFiltersEffect } from '@/views/components/QueryParamsFiltersEffect';
@@ -19,11 +20,13 @@ import { ViewBarRecordFilterEffect } from '@/views/components/ViewBarRecordFilte
 import { ViewBarRecordFilterGroupEffect } from '@/views/components/ViewBarRecordFilterGroupEffect';
 import { ViewBarRecordSortEffect } from '@/views/components/ViewBarRecordSortEffect';
 import { ViewBarFilterDropdownIds } from '@/views/constants/ViewBarFilterDropdownIds';
+import { ViewType } from '@/views/types/ViewType';
 import { UpdateViewButtonGroup } from './UpdateViewButtonGroup';
 import { ViewBarDetails } from './ViewBarDetails';
 
 type ViewBarProps = {
   viewBarId: string;
+  viewType: ViewType;
   className?: string;
   optionsDropdownButton: ReactNode;
   isReadOnly?: boolean;
@@ -31,6 +34,7 @@ type ViewBarProps = {
 
 export const ViewBar = ({
   viewBarId,
+  viewType,
   className,
   optionsDropdownButton,
   isReadOnly = false,
@@ -70,7 +74,11 @@ export const ViewBar = ({
             >
               <ViewBarFilterDropdown />
             </ObjectFilterDropdownComponentInstanceContext.Provider>
-            <ObjectSortDropdownButton />
+            {viewType === ViewType.MAP ? (
+              <RecordMapLayersDropdownButton />
+            ) : (
+              <ObjectSortDropdownButton />
+            )}
             {optionsDropdownButton}
           </>
         }

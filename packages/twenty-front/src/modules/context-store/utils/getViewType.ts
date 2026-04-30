@@ -10,9 +10,15 @@ export const getViewType = ({
   view?: View;
 }) => {
   if (isRecordIndexPage) {
-    return view?.type === ViewType.KANBAN
-      ? ContextStoreViewType.Kanban
-      : ContextStoreViewType.Table;
+    if (view?.type === ViewType.KANBAN) {
+      return ContextStoreViewType.Kanban;
+    }
+
+    if (view?.type === ViewType.MAP) {
+      return ContextStoreViewType.Map;
+    }
+
+    return ContextStoreViewType.Table;
   }
 
   return null;

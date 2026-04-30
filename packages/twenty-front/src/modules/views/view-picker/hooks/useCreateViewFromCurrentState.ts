@@ -8,6 +8,7 @@ import { viewPickerInputNameComponentState } from '@/views/view-picker/states/vi
 import { viewPickerIsDirtyComponentState } from '@/views/view-picker/states/viewPickerIsDirtyComponentState';
 import { viewPickerIsPersistingComponentState } from '@/views/view-picker/states/viewPickerIsPersistingComponentState';
 import { viewPickerMainGroupByFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMainGroupByFieldMetadataIdComponentState';
+import { viewPickerMapFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMapFieldMetadataIdComponentState';
 import { viewPickerModeComponentState } from '@/views/view-picker/states/viewPickerModeComponentState';
 import { viewPickerSelectedIconComponentState } from '@/views/view-picker/states/viewPickerSelectedIconComponentState';
 import { viewPickerTypeComponentState } from '@/views/view-picker/states/viewPickerTypeComponentState';
@@ -40,6 +41,11 @@ export const useCreateViewFromCurrentState = () => {
       viewPickerCalendarFieldMetadataIdComponentState,
     );
 
+  const viewPickerMapFieldMetadataIdCallbackState =
+    useAtomComponentStateCallbackState(
+      viewPickerMapFieldMetadataIdComponentState,
+    );
+
   const viewPickerIsPersistingCallbackState =
     useAtomComponentStateCallbackState(viewPickerIsPersistingComponentState);
 
@@ -70,6 +76,9 @@ export const useCreateViewFromCurrentState = () => {
     const calendarFieldMetadataId = store.get(
       viewPickerCalendarFieldMetadataIdCallbackState,
     );
+    const mapFieldMetadataId = store.get(
+      viewPickerMapFieldMetadataIdCallbackState,
+    );
 
     const viewPickerMode = store.get(viewPickerModeCallbackState);
     const visibility = store.get(viewPickerVisibilityCallbackState);
@@ -88,6 +97,7 @@ export const useCreateViewFromCurrentState = () => {
         mainGroupByFieldMetadataId:
           type === ViewType.KANBAN ? mainGroupByFieldMetadataId : null,
         calendarFieldMetadataId,
+        mapFieldMetadataId: type === ViewType.MAP ? mapFieldMetadataId : null,
         visibility,
       },
       shouldCopyFiltersAndSortsAndAggregate,
@@ -107,6 +117,7 @@ export const useCreateViewFromCurrentState = () => {
     viewPickerIsPersistingCallbackState,
     viewPickerMainGroupByFieldMetadataIdCallbackState,
     viewPickerCalendarFieldMetadataIdCallbackState,
+    viewPickerMapFieldMetadataIdCallbackState,
     viewPickerSelectedIconCallbackState,
     viewPickerTypeCallbackState,
     viewPickerModeCallbackState,

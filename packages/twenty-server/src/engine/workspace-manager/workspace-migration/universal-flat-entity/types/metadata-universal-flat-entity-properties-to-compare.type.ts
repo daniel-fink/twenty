@@ -59,6 +59,7 @@ type Assertions = [
       | 'kanbanAggregateOperationFieldMetadataUniversalIdentifier'
       | 'calendarLayout'
       | 'calendarFieldMetadataUniversalIdentifier'
+      | 'mapFieldMetadataUniversalIdentifier'
       | 'mainGroupByFieldMetadataUniversalIdentifier'
       | 'shouldHideEmptyGroups'
       | 'anyFieldFilterValue'

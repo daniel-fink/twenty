@@ -2,6 +2,7 @@ import {
   IconCalendar,
   type IconComponent,
   IconLayoutKanban,
+  IconMap,
   IconTable,
 } from 'twenty-ui/display';
 
@@ -12,6 +13,7 @@ const VIEW_TYPE_ICON_MAPPING = [
   { icon: IconLayoutKanban, value: ViewType.KANBAN },
   { icon: IconTable, value: ViewType.TABLE },
   { icon: IconCalendar, value: ViewType.CALENDAR },
+  { icon: IconMap, value: ViewType.MAP },
 ] as const satisfies {
   icon: IconComponent;
   value: ViewType;

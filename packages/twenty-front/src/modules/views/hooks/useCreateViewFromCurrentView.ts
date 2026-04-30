@@ -74,6 +74,7 @@ export const useCreateViewFromCurrentView = (viewBarComponentId?: string) => {
         icon,
         mainGroupByFieldMetadataId,
         calendarFieldMetadataId,
+        mapFieldMetadataId,
         type,
         visibility,
       }: Partial<
@@ -84,6 +85,7 @@ export const useCreateViewFromCurrentView = (viewBarComponentId?: string) => {
           | 'icon'
           | 'mainGroupByFieldMetadataId'
           | 'calendarFieldMetadataId'
+          | 'mapFieldMetadataId'
           | 'type'
           | 'visibility'
         >
@@ -137,6 +139,8 @@ export const useCreateViewFromCurrentView = (viewBarComponentId?: string) => {
               viewType === ViewType.CALENDAR
                 ? calendarFieldMetadataId
                 : undefined,
+            mapFieldMetadataId:
+              viewType === ViewType.MAP ? mapFieldMetadataId : undefined,
             visibility,
           },
         },

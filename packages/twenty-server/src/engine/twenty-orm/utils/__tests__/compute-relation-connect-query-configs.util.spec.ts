@@ -25,6 +25,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -42,6 +43,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -59,6 +61,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
       relationTargetObjectMetadataId: 'company-object-metadata-id',
       relationTargetFieldMetadataId: 'company-id-field-id',
@@ -82,6 +85,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
       relationTargetObjectMetadataId: 'company-object-metadata-id',
       relationTargetFieldMetadataId: 'company-id-field-id',
@@ -108,6 +112,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -125,6 +130,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -142,6 +148,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -159,6 +166,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
     {
@@ -176,6 +184,7 @@ describe('computeRelationConnectQueryConfigs', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
     } as unknown as FlatFieldMetadata,
   ];

@@ -319,6 +319,11 @@ export const ALL_ENTITY_PROPERTIES_CONFIGURATION_BY_METADATA_NAME = {
       toStringify: false,
       universalProperty: 'calendarFieldMetadataUniversalIdentifier',
     },
+    mapFieldMetadataId: {
+      toCompare: true,
+      toStringify: false,
+      universalProperty: 'mapFieldMetadataUniversalIdentifier',
+    },
     visibility: {
       toCompare: true,
       toStringify: false,

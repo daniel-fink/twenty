@@ -98,6 +98,9 @@ export const ALL_MANY_TO_ONE_METADATA_FOREIGN_KEY = {
     calendarFieldMetadata: {
       foreignKey: 'calendarFieldMetadataId',
     },
+    mapFieldMetadata: {
+      foreignKey: 'mapFieldMetadataId',
+    },
     kanbanAggregateOperationFieldMetadata: {
       foreignKey: 'kanbanAggregateOperationFieldMetadataId',
     },

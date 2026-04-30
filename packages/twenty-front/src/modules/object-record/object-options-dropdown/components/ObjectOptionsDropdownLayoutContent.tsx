@@ -19,6 +19,7 @@ import { useUpdateCurrentView } from '@/views/hooks/useUpdateCurrentView';
 import { type GraphQLView } from '@/views/types/GraphQLView';
 import { ViewType, viewTypeIconMapping } from '@/views/types/ViewType';
 import { useGetAvailableFieldsForCalendar } from '@/views/view-picker/hooks/useGetAvailableFieldsForCalendar';
+import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
 import { useGetAvailableFieldsToGroupRecordsBy } from '@/views/view-picker/hooks/useGetAvailableFieldsToGroupRecordsBy';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useLingui } from '@lingui/react/macro';
@@ -77,12 +78,19 @@ export const ObjectOptionsDropdownLayoutContent = () => {
         (field) => field.id === currentView.calendarFieldMetadataId,
       )
     : undefined;
+  const mapFieldMetadata = currentView?.mapFieldMetadataId
+    ? objectMetadataItem.fields.find(
+        (field) => field.id === currentView.mapFieldMetadataId,
+      )
+    : undefined;
 
   const { setAndPersistViewType } = useSetViewTypeFromLayoutOptionsMenu();
   const { availableFieldsForGrouping, navigateToSelectSettings } =
     useGetAvailableFieldsToGroupRecordsBy();
   const { availableFieldsForCalendar, navigateToDateFieldSettings } =
     useGetAvailableFieldsForCalendar();
+  const { availableFieldsForMap, navigateToAddressFieldSettings } =
+    useGetAvailableFieldsForMap();
   const { closeDropdown } = useCloseDropdown();
 
   const handleSelectKanbanViewType = async () => {
@@ -113,6 +121,20 @@ export const ObjectOptionsDropdownLayoutContent = () => {
     }
   };
 
+  const handleSelectMapViewType = async () => {
+    if (isDefaultView) {
+      return;
+    }
+    if (availableFieldsForMap.length === 0) {
+      navigateToAddressFieldSettings();
+      closeDropdown(dropdownId);
+      return;
+    }
+    if (currentView?.type !== ViewType.MAP) {
+      await setAndPersistViewType(ViewType.MAP);
+    }
+  };
+
   const isDefaultView = currentView?.key === 'INDEX';
   const nbsp = '\u00A0';
 
@@ -120,11 +142,13 @@ export const ObjectOptionsDropdownLayoutContent = () => {
     ViewType.TABLE,
     ...(isDefaultView ? [] : [ViewType.KANBAN]),
     ...(!isDefaultView ? [ViewType.CALENDAR] : []),
+    ...(!isDefaultView ? [ViewType.MAP] : []),
     ViewOpenRecordIn.SIDE_PANEL,
     ...(currentView?.type === ViewType.KANBAN ? ['Group'] : []),
     ...(currentView?.type === ViewType.CALENDAR
       ? ['CalendarView', 'CalendarDateField']
       : []),
+    ...(currentView?.type === ViewType.MAP ? ['MapAddressField'] : []),
     ...(currentView?.type !== ViewType.TABLE ? ['Compact view'] : []),
   ];
 
@@ -213,6 +237,34 @@ export const ObjectOptionsDropdownLayoutContent = () => {
                 onClick={handleSelectKanbanViewType}
               />
             </SelectableListItem>
+            <SelectableListItem
+              itemId={ViewType.MAP}
+              onEnter={() => {
+                setAndPersistViewType(ViewType.MAP);
+              }}
+            >
+              <MenuItemSelect
+                LeftIcon={viewTypeIconMapping(ViewType.MAP)}
+                text={t`Map`}
+                disabled={isDefaultView}
+                focused={selectedItemId === ViewType.MAP}
+                contextualText={
+                  isDefaultView ? (
+                    <>
+                      {nbsp}·{nbsp}
+                      <OverflowingTextWithTooltip
+                        text={t`Not available for default view`}
+                      />
+                    </>
+                  ) : availableFieldsForMap.length === 0 ? (
+                    t`Create Address...`
+                  ) : undefined
+                }
+                contextualTextPosition="right"
+                selected={currentView?.type === ViewType.MAP}
+                onClick={handleSelectMapViewType}
+              />
+            </SelectableListItem>
           </DropdownMenuItemsContainer>
           <DropdownMenuSeparator />
           <DropdownMenuItemsContainer scrollable={false}>
@@ -253,6 +305,22 @@ export const ObjectOptionsDropdownLayoutContent = () => {
                   />
                 </SelectableListItem>
               </>
+            )}
+            {currentView?.type === ViewType.MAP && (
+              <SelectableListItem
+                itemId="MapAddressField"
+                onEnter={() => onContentChange('mapFields')}
+              >
+                <MenuItem
+                  focused={selectedItemId === 'MapAddressField'}
+                  onClick={() => onContentChange('mapFields')}
+                  LeftIcon={viewTypeIconMapping(ViewType.MAP)}
+                  text={t`Address field`}
+                  contextualText={mapFieldMetadata?.label}
+                  contextualTextPosition="right"
+                  hasSubMenu
+                />
+              </SelectableListItem>
             )}
             <SelectableListItem
               itemId={ViewOpenRecordIn.SIDE_PANEL}

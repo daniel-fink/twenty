@@ -23,10 +23,12 @@ import { ViewPickerSelectContainer } from '@/views/view-picker/components/ViewPi
 import { VIEW_PICKER_CALENDAR_FIELD_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerCalendarFieldDropdownId';
 import { VIEW_PICKER_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerDropdownId';
 import { VIEW_PICKER_KANBAN_FIELD_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerKanbanFieldDropdownId';
+import { VIEW_PICKER_MAP_FIELD_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerMapFieldDropdownId';
 import { VIEW_PICKER_TYPE_SELECT_OPTIONS } from '@/views/view-picker/constants/ViewPickerTypeSelectOptions';
 import { VIEW_PICKER_VIEW_TYPE_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerViewTypeDropdownId';
 import { useCreateViewFromCurrentState } from '@/views/view-picker/hooks/useCreateViewFromCurrentState';
 import { useGetAvailableFieldsForCalendar } from '@/views/view-picker/hooks/useGetAvailableFieldsForCalendar';
+import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
 import { useGetAvailableFieldsToGroupRecordsBy } from '@/views/view-picker/hooks/useGetAvailableFieldsToGroupRecordsBy';
 import { useViewPickerMode } from '@/views/view-picker/hooks/useViewPickerMode';
 import { viewPickerCalendarFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerCalendarFieldMetadataIdComponentState';
@@ -34,6 +36,7 @@ import { viewPickerInputNameComponentState } from '@/views/view-picker/states/vi
 import { viewPickerIsDirtyComponentState } from '@/views/view-picker/states/viewPickerIsDirtyComponentState';
 import { viewPickerIsPersistingComponentState } from '@/views/view-picker/states/viewPickerIsPersistingComponentState';
 import { viewPickerMainGroupByFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMainGroupByFieldMetadataIdComponentState';
+import { viewPickerMapFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMapFieldMetadataIdComponentState';
 import { viewPickerSelectedIconComponentState } from '@/views/view-picker/states/viewPickerSelectedIconComponentState';
 import { viewPickerTypeComponentState } from '@/views/view-picker/states/viewPickerTypeComponentState';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -85,6 +88,9 @@ export const ViewPickerContentCreateMode = () => {
     setViewPickerCalendarFieldMetadataId,
   ] = useAtomComponentState(viewPickerCalendarFieldMetadataIdComponentState);
 
+  const [viewPickerMapFieldMetadataId, setViewPickerMapFieldMetadataId] =
+    useAtomComponentState(viewPickerMapFieldMetadataIdComponentState);
+
   const [viewPickerType, setViewPickerType] = useAtomComponentState(
     viewPickerTypeComponentState,
   );
@@ -95,6 +101,7 @@ export const ViewPickerContentCreateMode = () => {
     useGetAvailableFieldsToGroupRecordsBy();
 
   const { availableFieldsForCalendar } = useGetAvailableFieldsForCalendar();
+  const { availableFieldsForMap } = useGetAvailableFieldsForMap();
 
   useHotkeysOnFocusedElement({
     keys: [Key.Enter],
@@ -109,6 +116,12 @@ export const ViewPickerContentCreateMode = () => {
       ) {
         return;
       }
+      if (
+        viewPickerType === ViewType.MAP &&
+        availableFieldsForMap.length === 0
+      ) {
+        return;
+      }
 
       await createViewFromCurrentState();
     },
@@ -119,6 +132,7 @@ export const ViewPickerContentCreateMode = () => {
       viewPickerType,
       availableFieldsForGrouping,
       availableFieldsForCalendar,
+      availableFieldsForMap,
     ],
   });
 
@@ -245,6 +259,37 @@ export const ViewPickerContentCreateMode = () => {
               <StyledFieldAvailableContainer>
                 <Trans>
                   Set up a Date field on {objectLabel} to create a Calendar
+                </Trans>
+              </StyledFieldAvailableContainer>
+            )}
+          </>
+        )}
+        {viewPickerType === ViewType.MAP && (
+          <>
+            <ViewPickerSelectContainer>
+              <Select
+                label={t`Address field`}
+                fullWidth
+                value={viewPickerMapFieldMetadataId}
+                onChange={(value) => {
+                  setViewPickerIsDirty(true);
+                  setViewPickerMapFieldMetadataId(value);
+                }}
+                options={
+                  availableFieldsForMap.length > 0
+                    ? availableFieldsForMap.map((field) => ({
+                        value: field.id,
+                        label: field.label,
+                      }))
+                    : [{ value: '', label: t`No Address field` }]
+                }
+                dropdownId={VIEW_PICKER_MAP_FIELD_DROPDOWN_ID}
+              />
+            </ViewPickerSelectContainer>
+            {availableFieldsForMap.length === 0 && (
+              <StyledFieldAvailableContainer>
+                <Trans>
+                  Set up an Address field on {objectLabel} to create a Map
                 </Trans>
               </StyledFieldAvailableContainer>
             )}

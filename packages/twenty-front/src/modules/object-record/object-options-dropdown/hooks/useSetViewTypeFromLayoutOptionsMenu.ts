@@ -10,6 +10,7 @@ import { viewsSelector } from '@/views/states/selectors/viewsSelector';
 import { type GraphQLView } from '@/views/types/GraphQLView';
 import { ViewType, viewTypeIconMapping } from '@/views/types/ViewType';
 import { useGetAvailableFieldsForCalendar } from '@/views/view-picker/hooks/useGetAvailableFieldsForCalendar';
+import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
 import { useGetAvailableFieldsToGroupRecordsBy } from '@/views/view-picker/hooks/useGetAvailableFieldsToGroupRecordsBy';
 import { useStore } from 'jotai';
 import { useCallback } from 'react';
@@ -26,6 +27,7 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
   const { loadRecordIndexStates } = useLoadRecordIndexStates();
 
   const { availableFieldsForCalendar } = useGetAvailableFieldsForCalendar();
+  const { availableFieldsForMap } = useGetAvailableFieldsForMap();
 
   const store = useStore();
 
@@ -63,6 +65,7 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
           const mainGroupByFieldMetadataId = availableFieldsForGrouping[0].id;
           updateCurrentViewParams.mainGroupByFieldMetadataId =
             mainGroupByFieldMetadataId;
+          updateCurrentViewParams.mapFieldMetadataId = null;
 
           if (shouldChangeIcon(currentView.icon, currentView.type)) {
             updateCurrentViewParams.icon =
@@ -79,6 +82,7 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
               viewTypeIconMapping(viewType).displayName;
           }
           updateCurrentViewParams.mainGroupByFieldMetadataId = null;
+          updateCurrentViewParams.mapFieldMetadataId = null;
           await updateCurrentView(updateCurrentViewParams);
           setRecordIndexViewType(viewType);
           return;
@@ -110,6 +114,34 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
           updateCurrentViewParams.calendarFieldMetadataId =
             calendarFieldMetadataId;
           updateCurrentViewParams.mainGroupByFieldMetadataId = null;
+          updateCurrentViewParams.mapFieldMetadataId = null;
+          return await updateCurrentView(updateCurrentViewParams);
+        }
+        case ViewType.MAP: {
+          if (availableFieldsForMap.length === 0) {
+            throw new Error('No address fields for map');
+          }
+
+          const mapFieldMetadataId = availableFieldsForMap[0].id;
+
+          setRecordIndexViewType(viewType);
+
+          loadRecordIndexStates(
+            {
+              ...currentView,
+              type: viewType,
+              mapFieldMetadataId,
+              mainGroupByFieldMetadataId: null,
+            },
+            objectMetadataItem,
+          );
+
+          if (shouldChangeIcon(currentView.icon, currentView.type)) {
+            updateCurrentViewParams.icon =
+              viewTypeIconMapping(viewType).displayName;
+          }
+          updateCurrentViewParams.mapFieldMetadataId = mapFieldMetadataId;
+          updateCurrentViewParams.mainGroupByFieldMetadataId = null;
           return await updateCurrentView(updateCurrentViewParams);
         }
         case ViewType.TABLE_WIDGET:
@@ -127,6 +159,7 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
       store,
       updateCurrentView,
       availableFieldsForCalendar,
+      availableFieldsForMap,
       loadRecordIndexStates,
       objectMetadataItem,
     ],
@@ -151,6 +184,12 @@ export const useSetViewTypeFromLayoutOptionsMenu = () => {
     if (
       oldViewType === ViewType.CALENDAR &&
       oldIcon === viewTypeIconMapping(ViewType.CALENDAR).displayName
+    ) {
+      return true;
+    }
+    if (
+      oldViewType === ViewType.MAP &&
+      oldIcon === viewTypeIconMapping(ViewType.MAP).displayName
     ) {
       return true;
     }

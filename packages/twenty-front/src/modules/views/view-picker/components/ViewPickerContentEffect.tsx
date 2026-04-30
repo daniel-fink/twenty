@@ -9,6 +9,7 @@ import { useAtomFamilySelectorValue } from '@/ui/utilities/state/jotai/hooks/use
 import { viewsFromObjectMetadataItemFamilySelector } from '@/views/states/selectors/viewsFromObjectMetadataItemFamilySelector';
 import { viewTypeIconMapping } from '@/views/types/ViewType';
 import { useGetAvailableFieldsForCalendar } from '@/views/view-picker/hooks/useGetAvailableFieldsForCalendar';
+import { useGetAvailableFieldsForMap } from '@/views/view-picker/hooks/useGetAvailableFieldsForMap';
 import { useGetAvailableFieldsToGroupRecordsBy } from '@/views/view-picker/hooks/useGetAvailableFieldsToGroupRecordsBy';
 import { useViewPickerMode } from '@/views/view-picker/hooks/useViewPickerMode';
 import { viewPickerCalendarFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerCalendarFieldMetadataIdComponentState';
@@ -16,6 +17,7 @@ import { viewPickerInputNameComponentState } from '@/views/view-picker/states/vi
 import { viewPickerIsDirtyComponentState } from '@/views/view-picker/states/viewPickerIsDirtyComponentState';
 import { viewPickerIsPersistingComponentState } from '@/views/view-picker/states/viewPickerIsPersistingComponentState';
 import { viewPickerMainGroupByFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMainGroupByFieldMetadataIdComponentState';
+import { viewPickerMapFieldMetadataIdComponentState } from '@/views/view-picker/states/viewPickerMapFieldMetadataIdComponentState';
 import { viewPickerReferenceViewIdComponentState } from '@/views/view-picker/states/viewPickerReferenceViewIdComponentState';
 import { viewPickerSelectedIconComponentState } from '@/views/view-picker/states/viewPickerSelectedIconComponentState';
 import { viewPickerTypeComponentState } from '@/views/view-picker/states/viewPickerTypeComponentState';
@@ -48,6 +50,9 @@ export const ViewPickerContentEffect = () => {
     setViewPickerCalendarFieldMetadataId,
   ] = useAtomComponentState(viewPickerCalendarFieldMetadataIdComponentState);
 
+  const [viewPickerMapFieldMetadataId, setViewPickerMapFieldMetadataId] =
+    useAtomComponentState(viewPickerMapFieldMetadataIdComponentState);
+
   const [viewPickerType, setViewPickerType] = useAtomComponentState(
     viewPickerTypeComponentState,
   );
@@ -77,6 +82,7 @@ export const ViewPickerContentEffect = () => {
   const { availableFieldsForGrouping } =
     useGetAvailableFieldsToGroupRecordsBy();
   const { availableFieldsForCalendar } = useGetAvailableFieldsForCalendar();
+  const { availableFieldsForMap } = useGetAvailableFieldsForMap();
   const hasViewPermission = useHasPermissionFlag(PermissionFlagType.VIEWS);
 
   useEffect(() => {
@@ -137,6 +143,18 @@ export const ViewPickerContentEffect = () => {
           : availableFieldsForCalendar[0].id,
       );
     }
+    if (
+      isDefined(referenceView) &&
+      availableFieldsForMap.length > 0 &&
+      viewPickerMapFieldMetadataId === ''
+    ) {
+      setViewPickerMapFieldMetadataId(
+        isDefined(referenceView.mapFieldMetadataId) &&
+          referenceView.mapFieldMetadataId !== ''
+          ? referenceView.mapFieldMetadataId
+          : availableFieldsForMap[0].id,
+      );
+    }
   }, [
     referenceView,
     availableFieldsForGrouping,
@@ -145,6 +163,9 @@ export const ViewPickerContentEffect = () => {
     availableFieldsForCalendar,
     viewPickerCalendarFieldMetadataId,
     setViewPickerCalendarFieldMetadataId,
+    availableFieldsForMap,
+    viewPickerMapFieldMetadataId,
+    setViewPickerMapFieldMetadataId,
   ]);
 
   return <></>;
