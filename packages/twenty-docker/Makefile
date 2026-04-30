@@ -48,7 +48,7 @@ postgres-on-docker: ensure-docker-network
 	-e ALLOW_NOSSL=true \
 	-v twenty_db_data:/var/lib/postgresql/data \
 	-p 5432:5432 \
-	postgres:16
+	postgis/postgis:16-3.5
 	@echo "Waiting for PostgreSQL to be ready..."
 	@until docker exec twenty_pg psql -U postgres -d postgres \
 		-c 'SELECT pg_is_in_recovery();' 2>/dev/null | grep -q 'f'; do \

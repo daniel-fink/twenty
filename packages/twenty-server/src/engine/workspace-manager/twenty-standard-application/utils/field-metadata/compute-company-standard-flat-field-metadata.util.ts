@@ -2,6 +2,7 @@ import { msg } from '@lingui/core/macro';
 import { i18nLabel } from 'src/engine/workspace-manager/twenty-standard-application/utils/i18n-label.util';
 import {
   DateDisplayFormat,
+  DEFAULT_GEOMETRY_FIELD_SETTINGS,
   FieldMetadataType,
   RelationOnDeleteAction,
   RelationType,
@@ -163,6 +164,26 @@ export const buildCompanyStandardFlatFieldMetadatas = ({
       description: i18nLabel(msg`Address of the company`),
       icon: 'IconMap',
       isNullable: true,
+    },
+    standardObjectMetadataRelatedEntityIds,
+    dependencyFlatEntityMaps,
+    twentyStandardApplicationId,
+    now,
+  }),
+  location: createStandardFieldFlatMetadata({
+    objectName,
+    workspaceId,
+    context: {
+      fieldName: 'location',
+      type: FieldMetadataType.GEOMETRY,
+      label: i18nLabel(msg`Location`),
+      description: i18nLabel(
+        msg`Point location derived from the company address`,
+      ),
+      icon: 'IconMapPin',
+      isNullable: true,
+      isUIReadOnly: true,
+      settings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
     },
     standardObjectMetadataRelatedEntityIds,
     dependencyFlatEntityMaps,

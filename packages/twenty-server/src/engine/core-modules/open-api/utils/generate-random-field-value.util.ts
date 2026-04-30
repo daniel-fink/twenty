@@ -144,6 +144,13 @@ export const generateRandomFieldValue = ({
       return null;
     }
 
+    case FieldMetadataType.GEOMETRY: {
+      return {
+        type: 'Point',
+        coordinates: [faker.location.longitude(), faker.location.latitude()],
+      };
+    }
+
     case FieldMetadataType.TS_VECTOR: {
       throw new Error(
         `We should not generate fake version for ${field.type} field`,

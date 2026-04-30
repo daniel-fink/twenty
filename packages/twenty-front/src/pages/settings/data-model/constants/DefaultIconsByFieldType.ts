@@ -8,6 +8,7 @@ export const DEFAULT_ICONS_BY_FIELD_TYPE: Record<FieldMetadataType, string> = {
   [FieldMetadataType.DATE_TIME]: 'IconCalendarClock',
   [FieldMetadataType.FILES]: 'IconFile',
   [FieldMetadataType.FULL_NAME]: 'IconUserCircle',
+  [FieldMetadataType.GEOMETRY]: 'IconMapPin',
   [FieldMetadataType.MULTI_SELECT]: 'IconTags',
   [FieldMetadataType.NUMBER]: 'IconNumber9',
   [FieldMetadataType.RATING]: 'IconStar',

@@ -2,6 +2,7 @@ import { BigFloatScalarType } from './big-float.scalar';
 import { BigIntScalarType } from './big-int.scalar';
 import { CursorScalarType } from './cursor.scalar';
 import { DateScalarType } from './date.scalar';
+import { GeometryScalarType } from './geometry.scalar';
 import { PositionScalarType } from './position.scalar';
 import { TimeScalarType } from './time.scalar';
 import { TSVectorScalarType } from './ts-vector.scalar';
@@ -12,6 +13,7 @@ export * from './big-int.scalar';
 export * from './cursor.scalar';
 
 export * from './date.scalar';
+export * from './geometry.scalar';
 export * from './position.scalar';
 export * from './time.scalar';
 export * from './ts-vector.scalar';
@@ -24,6 +26,7 @@ export const scalars = [
   TimeScalarType,
   UUIDScalarType,
   CursorScalarType,
+  GeometryScalarType,
   PositionScalarType,
   TSVectorScalarType,
 ];

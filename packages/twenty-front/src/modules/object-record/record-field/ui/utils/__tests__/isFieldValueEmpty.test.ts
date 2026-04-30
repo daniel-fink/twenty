@@ -9,7 +9,10 @@ import {
   selectFieldDefinition,
 } from '@/object-record/record-field/ui/__mocks__/fieldDefinitions';
 import { type FieldDefinition } from '@/object-record/record-field/ui/types/FieldDefinition';
-import { type FieldCurrencyMetadata } from '@/object-record/record-field/ui/types/FieldMetadata';
+import {
+  type FieldCurrencyMetadata,
+  type FieldGeometryMetadata,
+} from '@/object-record/record-field/ui/types/FieldMetadata';
 import { FieldMetadataType } from '~/generated-metadata/graphql';
 
 import { isFieldValueEmpty } from '@/object-record/record-field/ui/utils/isFieldValueEmpty';
@@ -99,6 +102,39 @@ describe('isFieldValueEmpty', () => {
         fieldValue: { currencyCode: 'USD' },
       }),
     ).toBe(true);
+  });
+
+  it('should return correct value for geometry field', () => {
+    const fieldDefinition: FieldDefinition<FieldGeometryMetadata> = {
+      fieldMetadataId,
+      label: 'Location',
+      iconName: 'IconMapPin',
+      type: FieldMetadataType.GEOMETRY,
+      metadata: {
+        fieldName: 'location',
+        settings: {
+          geometryType: 'POINT',
+          srid: 4326,
+          isGeography: false,
+        },
+      },
+    };
+
+    expect(
+      isFieldValueEmpty({
+        fieldDefinition,
+        fieldValue: null,
+      }),
+    ).toBe(true);
+    expect(
+      isFieldValueEmpty({
+        fieldDefinition,
+        fieldValue: {
+          type: 'Point',
+          coordinates: [-122.0841, 37.422],
+        },
+      }),
+    ).toBe(false);
   });
 
   it('should return correct value for fullname field', () => {

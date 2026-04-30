@@ -95,7 +95,16 @@ export class EntitySchemaColumnFactory {
 
       entitySchemaColumnMap[key] = {
         name: key,
-        type: columnType as ColumnType,
+        type:
+          fieldMetadata.type === FieldMetadataType.GEOMETRY
+            ? 'geometry'
+            : (columnType as ColumnType),
+        spatialFeatureType:
+          fieldMetadata.type === FieldMetadataType.GEOMETRY
+            ? 'Point'
+            : undefined,
+        srid:
+          fieldMetadata.type === FieldMetadataType.GEOMETRY ? 4326 : undefined,
         precision:
           fieldMetadata.type === FieldMetadataType.DATE_TIME ? 3 : undefined,
         // TODO: We should double check that

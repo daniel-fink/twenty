@@ -3,7 +3,7 @@ version: "3.8"
 services:
   db:
     container_name: twenty-db
-    image: postgres:16
+    image: postgis/postgis:16-3.5
     environment:
       POSTGRES_DB: twenty
       POSTGRES_USER: twenty

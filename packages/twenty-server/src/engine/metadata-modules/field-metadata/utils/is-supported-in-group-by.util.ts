@@ -8,6 +8,7 @@ const NON_GROUPABLE_FIELD_TYPES = new Set<FieldMetadataType>([
   FieldMetadataType.TS_VECTOR,
   FieldMetadataType.RAW_JSON,
   FieldMetadataType.FILES,
+  FieldMetadataType.GEOMETRY,
   FieldMetadataType.POSITION,
 ]);
 

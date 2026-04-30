@@ -49,6 +49,7 @@ export const SettingsObjectNewFieldSelect = () => {
       FieldMetadataType.NUMERIC,
       FieldMetadataType.ACTOR,
       FieldMetadataType.UUID,
+      FieldMetadataType.GEOMETRY,
     ] as const
   ).filter(isDefined);
 

@@ -36,6 +36,7 @@ import { CurrencyFieldDisplay } from '@/object-record/record-field/ui/meta-types
 import { DateFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/DateFieldDisplay';
 import { DateTimeFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/DateTimeFieldDisplay';
 import { FullNameFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/FullNameFieldDisplay';
+import { GeometryFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/GeometryFieldDisplay';
 import { JsonFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/JsonFieldDisplay';
 import { MultiSelectFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/MultiSelectFieldDisplay';
 import { NumberFieldDisplay } from '@/object-record/record-field/ui/meta-types/display/components/NumberFieldDisplay';
@@ -48,6 +49,7 @@ import { isFieldCurrency } from '@/object-record/record-field/ui/types/guards/is
 import { isFieldDate } from '@/object-record/record-field/ui/types/guards/isFieldDate';
 import { isFieldDateTime } from '@/object-record/record-field/ui/types/guards/isFieldDateTime';
 import { isFieldFullName } from '@/object-record/record-field/ui/types/guards/isFieldFullName';
+import { isFieldGeometry } from '@/object-record/record-field/ui/types/guards/isFieldGeometry';
 import { isFieldMultiSelect } from '@/object-record/record-field/ui/types/guards/isFieldMultiSelect';
 import { isFieldNumber } from '@/object-record/record-field/ui/types/guards/isFieldNumber';
 import { isFieldRawJson } from '@/object-record/record-field/ui/types/guards/isFieldRawJson';
@@ -98,6 +100,8 @@ export const FieldDisplay = () => {
     <CurrencyFieldDisplay />
   ) : isFieldFullName(fieldDefinition) ? (
     <FullNameFieldDisplay />
+  ) : isFieldGeometry(fieldDefinition) ? (
+    <GeometryFieldDisplay />
   ) : isFieldSelect(fieldDefinition) ? (
     <SelectFieldDisplay />
   ) : isFieldMultiSelect(fieldDefinition) ? (

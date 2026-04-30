@@ -6,6 +6,7 @@ import {
   BOOLEAN_FILTER_OPERATORS,
   DATE_FILTER_OPERATORS,
   ENUM_FILTER_OPERATORS,
+  GEOMETRY_FILTER_OPERATORS,
   MULTI_SELECT_FILTER_OPERATORS,
   NUMBER_FILTER_OPERATORS,
   RAW_JSON_FILTER_OPERATORS,
@@ -55,6 +56,9 @@ export const getOperatorsForFieldType = (
 
     case FieldMetadataType.RICH_TEXT:
       return RICH_TEXT_FILTER_OPERATORS;
+
+    case FieldMetadataType.GEOMETRY:
+      return GEOMETRY_FILTER_OPERATORS;
 
     case FieldMetadataType.TS_VECTOR:
     case FieldMetadataType.ACTOR:

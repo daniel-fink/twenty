@@ -342,10 +342,18 @@ export class DataArgProcessorService {
         return transformLinksValue(validatedValue);
       }
       case FieldMetadataType.TS_VECTOR:
+      case FieldMetadataType.GEOMETRY:
         throw new CommonQueryRunnerException(
-          `${key} ${fieldMetadata.type}-typed field does not support write operations`,
+          fieldMetadata.type === FieldMetadataType.GEOMETRY
+            ? `${key} Geometry fields are read-only.`
+            : `${key} ${fieldMetadata.type}-typed field does not support write operations`,
           CommonQueryRunnerExceptionCode.INVALID_ARGS_DATA,
-          { userFriendlyMessage: STANDARD_ERROR_MESSAGE },
+          {
+            userFriendlyMessage:
+              fieldMetadata.type === FieldMetadataType.GEOMETRY
+                ? msg`Geometry fields are read-only.`
+                : STANDARD_ERROR_MESSAGE,
+          },
         );
       default:
         assertUnreachable(

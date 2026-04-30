@@ -5,6 +5,7 @@ import {
   GraphQLInputObjectType,
   isInputObjectType,
 } from 'graphql';
+import { FieldMetadataType } from 'twenty-shared/types';
 import { isDefined, pascalCase } from 'twenty-shared/utils';
 
 import { GqlInputTypeDefinitionKind } from 'src/engine/api/graphql/workspace-schema-builder/enums/gql-input-type-definition-kind.enum';
@@ -176,6 +177,10 @@ export class ObjectMetadataOrderByWithGroupByGqlInputTypeGenerator {
     fieldMetadata: FlatFieldMetadata,
     typeOptions: TypeOptions,
   ) {
+    if (fieldMetadata.type === FieldMetadataType.GEOMETRY) {
+      return {};
+    }
+
     const orderByType = this.typeMapperService.mapToOrderByType(
       fieldMetadata.type,
     );

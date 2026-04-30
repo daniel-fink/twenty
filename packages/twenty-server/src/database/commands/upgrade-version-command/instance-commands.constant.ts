@@ -20,6 +20,7 @@ import { AddProviderExecutedToAgentMessagePartFastInstanceCommand } from 'src/da
 import { BackfillPageLayoutWidgetPositionSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-1/2-1-instance-command-slow-1795000002000-backfill-page-layout-widget-position';
 import { AddCacheTokensToAgentChatThreadFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-2/2-2-instance-command-fast-1777455269302-add-cache-tokens-to-agent-chat-thread';
 import { AddMapViewFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-2/2-2-instance-command-fast-1777455269303-add-map-view';
+import { AddNativePointGeometryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-2/2-2-instance-command-fast-1777455269304-add-native-point-geometry';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -42,4 +43,5 @@ export const INSTANCE_COMMANDS = [
   BackfillPageLayoutWidgetPositionSlowInstanceCommand,
   AddCacheTokensToAgentChatThreadFastInstanceCommand,
   AddMapViewFastInstanceCommand,
+  AddNativePointGeometryFastInstanceCommand,
 ];

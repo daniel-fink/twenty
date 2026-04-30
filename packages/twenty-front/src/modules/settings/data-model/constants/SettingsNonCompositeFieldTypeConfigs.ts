@@ -4,6 +4,7 @@ import {
   type FieldDateTimeValue,
   type FieldDateValue,
   type FieldFilesValue,
+  type FieldGeometryValue,
   type FieldJsonValue,
   type FieldMultiSelectValue,
   type FieldNumberValue,
@@ -22,6 +23,7 @@ import {
   IllustrationIconCalendarTime,
   IllustrationIconFile,
   IllustrationIconJson,
+  IllustrationIconMap,
   IllustrationIconNumbers,
   IllustrationIconOneToMany,
   IllustrationIconStar,
@@ -168,4 +170,14 @@ export const SETTINGS_NON_COMPOSITE_FIELD_TYPE_CONFIGS: SettingsNonCompositeFiel
         [],
       ],
     } as const satisfies SettingsFieldTypeConfig<FieldFilesValue[]>,
+    [FieldMetadataType.GEOMETRY]: {
+      label: 'Geometry',
+      Icon: IllustrationIconMap,
+      category: 'Advanced',
+      exampleValues: [
+        { type: 'Point', coordinates: [-122.4194, 37.7749] },
+        { type: 'Point', coordinates: [151.2093, -33.8688] },
+        null,
+      ],
+    } as const satisfies SettingsFieldTypeConfig<FieldGeometryValue>,
   };

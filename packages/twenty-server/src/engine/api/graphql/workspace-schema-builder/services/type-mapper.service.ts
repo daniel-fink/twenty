@@ -32,6 +32,7 @@ import {
   StringFilterType,
 } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input';
 import { FilesInputType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/files.input-type';
+import { GeometryFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/geometry-filter.input-type';
 import { MultiSelectFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/multi-select-filter.input-type';
 import { RichTextFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/rich-text.input-type';
 import { SelectFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/select-filter.input-type';
@@ -41,6 +42,7 @@ import { FilesObjectType } from 'src/engine/api/graphql/workspace-schema-builder
 import {
   BigFloatScalarType,
   DateScalarType,
+  GeometryScalarType,
   TSVectorScalarType,
   UUIDScalarType,
 } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
@@ -72,6 +74,7 @@ export class TypeMapperService {
     [FieldMetadataType.BOOLEAN, GraphQLBoolean],
     [FieldMetadataType.NUMERIC, BigFloatScalarType],
     [FieldMetadataType.POSITION, PositionScalarType],
+    [FieldMetadataType.GEOMETRY, GeometryScalarType],
     [FieldMetadataType.RAW_JSON, GraphQLJSON],
     [FieldMetadataType.ARRAY, StringArrayScalarType],
     [FieldMetadataType.TS_VECTOR, TSVectorScalarType],
@@ -176,6 +179,7 @@ export class TypeMapperService {
       ],
       [FieldMetadataType.NUMERIC, BigFloatFilterType],
       [FieldMetadataType.POSITION, FloatFilterType],
+      [FieldMetadataType.GEOMETRY, GeometryFilterType],
       [FieldMetadataType.FILES, RawJsonFilterType],
       [FieldMetadataType.RAW_JSON, RawJsonFilterType],
       [FieldMetadataType.RICH_TEXT, RichTextFilterType],
