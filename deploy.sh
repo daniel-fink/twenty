@@ -24,6 +24,7 @@ Usage:
   ./deploy.sh start
   ./deploy.sh reset-map-dev-data
   ./deploy.sh check
+  ./deploy.sh test-map-view
   ./deploy.sh help
 
 Commands:
@@ -41,6 +42,9 @@ Commands:
 
   check
     Verify required tooling and run lightweight initialization checks.
+
+  test-map-view
+    Build required workspace packages and run focused Epic 2 map-view tests.
 
 Local URLs after start:
   Frontend: http://localhost:3001
@@ -140,6 +144,28 @@ run_check() {
   log "Initialization checks passed"
 }
 
+run_test_map_view() {
+  check_required_tools
+
+  log "Building twenty-shared for workspace package imports"
+  NO_COLOR=1 yarn nx run twenty-shared:build --excludeTaskDependencies
+
+  log "Building twenty-ui for frontend workspace imports"
+  NO_COLOR=1 yarn nx run twenty-ui:build --excludeTaskDependencies
+
+  log "Running frontend map coordinate extraction tests"
+  NO_COLOR=1 yarn jest --config packages/twenty-front/jest.config.mjs \
+    packages/twenty-front/src/modules/object-record/record-map/utils/__tests__/extractRecordMapCoordinates.test.ts \
+    --runInBand
+
+  log "Running backend map view validation tests"
+  NO_COLOR=1 yarn jest --config packages/twenty-server/jest.config.mjs \
+    packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/__tests__/flat-view-validator.service.spec.ts \
+    --runInBand
+
+  log "Map view checks passed"
+}
+
 main() {
   local command="${1:-help}"
 
@@ -155,6 +181,9 @@ main() {
       ;;
     check)
       run_check
+      ;;
+    test-map-view)
+      run_test_map_view
       ;;
     help | --help | -h)
       usage

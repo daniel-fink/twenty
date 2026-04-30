@@ -43,6 +43,7 @@ describe('resetUniversalFlatEntityForeignKeyAggregators', () => {
       viewFieldUniversalIdentifiers: [],
       viewFilterUniversalIdentifiers: [],
       calendarViewUniversalIdentifiers: [],
+      mapViewUniversalIdentifiers: [],
       kanbanAggregateOperationViewUniversalIdentifiers: [],
       mainGroupByFieldMetadataViewUniversalIdentifiers: [],
     });

@@ -5,13 +5,13 @@ type CompanyDataSeed = {
   name: string;
   domainNamePrimaryLinkUrl: string;
   addressAddressCity: string;
-  addressAddressCountry?: string;
+  addressAddressCountry?: string | null;
   addressAddressLat?: number | null;
   addressAddressLng?: number | null;
-  addressAddressPostcode?: string;
-  addressAddressState?: string;
-  addressAddressStreet1?: string;
-  addressAddressStreet2?: string;
+  addressAddressPostcode?: string | null;
+  addressAddressState?: string | null;
+  addressAddressStreet1?: string | null;
+  addressAddressStreet2?: string | null;
   employees: number;
   linkedinLinkPrimaryLinkUrl: string;
   createdBySource: string;
@@ -8638,7 +8638,23 @@ const COMPANY_DATA_SEEDS_RAW = [
 
 export const COMPANY_DATA_SEEDS: CompanyDataSeed[] = COMPANY_DATA_SEEDS_RAW.map(
   (company, index) => ({
-    ...company,
+    id: company.id,
+    name: company.name,
+    domainNamePrimaryLinkUrl: company.domainNamePrimaryLinkUrl,
+    addressAddressStreet1: company.addressAddressStreet1 ?? null,
+    addressAddressStreet2: company.addressAddressStreet2 ?? null,
+    addressAddressCity: company.addressAddressCity,
+    addressAddressState: company.addressAddressState ?? null,
+    addressAddressPostcode: company.addressAddressPostcode ?? null,
+    addressAddressCountry: company.addressAddressCountry ?? null,
+    addressAddressLat: company.addressAddressLat ?? null,
+    addressAddressLng: company.addressAddressLng ?? null,
+    employees: company.employees,
+    linkedinLinkPrimaryLinkUrl: company.linkedinLinkPrimaryLinkUrl,
+    createdBySource: company.createdBySource,
+    createdByWorkspaceMemberId: company.createdByWorkspaceMemberId,
+    createdByName: company.createdByName,
+    accountOwnerId: company.accountOwnerId,
     updatedBySource: company.createdBySource,
     updatedByWorkspaceMemberId: company.createdByWorkspaceMemberId,
     updatedByName: company.createdByName,

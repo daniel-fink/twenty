@@ -68,6 +68,7 @@ describe('addUniversalFlatEntityToUniversalFlatEntityAndRelatedEntityMapsThrough
       viewFieldUniversalIdentifiers: [],
       viewFilterUniversalIdentifiers: [],
       calendarViewUniversalIdentifiers: [],
+      mapViewUniversalIdentifiers: [],
       mainGroupByFieldMetadataViewUniversalIdentifiers: [],
       kanbanAggregateOperationViewUniversalIdentifiers: [],
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -178,6 +179,7 @@ describe('addUniversalFlatEntityToUniversalFlatEntityAndRelatedEntityMapsThrough
 
     expect(updatedFieldMetadata).toMatchObject({
       calendarViewUniversalIdentifiers: [viewUniversalIdentifier],
+      mapViewUniversalIdentifiers: [],
     });
   });
 

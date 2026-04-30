@@ -72,6 +72,22 @@ export const fromViewEntityToFlatView = ({
     }
   }
 
+  let mapFieldMetadataUniversalIdentifier: string | null = null;
+
+  if (isDefined(viewEntity.mapFieldMetadataId)) {
+    mapFieldMetadataUniversalIdentifier =
+      fieldMetadataIdToUniversalIdentifierMap.get(
+        viewEntity.mapFieldMetadataId,
+      ) ?? null;
+
+    if (!isDefined(mapFieldMetadataUniversalIdentifier)) {
+      throw new FlatEntityMapsException(
+        `FieldMetadata with id ${viewEntity.mapFieldMetadataId} not found for view ${viewEntity.id}`,
+        FlatEntityMapsExceptionCode.ENTITY_NOT_FOUND,
+      );
+    }
+  }
+
   let mainGroupByFieldMetadataUniversalIdentifier: string | null = null;
 
   if (isDefined(viewEntity.mainGroupByFieldMetadataId)) {
@@ -103,6 +119,7 @@ export const fromViewEntityToFlatView = ({
     objectMetadataUniversalIdentifier,
     kanbanAggregateOperationFieldMetadataUniversalIdentifier,
     calendarFieldMetadataUniversalIdentifier,
+    mapFieldMetadataUniversalIdentifier,
     mainGroupByFieldMetadataUniversalIdentifier,
     viewFieldUniversalIdentifiers: viewEntity.viewFields.map(
       ({ universalIdentifier }) => universalIdentifier,

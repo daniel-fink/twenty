@@ -36,6 +36,7 @@ describe('RestToCommonSelectedFieldsHandler', () => {
       viewFilterIds: [],
       kanbanAggregateOperationViewIds: [],
       calendarViewIds: [],
+      mapViewIds: [],
       applicationId: null,
       label: overrides.name,
       settings: null,

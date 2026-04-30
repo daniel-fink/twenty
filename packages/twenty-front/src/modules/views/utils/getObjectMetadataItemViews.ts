@@ -20,6 +20,9 @@ export const getObjectMetadataItemViews = (
       kanbanAggregateOperation: view.kanbanAggregateOperation,
       kanbanAggregateOperationFieldMetadataId:
         view.kanbanAggregateOperationFieldMetadataId,
+      calendarFieldMetadataId: view.calendarFieldMetadataId,
+      calendarLayout: view.calendarLayout,
+      mapFieldMetadataId: view.mapFieldMetadataId,
       icon: view.icon,
     }));
 };

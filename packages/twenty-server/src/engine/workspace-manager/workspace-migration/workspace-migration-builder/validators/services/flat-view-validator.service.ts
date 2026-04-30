@@ -14,6 +14,77 @@ import { type UniversalFlatEntityValidationArgs } from 'src/engine/workspace-man
 export class FlatViewValidatorService {
   constructor() {}
 
+  private validateMapViewField({
+    flatViewToValidate,
+    flatFieldMetadataMaps,
+    validationResult,
+  }: {
+    flatViewToValidate: UniversalFlatView;
+    flatFieldMetadataMaps: UniversalFlatEntityValidationArgs<
+      typeof ALL_METADATA_NAME.view
+    >['optimisticFlatEntityMapsAndRelatedFlatEntityMaps']['flatFieldMetadataMaps'];
+    validationResult:
+      | FailedFlatEntityValidation<'view', 'create'>
+      | FailedFlatEntityValidation<'view', 'update'>;
+  }) {
+    if (flatViewToValidate.type !== ViewType.MAP) {
+      return;
+    }
+
+    if (!isDefined(flatViewToValidate.mapFieldMetadataUniversalIdentifier)) {
+      validationResult.errors.push({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: t`Map view must have a map field`,
+        userFriendlyMessage: msg`Map view must have a map field`,
+      });
+
+      return;
+    }
+
+    const mapFieldMetadata = findFlatEntityByUniversalIdentifier({
+      universalIdentifier:
+        flatViewToValidate.mapFieldMetadataUniversalIdentifier,
+      flatEntityMaps: flatFieldMetadataMaps,
+    });
+
+    if (!isDefined(mapFieldMetadata)) {
+      validationResult.errors.push({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: t`Map field metadata not found`,
+        userFriendlyMessage: msg`Map field metadata not found`,
+      });
+
+      return;
+    }
+
+    if (mapFieldMetadata.type !== FieldMetadataType.ADDRESS) {
+      validationResult.errors.push({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: t`Map field must be an ADDRESS field`,
+        userFriendlyMessage: msg`Map field must be an address field`,
+      });
+    }
+
+    if (mapFieldMetadata.isActive !== true) {
+      validationResult.errors.push({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: t`Map field must be active`,
+        userFriendlyMessage: msg`Map field must be active`,
+      });
+    }
+
+    if (
+      mapFieldMetadata.objectMetadataUniversalIdentifier !==
+      flatViewToValidate.objectMetadataUniversalIdentifier
+    ) {
+      validationResult.errors.push({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: t`Map field must belong to the view object`,
+        userFriendlyMessage: msg`Map field must belong to the view object`,
+      });
+    }
+  }
+
   public validateFlatViewUpdate({
     universalIdentifier,
     flatEntityUpdate,
@@ -51,6 +122,12 @@ export class FlatViewValidatorService {
       ...existingFlatView,
       ...flatEntityUpdate,
     };
+
+    this.validateMapViewField({
+      flatViewToValidate: updatedFlatView,
+      flatFieldMetadataMaps,
+      validationResult,
+    });
 
     const kanbanAggregateOperationFieldMetadataUniversalIdentifierUpdate =
       flatEntityUpdate.kanbanAggregateOperationFieldMetadataUniversalIdentifier;
@@ -308,6 +385,12 @@ export class FlatViewValidatorService {
         });
       }
     }
+
+    this.validateMapViewField({
+      flatViewToValidate,
+      flatFieldMetadataMaps,
+      validationResult,
+    });
 
     return validationResult;
   }

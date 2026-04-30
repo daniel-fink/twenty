@@ -100,6 +100,20 @@ export const fromUpdateViewInputToFlatViewToUpdateOrThrow = ({
       calendarFieldMetadataUniversalIdentifier;
   }
 
+  if (updatedEditableFieldProperties.mapFieldMetadataId !== undefined) {
+    const { mapFieldMetadataUniversalIdentifier } =
+      resolveEntityRelationUniversalIdentifiers({
+        metadataName: 'view',
+        foreignKeyValues: {
+          mapFieldMetadataId: flatViewToUpdate.mapFieldMetadataId,
+        },
+        flatEntityMaps: { flatFieldMetadataMaps },
+      });
+
+    flatViewToUpdate.mapFieldMetadataUniversalIdentifier =
+      mapFieldMetadataUniversalIdentifier;
+  }
+
   if (updatedEditableFieldProperties.mainGroupByFieldMetadataId !== undefined) {
     const { mainGroupByFieldMetadataUniversalIdentifier } =
       resolveEntityRelationUniversalIdentifiers({

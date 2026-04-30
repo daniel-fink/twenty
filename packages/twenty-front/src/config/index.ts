@@ -19,3 +19,17 @@ const getDefaultUrl = () => {
 
 export const REACT_APP_SERVER_BASE_URL =
   window._env_?.REACT_APP_SERVER_BASE_URL || getDefaultUrl();
+
+const getDefaultMapViewStyleUrl = () => {
+  if (
+    window.location.hostname.endsWith('localhost') ||
+    window.location.hostname.endsWith('127.0.0.1')
+  ) {
+    return 'https://demotiles.maplibre.org/style.json';
+  }
+
+  return '';
+};
+
+export const REACT_APP_MAP_VIEW_STYLE_URL =
+  window._env_?.REACT_APP_MAP_VIEW_STYLE_URL || getDefaultMapViewStyleUrl();

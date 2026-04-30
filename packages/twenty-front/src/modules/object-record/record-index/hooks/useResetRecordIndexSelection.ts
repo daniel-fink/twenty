@@ -64,6 +64,9 @@ export const useResetRecordIndexSelection = (
       case ContextStoreViewType.Kanban:
         resetRecordBoardSelection();
         break;
+      case ContextStoreViewType.Map:
+        resetTableRowSelection();
+        break;
     }
   }, [
     hasValidContext,

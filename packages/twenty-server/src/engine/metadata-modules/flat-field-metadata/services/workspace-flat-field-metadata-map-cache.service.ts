@@ -96,6 +96,7 @@ export class WorkspaceFlatFieldMetadataMapCacheService extends WorkspaceCachePro
           'universalIdentifier',
           'kanbanAggregateOperationFieldMetadataId',
           'calendarFieldMetadataId',
+          'mapFieldMetadataId',
           'mainGroupByFieldMetadataId',
         ],
         withDeleted: true,
@@ -106,6 +107,7 @@ export class WorkspaceFlatFieldMetadataMapCacheService extends WorkspaceCachePro
       viewFieldsByFieldId,
       viewFiltersByFieldId,
       calendarViewsByFieldId,
+      mapViewsByFieldId,
       kanbanViewsByFieldId,
       mainGroupByFieldMetadataViewsByFieldId,
       viewSortsByFieldId,
@@ -122,6 +124,10 @@ export class WorkspaceFlatFieldMetadataMapCacheService extends WorkspaceCachePro
         {
           entities: views,
           foreignKey: 'calendarFieldMetadataId',
+        },
+        {
+          entities: views,
+          foreignKey: 'mapFieldMetadataId',
         },
         {
           entities: views,
@@ -157,6 +163,7 @@ export class WorkspaceFlatFieldMetadataMapCacheService extends WorkspaceCachePro
             kanbanViewsByFieldId.get(fieldMetadataEntity.id) || [],
           calendarViews:
             calendarViewsByFieldId.get(fieldMetadataEntity.id) || [],
+          mapViews: mapViewsByFieldId.get(fieldMetadataEntity.id) || [],
           mainGroupByFieldMetadataViews:
             mainGroupByFieldMetadataViewsByFieldId.get(
               fieldMetadataEntity.id,

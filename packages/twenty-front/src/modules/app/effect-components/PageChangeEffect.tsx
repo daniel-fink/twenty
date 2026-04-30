@@ -211,6 +211,9 @@ export const PageChangeEffect = () => {
         deactivateBoardCard();
         unfocusBoardCard();
       }
+      if (contextStoreCurrentViewType === ContextStoreViewType.Map) {
+        resetTableRowSelection();
+      }
     }
 
     if (location.pathname === previousLocation) {

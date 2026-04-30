@@ -86,6 +86,11 @@ export class UpdateViewInput {
   calendarFieldMetadataId?: string;
 
   @IsOptional()
+  @IsUUID()
+  @Field(() => UUIDScalarType, { nullable: true })
+  mapFieldMetadataId?: string;
+
+  @IsOptional()
   @IsEnum(ViewVisibility)
   @Field(() => ViewVisibility, { nullable: true })
   visibility?: ViewVisibility;
