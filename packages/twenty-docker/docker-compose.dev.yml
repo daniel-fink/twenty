@@ -11,6 +11,7 @@ name: twenty-dev
 services:
   db:
     image: postgis/postgis:16-3.5
+    platform: ${TWENTY_GEO_POSTGIS_PLATFORM:-linux/amd64}
     volumes:
       - dev-db-data:/var/lib/postgresql/data
     ports:

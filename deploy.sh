@@ -20,7 +20,9 @@ die() {
 usage() {
   cat <<'USAGE'
 Usage:
+  ./deploy.sh bootstrap
   ./deploy.sh local
+  ./deploy.sh dev
   ./deploy.sh start
   ./deploy.sh watch
   ./deploy.sh reseed
@@ -29,9 +31,18 @@ Usage:
   ./deploy.sh help
 
 Commands:
-  local
+  bootstrap
     Bootstrap local services and install dependencies without modifying the
     existing development database.
+
+  local
+    Bootstrap local services, install dependencies, verify the local database
+    schema, then exit.
+
+  dev
+    Bootstrap local services, install dependencies, verify the local database
+    schema, then start frontend, backend, and worker. This is a long-running
+    command.
 
   start
     Start frontend, backend, and worker through the existing monorepo start
@@ -99,7 +110,7 @@ check_required_tools() {
   require_command npx
 }
 
-run_local() {
+run_bootstrap() {
   check_required_tools
 
   log "Starting local PostgreSQL and Redis services"
@@ -112,10 +123,137 @@ run_local() {
   log "Database was left unchanged. To reset/reseed intentionally, run: ./deploy.sh reseed"
 }
 
+run_local() {
+  run_bootstrap
+
+  check_database_schema
+
+  log "Local Twenty development environment is ready"
+  log "Start the full app with: ./deploy.sh dev"
+}
+
+run_dev() {
+  run_bootstrap
+
+  check_database_schema
+
+  run_start
+}
+
 run_start() {
   check_required_tools
   log "Starting Twenty development processes"
   yarn start
+}
+
+check_database_schema() {
+  log "Checking local database schema"
+
+  node <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+
+const parseEnvFile = (filePath) => {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+
+  return fs
+    .readFileSync(filePath, 'utf8')
+    .split(/\r?\n/)
+    .reduce((values, line) => {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine === '' || trimmedLine.startsWith('#')) {
+        return values;
+      }
+
+      const separatorIndex = trimmedLine.indexOf('=');
+
+      if (separatorIndex === -1) {
+        return values;
+      }
+
+      const key = trimmedLine.slice(0, separatorIndex).trim();
+      const value = trimmedLine.slice(separatorIndex + 1).trim();
+
+      values[key] = value.replace(/^['"]|['"]$/g, '');
+
+      return values;
+    }, {});
+};
+
+const envFileValues = parseEnvFile(
+  path.join(process.cwd(), 'packages/twenty-server/.env'),
+);
+const databaseUrl =
+  process.env.PG_DATABASE_URL ||
+  envFileValues.PG_DATABASE_URL ||
+  'postgres://postgres:postgres@localhost:5432/default';
+
+let Client;
+
+try {
+  ({ Client } = require('pg'));
+} catch (error) {
+  console.error(
+    'Unable to load the pg package. Run `yarn install --immutable` before starting local development.',
+  );
+  process.exit(2);
+}
+
+const client = new Client({ connectionString: databaseUrl });
+
+const requiredTables = ['appToken', 'keyValuePair'];
+
+(async () => {
+  try {
+    await client.connect();
+
+    const result = await client.query(
+      `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'core'
+          AND table_name = ANY($1)
+      `,
+      [requiredTables],
+    );
+
+    const existingTables = new Set(
+      result.rows.map((row) => row.table_name),
+    );
+    const missingTables = requiredTables.filter(
+      (tableName) => !existingTables.has(tableName),
+    );
+
+    if (missingTables.length > 0) {
+      console.error(
+        [
+          'Local database schema is not initialized.',
+          `Missing core table(s): ${missingTables.join(', ')}`,
+          '',
+          'Run: ./deploy.sh reseed',
+          'This destructively resets and seeds the local development database.',
+        ].join('\n'),
+      );
+      process.exit(1);
+    }
+  } catch (error) {
+    console.error(
+      [
+        'Unable to verify the local database schema.',
+        error instanceof Error ? error.message : String(error),
+      ].join('\n'),
+    );
+    process.exit(1);
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+})();
+NODE
+
+  log "Local database schema OK"
 }
 
 run_watch() {
@@ -198,8 +336,14 @@ main() {
   local command="${1:-help}"
 
   case "$command" in
+    bootstrap)
+      run_bootstrap
+      ;;
     local)
       run_local
+      ;;
+    dev)
+      run_dev
       ;;
     start)
       run_start

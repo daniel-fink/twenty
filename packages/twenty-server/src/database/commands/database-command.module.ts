@@ -40,6 +40,7 @@ import { WorkspaceModule } from 'src/engine/core-modules/workspace/workspace.mod
 import { FieldMetadataModule } from 'src/engine/metadata-modules/field-metadata/field-metadata.module';
 import { ObjectMetadataModule } from 'src/engine/metadata-modules/object-metadata/object-metadata.module';
 import { ViewModule } from 'src/engine/metadata-modules/view/view.module';
+import { WorkspaceMetadataVersionModule } from 'src/engine/metadata-modules/workspace-metadata-version/workspace-metadata-version.module';
 import { TrashCleanupModule } from 'src/engine/trash-cleanup/trash-cleanup.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { DevSeederModule } from 'src/engine/workspace-manager/dev-seeder/dev-seeder.module';
@@ -69,6 +70,7 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
     FieldMetadataModule,
     ObjectMetadataModule,
     ViewModule,
+    WorkspaceMetadataVersionModule,
     DevSeederModule,
     WorkspaceManagerModule,
     WorkspaceCacheStorageModule,

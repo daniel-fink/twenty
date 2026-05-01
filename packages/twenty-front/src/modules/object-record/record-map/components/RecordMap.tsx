@@ -4,6 +4,7 @@ import {
 } from '~/config';
 
 import { getTokenPair } from '@/apollo/utils/getTokenPair';
+import { ensureTokenPairIsFresh } from '@/apollo/utils/ensureTokenPairIsFresh';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { RECORD_MAP_LAYER_COLORS } from '@/object-record/record-map/constants/record-map-layer-style.constants';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
@@ -347,6 +348,7 @@ export const RecordMap = ({
         return false;
       }
     };
+
     const addTileLayers = () => {
       if (isDefined(map.getSource(RECORD_TILE_SOURCE_ID))) {
         return;
@@ -403,15 +405,18 @@ export const RecordMap = ({
         map.on('mouseleave', layerId, resetPointerCursor);
       });
     };
+    const addTileLayersWithFreshToken = () => {
+      void ensureTokenPairIsFresh().finally(addTileLayers);
+    };
 
     if (map.isStyleLoaded()) {
-      addTileLayers();
+      addTileLayersWithFreshToken();
     } else {
-      map.once('load', addTileLayers);
+      map.once('load', addTileLayersWithFreshToken);
     }
 
     return () => {
-      map.off('load', addTileLayers);
+      map.off('load', addTileLayersWithFreshToken);
 
       layerIds.forEach((layerId) => {
         if (hasLayer(layerId)) {
@@ -441,16 +446,27 @@ export const RecordMap = ({
         ? ''
         : `?filter=${encodeURIComponent(tileSourceFilter)}`;
     const boundsUrl = `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${tileSourceViewId}/bounds${tileFilterQuery}`;
-    const token = getTokenPair()?.accessOrWorkspaceAgnosticToken?.token;
 
-    void fetch(boundsUrl, {
-      headers: token
-        ? {
-            authorization: `Bearer ${token}`,
-          }
-        : undefined,
-      signal: abortController.signal,
-    })
+    const fetchBounds = async ({ forceRenewal = false } = {}) => {
+      const tokenPair = await ensureTokenPairIsFresh({ forceRenewal });
+      const token = tokenPair?.accessOrWorkspaceAgnosticToken?.token;
+
+      return fetch(boundsUrl, {
+        headers: token
+          ? {
+              authorization: `Bearer ${token}`,
+            }
+          : undefined,
+        signal: abortController.signal,
+      });
+    };
+
+    void fetchBounds()
+      .then((response) =>
+        response.status === 401 || response.status === 403
+          ? fetchBounds({ forceRenewal: true })
+          : response,
+      )
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to load map bounds');

@@ -26,6 +26,7 @@ import { buildGeoMapRealBenchmarkInsertSql } from 'src/database/commands/geo-map
 import { FieldMetadataService } from 'src/engine/metadata-modules/field-metadata/services/field-metadata.service';
 import { ObjectMetadataService } from 'src/engine/metadata-modules/object-metadata/object-metadata.service';
 import { ViewService } from 'src/engine/metadata-modules/view/services/view.service';
+import { WorkspaceMetadataVersionService } from 'src/engine/metadata-modules/workspace-metadata-version/services/workspace-metadata-version.service';
 import { computeTableName } from 'src/engine/utils/compute-table-name.util';
 import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
 
@@ -145,6 +146,7 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
     private readonly objectMetadataService: ObjectMetadataService,
     private readonly fieldMetadataService: FieldMetadataService,
     private readonly viewService: ViewService,
+    private readonly workspaceMetadataVersionService: WorkspaceMetadataVersionService,
   ) {
     super();
   }
@@ -484,6 +486,10 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
           AND "id" = $3
       `,
       [workspaceId, objectMetadataId, mapViewId, ViewKey.INDEX],
+    );
+
+    await this.workspaceMetadataVersionService.incrementMetadataVersion(
+      workspaceId,
     );
   }
 }
