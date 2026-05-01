@@ -51,8 +51,10 @@ export const buildMapVectorTileSql = ({
   y,
 }: BuildMapVectorTileSqlArgs) => {
   const tileBounds3857 = `ST_TileEnvelope(${z}, ${x}, ${y})`;
+  const tileBounds4326 = `ST_Transform(${tileBounds3857}, 4326)`;
   const geometryColumnReference = `tile_source.${quoteSqlIdentifier(geometryColumnName)}`;
-  const geometry3857 = `ST_Transform(${geometryColumnReference}, 3857)`;
+  const clippedGeometry4326 = `ST_Intersection(${geometryColumnReference}, ${tileBounds4326})`;
+  const geometry3857 = `ST_Transform(${clippedGeometry4326}, 3857)`;
   const simplificationTolerance =
     computeMapVectorTileSimplificationTolerance(z);
   const tileGeometryExpression =

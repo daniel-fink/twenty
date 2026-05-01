@@ -16,6 +16,9 @@ describe('buildMapVectorTileSql', () => {
     });
 
     expect(sql).toContain('ST_AsMVTGeom');
+    expect(sql).toContain(
+      'ST_Intersection(tile_source."geometry", ST_Transform(ST_TileEnvelope(6, 32, 21), 4326))',
+    );
     expect(sql).toContain('ST_AsMVT(');
     expect(sql).toContain("'records'");
     expect(sql).toContain('LIMIT 50000');
@@ -64,7 +67,9 @@ describe('buildMapVectorTileSql', () => {
       y: 1365,
     });
 
-    expect(sql).toContain('ST_Transform(tile_source."geometry", 3857)');
+    expect(sql).toContain(
+      'ST_Transform(ST_Intersection(tile_source."geometry", ST_Transform(ST_TileEnvelope(12, 2048, 1365), 4326)), 3857)',
+    );
     expect(sql).not.toContain('ST_SimplifyPreserveTopology');
     expect(computeMapVectorTileSimplificationTolerance(12)).toBe(0);
     expect(computeMapVectorTileSimplificationTolerance(4)).toBeGreaterThan(0);
