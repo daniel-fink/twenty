@@ -7,6 +7,8 @@ cd "$SCRIPT_DIR"
 EXPECTED_NODE_MAJOR="24"
 EXPECTED_NODE_MIN_MINOR="5"
 EXPECTED_YARN_MAJOR="4"
+TWENTY_GEO_FRONTEND_URL="http://twenty-geo.localhost:3001"
+TWENTY_GEO_SERVER_URL="http://twenty-geo.localhost:3000"
 
 log() {
   printf '[twenty-geo] %s\n' "$*"
@@ -62,9 +64,9 @@ Commands:
     Verify required tooling and run lightweight initialization checks.
 
 Local URLs after start:
-  Frontend: http://localhost:3001
-  Server:   http://localhost:3000
-  GraphQL:  http://localhost:3000/graphql
+  Frontend: http://twenty-geo.localhost:3001
+  Server:   http://twenty-geo.localhost:3000
+  GraphQL:  http://twenty-geo.localhost:3000/graphql
 USAGE
 }
 
@@ -143,6 +145,8 @@ run_dev() {
 run_start() {
   check_required_tools
   log "Starting Twenty development processes"
+  log "Frontend will be available at $TWENTY_GEO_FRONTEND_URL"
+  log "Server will be available at $TWENTY_GEO_SERVER_URL"
   yarn start
 }
 
@@ -276,6 +280,8 @@ run_watch() {
   fi
 
   log "Starting frontend and backend hot-reload processes"
+  log "Frontend will be available at $TWENTY_GEO_FRONTEND_URL"
+  log "Server will be available at $TWENTY_GEO_SERVER_URL"
   npx concurrently --kill-others --names twenty-server,twenty-front \
     "env -u NO_COLOR CHOKIDAR_USEPOLLING=$watch_polling CHOKIDAR_INTERVAL=$watch_interval yarn nx run twenty-server:start --excludeTaskDependencies" \
     "env -u NO_COLOR yarn nx run twenty-front:start --excludeTaskDependencies"
