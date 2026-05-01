@@ -1,9 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 
-import {
-  AuditException,
-  AuditExceptionCode,
-} from 'src/engine/core-modules/audit/audit.exception';
+import { AuditExceptionCode } from 'src/engine/core-modules/audit/audit.exception';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 
@@ -146,12 +143,10 @@ describe('AuditResolver', () => {
 
     await expect(
       resolver.trackAnalytics(invalidInput as any, undefined, undefined),
-    ).rejects.toThrowError(
-      new AuditException(
-        'Invalid analytics input',
-        AuditExceptionCode.INVALID_TYPE,
-      ),
-    );
+    ).rejects.toMatchObject({
+      code: AuditExceptionCode.INVALID_TYPE,
+      message: 'Invalid analytics input',
+    });
   });
 
   it('should throw an AuditException when workspace is missing for createObjectEvent', async () => {
@@ -163,8 +158,9 @@ describe('AuditResolver', () => {
 
     await expect(
       resolver.createObjectEvent(input, undefined, undefined),
-    ).rejects.toThrowError(
-      new AuditException('Missing workspace', AuditExceptionCode.INVALID_INPUT),
-    );
+    ).rejects.toMatchObject({
+      code: AuditExceptionCode.INVALID_INPUT,
+      message: 'Missing workspace',
+    });
   });
 });

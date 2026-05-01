@@ -1,10 +1,14 @@
 import { randomBytes } from 'crypto';
 
-import { type FieldMetadataType } from 'twenty-shared/types';
+import { FieldMetadataType } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { type ObjectLiteral } from 'typeorm';
 
 import { findPostgresDefaultNullEquivalentValue } from 'src/engine/api/common/common-args-processors/data-arg-processor/utils/find-postgres-default-null-equivalent-value.util';
+import {
+  type GeometryBboxFilterValue,
+  type GeometryDistanceFilterValue,
+} from 'src/engine/api/common/common-args-processors/filter-arg-processor/types/geometry-filter-value.type';
 import { STANDARD_ERROR_MESSAGE } from 'src/engine/api/common/common-query-runners/errors/standard-error-message.constant';
 import {
   GraphqlQueryRunnerException,
@@ -16,6 +20,10 @@ type WhereConditionParts = {
   sql: string;
   params: ObjectLiteral;
 };
+
+const METERS_PER_DEGREE_AT_EQUATOR = 111_320;
+
+const buildGeoJsonParamValue = (value: unknown): string => JSON.stringify(value);
 
 export const computeWhereConditionParts = ({
   operator,
@@ -121,6 +129,13 @@ export const computeWhereConditionParts = ({
         params: { [`${key}${paramSuffix}`]: `${value}` },
       };
     case 'contains':
+      if (fieldMetadataType === FieldMetadataType.GEOMETRY) {
+        return {
+          sql: `ST_Contains(${fieldReference}, ST_SetSRID(ST_GeomFromGeoJSON(:${key}${paramSuffix}), 4326))`,
+          params: { [`${key}${paramSuffix}`]: buildGeoJsonParamValue(value) },
+        };
+      }
+
       return {
         sql: `${fieldReference} @> ARRAY[:...${key}${paramSuffix}]`,
         params: { [`${key}${paramSuffix}`]: value },
@@ -153,6 +168,55 @@ export const computeWhereConditionParts = ({
       return {
         sql: `EXISTS (SELECT 1 FROM unnest(${fieldReference}) AS elem WHERE elem ILIKE :${key}${paramSuffix})`,
         params: { [`${key}${paramSuffix}`]: value },
+      };
+    case 'withinDistance':
+    case 'near': {
+      const distanceValue = value as GeometryDistanceFilterValue;
+      const pointParam = `${key}${paramSuffix}Point`;
+      const distanceMetersParam = `${key}${paramSuffix}DistanceMeters`;
+      const distanceDegreesParam = `${key}${paramSuffix}DistanceDegrees`;
+      const pointExpression = `ST_SetSRID(ST_GeomFromGeoJSON(:${pointParam}), 4326)`;
+
+      return {
+        sql: `(
+          ST_DWithin(${fieldReference}, ${pointExpression}, :${distanceDegreesParam})
+          AND ST_DWithin(${fieldReference}::geography, ${pointExpression}::geography, :${distanceMetersParam})
+        )`,
+        params: {
+          [pointParam]: buildGeoJsonParamValue(distanceValue.point),
+          [distanceMetersParam]: distanceValue.distanceInMeters,
+          [distanceDegreesParam]:
+            distanceValue.distanceInMeters / METERS_PER_DEGREE_AT_EQUATOR,
+        },
+      };
+    }
+    case 'withinBbox': {
+      const bboxValue = value as GeometryBboxFilterValue;
+      const westParam = `${key}${paramSuffix}West`;
+      const southParam = `${key}${paramSuffix}South`;
+      const eastParam = `${key}${paramSuffix}East`;
+      const northParam = `${key}${paramSuffix}North`;
+      const envelopeExpression = `ST_MakeEnvelope(:${westParam}, :${southParam}, :${eastParam}, :${northParam}, 4326)`;
+
+      return {
+        sql: `(${fieldReference} && ${envelopeExpression} AND ST_Within(${fieldReference}, ${envelopeExpression}))`,
+        params: {
+          [westParam]: bboxValue.west,
+          [southParam]: bboxValue.south,
+          [eastParam]: bboxValue.east,
+          [northParam]: bboxValue.north,
+        },
+      };
+    }
+    case 'intersects':
+      return {
+        sql: `ST_Intersects(${fieldReference}, ST_SetSRID(ST_GeomFromGeoJSON(:${key}${paramSuffix}), 4326))`,
+        params: { [`${key}${paramSuffix}`]: buildGeoJsonParamValue(value) },
+      };
+    case 'within':
+      return {
+        sql: `ST_Within(${fieldReference}, ST_SetSRID(ST_GeomFromGeoJSON(:${key}${paramSuffix}), 4326))`,
+        params: { [`${key}${paramSuffix}`]: buildGeoJsonParamValue(value) },
       };
     default:
       throw new GraphqlQueryRunnerException(

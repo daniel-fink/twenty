@@ -4,6 +4,7 @@ import type { FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-m
 import { validateAndTransformArrayItems } from './validate-and-transform-array-items.util';
 import { validateAndTransformValueByFieldType } from './validate-and-transform-value-by-field-type.util';
 import { validateArrayOperatorValueOrThrow } from './validate-array-operator-value-or-throw.util';
+import { validateGeometryFilterValueOrThrow } from './validate-geometry-filter-value-or-throw.util';
 import { validateIsEmptyArrayOperatorValueOrThrow } from './validate-is-empty-array-operator-value-or-throw.util';
 import { validateIsOperatorFilterValueOrThrow } from './validate-is-operator-filter-value-or-throw.util';
 import { validateStringOperatorValueOrThrow } from './validate-string-operator-value-or-throw.util';
@@ -59,6 +60,19 @@ export const validateAndTransformValueOrThrow = (
       validateStringOperatorValueOrThrow(value, operator, fieldName);
 
       return value;
+
+    case 'withinDistance':
+    case 'withinBbox':
+    case 'intersects':
+    case 'contains':
+    case 'within':
+    case 'near':
+      return validateGeometryFilterValueOrThrow(
+        operator,
+        value,
+        fieldMetadata,
+        fieldName,
+      );
 
     default:
       return value;

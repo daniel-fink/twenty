@@ -14,6 +14,12 @@ export enum FilterComparators {
   endsWith = 'endsWith',
   like = 'like',
   ilike = 'ilike',
+  withinDistance = 'withinDistance',
+  withinBbox = 'withinBbox',
+  intersects = 'intersects',
+  contains = 'contains',
+  within = 'within',
+  near = 'near',
 
   // Not handled rigth now
   // regex = 'regex',

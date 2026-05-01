@@ -2,10 +2,7 @@ import {
   type AppTokenEntity,
   AppTokenType,
 } from 'src/engine/core-modules/app-token/app-token.entity';
-import {
-  WorkspaceInvitationException,
-  WorkspaceInvitationExceptionCode,
-} from 'src/engine/core-modules/workspace-invitation/workspace-invitation.exception';
+import { WorkspaceInvitationExceptionCode } from 'src/engine/core-modules/workspace-invitation/workspace-invitation.exception';
 
 import { castAppTokenToWorkspaceInvitationUtil } from './cast-app-token-to-workspace-invitation.util';
 
@@ -18,12 +15,17 @@ describe('castAppTokenToWorkspaceInvitation', () => {
       expiresAt: new Date(),
     } as AppTokenEntity;
 
-    expect(() => castAppTokenToWorkspaceInvitationUtil(appToken)).toThrowError(
-      new WorkspaceInvitationException(
-        `Token type must be "${AppTokenType.InvitationToken}"`,
-        WorkspaceInvitationExceptionCode.INVALID_APP_TOKEN_TYPE,
-      ),
+    expect(() => castAppTokenToWorkspaceInvitationUtil(appToken)).toThrow(
+      `Token type must be "${AppTokenType.InvitationToken}"`,
     );
+
+    try {
+      castAppTokenToWorkspaceInvitationUtil(appToken);
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVALID_APP_TOKEN_TYPE,
+      });
+    }
   });
 
   it('should throw an error if context email is missing', () => {
@@ -34,12 +36,17 @@ describe('castAppTokenToWorkspaceInvitation', () => {
       expiresAt: new Date(),
     } as AppTokenEntity;
 
-    expect(() => castAppTokenToWorkspaceInvitationUtil(appToken)).toThrowError(
-      new WorkspaceInvitationException(
-        `Invitation corrupted: Missing email in context`,
-        WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
-      ),
+    expect(() => castAppTokenToWorkspaceInvitationUtil(appToken)).toThrow(
+      `Invitation corrupted: Missing email in context`,
     );
+
+    try {
+      castAppTokenToWorkspaceInvitationUtil(appToken);
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
+      });
+    }
   });
 
   it('should return the correct invitation object for valid inputs', () => {

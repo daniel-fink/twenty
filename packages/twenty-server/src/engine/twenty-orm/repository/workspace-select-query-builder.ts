@@ -56,6 +56,12 @@ export class WorkspaceSelectQueryBuilder<
     return this.findOptions;
   }
 
+  applyWorkspacePermissions(): this {
+    this.validatePermissions();
+
+    return this;
+  }
+
   override clone(): this {
     const clonedQueryBuilder = super.clone();
 

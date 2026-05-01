@@ -68,15 +68,16 @@ export class FlatViewValidatorService {
         settings: FieldMetadataGeometrySettings | null;
       }
     ).settings;
-    const isPointGeometryMapField =
+    const isGeometryMapField =
       mapFieldMetadata.type === FieldMetadataType.GEOMETRY &&
-      mapFieldMetadataSettings?.geometryType === 'POINT';
+      mapFieldMetadataSettings?.srid === 4326 &&
+      mapFieldMetadataSettings?.isGeography === false;
 
-    if (!isAddressMapField && !isPointGeometryMapField) {
+    if (!isAddressMapField && !isGeometryMapField) {
       validationResult.errors.push({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: t`Map field must be an ADDRESS or Point GEOMETRY field`,
-        userFriendlyMessage: msg`Map field must be an address or point geometry field`,
+        message: t`Map field must be an ADDRESS or GEOMETRY field`,
+        userFriendlyMessage: msg`Map field must be an address or geometry field`,
       });
     }
 

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CronRegisterAllCommand } from 'src/database/commands/cron-register-all.command';
 import { DataSeedWorkspaceCommand } from 'src/database/commands/data-seed-dev-workspace.command';
+import { GeoMapBenchmarkSeedCommand } from 'src/database/commands/geo-map-benchmark-seed.command';
 import { GenerateInstanceCommandCommand } from 'src/database/commands/generate-instance-command.command';
 import { InstallPreInstalledAppsCommand } from 'src/database/commands/install-pre-installed-apps.command';
 import { InstanceCommandGenerationService } from 'src/database/commands/instance-command-generation.service';
@@ -88,6 +89,7 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
   ],
   providers: [
     DataSeedWorkspaceCommand,
+    GeoMapBenchmarkSeedCommand,
     ConfirmationQuestion,
     CronRegisterAllCommand,
     GenerateInstanceCommandCommand,
