@@ -1,5 +1,8 @@
 import { msg } from '@lingui/core/macro';
-import { compositeTypeDefinitions, FieldMetadataType } from 'twenty-shared/types';
+import {
+  compositeTypeDefinitions,
+  FieldMetadataType,
+} from 'twenty-shared/types';
 import { capitalize, isDefined } from 'twenty-shared/utils';
 import { type WhereExpressionBuilder } from 'typeorm';
 

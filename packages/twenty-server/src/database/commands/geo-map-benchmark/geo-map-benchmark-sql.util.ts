@@ -25,6 +25,12 @@ const quoteIdentifier = (identifier: string) => {
   return `"${identifier}"`;
 };
 
+const quoteLiteral = (value: string) => {
+  assertGeoMapBenchmarkIdentifier(value);
+
+  return `'${value}'`;
+};
+
 const buildBenchmarkGeometryExpression = ({
   dataset,
 }: Pick<GeoMapBenchmarkInsertSqlArgs, 'dataset'>) => {
@@ -71,7 +77,34 @@ export const buildGeoMapBenchmarkGistIndexSql = ({
   tableName,
   geometryColumnName,
 }: GeoMapBenchmarkSqlArgs) =>
-  `CREATE INDEX IF NOT EXISTS ${quoteIdentifier(`${tableName}_${geometryColumnName}_benchmark_gist_idx`)} ON ${quoteIdentifier(schemaName)}.${quoteIdentifier(tableName)} USING GIST (${quoteIdentifier(geometryColumnName)})`;
+  `
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_index index_metadata
+        JOIN pg_class table_class
+          ON table_class.oid = index_metadata.indrelid
+        JOIN pg_namespace namespace
+          ON namespace.oid = table_class.relnamespace
+        JOIN pg_class index_class
+          ON index_class.oid = index_metadata.indexrelid
+        JOIN pg_am access_method
+          ON access_method.oid = index_class.relam
+        JOIN pg_attribute attribute
+          ON attribute.attrelid = table_class.oid
+          AND attribute.attnum = ANY(index_metadata.indkey)
+        WHERE namespace.nspname = ${quoteLiteral(schemaName)}
+          AND table_class.relname = ${quoteLiteral(tableName)}
+          AND attribute.attname = ${quoteLiteral(geometryColumnName)}
+          AND access_method.amname = 'gist'
+      ) THEN
+        CREATE INDEX ${quoteIdentifier(`${tableName}_${geometryColumnName}_benchmark_gist_idx`)}
+          ON ${quoteIdentifier(schemaName)}.${quoteIdentifier(tableName)}
+          USING GIST (${quoteIdentifier(geometryColumnName)});
+      END IF;
+    END $$;
+  `;
 
 export const buildGeoMapBenchmarkAnalyzeSql = ({
   schemaName,

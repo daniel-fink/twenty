@@ -1,13 +1,20 @@
-import { FieldMetadataType, ViewType } from 'twenty-shared/types';
+import {
+  FieldMetadataType,
+  ViewFilterOperand,
+  ViewType,
+} from 'twenty-shared/types';
 
 import { GeoMapTileService } from 'src/engine/core-modules/geo-map/services/geo-map-tile.service';
+
+const mockApplyDeletedAtToBuilder = jest.fn();
+const mockApplyFilterToBuilder = jest.fn();
 
 jest.mock(
   'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query.parser',
   () => ({
     GraphqlQueryParser: jest.fn().mockImplementation(() => ({
-      applyDeletedAtToBuilder: jest.fn(),
-      applyFilterToBuilder: jest.fn(),
+      applyDeletedAtToBuilder: mockApplyDeletedAtToBuilder,
+      applyFilterToBuilder: mockApplyFilterToBuilder,
     })),
   }),
 );
@@ -34,7 +41,13 @@ const createFlatEntityMaps = <T extends { id: string }>(entities: T[]) => ({
   universalIdentifiersByApplicationId: {},
 });
 
-const createTileContextMaps = () => {
+const createTileContextMaps = ({
+  viewFilters = [],
+  viewFilterGroups = [],
+}: {
+  viewFilters?: ({ id: string } & Record<string, unknown>)[];
+  viewFilterGroups?: ({ id: string } & Record<string, unknown>)[];
+} = {}) => {
   const objectMetadataId = 'object-id';
   const fieldMetadataId = 'field-id';
   const viewId = 'view-id';
@@ -51,6 +64,7 @@ const createTileContextMaps = () => {
     ]),
     flatObjectMetadataMaps: createFlatEntityMaps([
       {
+        fieldIds: [fieldMetadataId],
         id: objectMetadataId,
         isActive: true,
         nameSingular: 'geoBenchmarkPoint',
@@ -60,11 +74,15 @@ const createTileContextMaps = () => {
       {
         id: fieldMetadataId,
         isActive: true,
+        label: 'Geometry',
         name: 'geometry',
         objectMetadataId,
+        options: null,
         type: FieldMetadataType.GEOMETRY,
       },
     ]),
+    flatViewFilterMaps: createFlatEntityMaps(viewFilters),
+    flatViewFilterGroupMaps: createFlatEntityMaps(viewFilterGroups),
     viewId,
   };
 };
@@ -84,8 +102,19 @@ const createQueryBuilder = () => {
   return queryBuilder;
 };
 
-const createService = ({ queryResult }: { queryResult: unknown[] }) => {
-  const tileContextMaps = createTileContextMaps();
+const createService = ({
+  queryResult,
+  viewFilters,
+  viewFilterGroups,
+}: {
+  queryResult: unknown[];
+  viewFilters?: ({ id: string } & Record<string, unknown>)[];
+  viewFilterGroups?: ({ id: string } & Record<string, unknown>)[];
+}) => {
+  const tileContextMaps = createTileContextMaps({
+    viewFilters,
+    viewFilterGroups,
+  });
   const queryBuilder = createQueryBuilder();
   const query = jest.fn().mockResolvedValue(queryResult);
   const service = new GeoMapTileService(
@@ -115,6 +144,10 @@ const authContext = {
 } as never;
 
 describe('GeoMapTileService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should query geometry bounds with raw PostGIS geometry and bypass only the final wrapper query', async () => {
     const { query, queryBuilder, service, viewId } = createService({
       queryResult: [{ bounds: [1, 2, 3, 4], recordCount: 2 }],
@@ -157,6 +190,51 @@ describe('GeoMapTileService', () => {
       ['parameter'],
       undefined,
       { shouldBypassPermissionChecks: true },
+    );
+  });
+
+  it('should AND saved view filters with request filters for bounds and tiles', async () => {
+    const requestFilter = {
+      amount: {
+        gt: 1000,
+      },
+    };
+    const { service, viewId } = createService({
+      queryResult: [{ bounds: [1, 2, 3, 4], recordCount: 1 }],
+      viewFilters: [
+        {
+          id: 'view-filter-id',
+          deletedAt: null,
+          fieldMetadataId: 'field-id',
+          operand: ViewFilterOperand.CONTAINS,
+          positionInViewFilterGroup: null,
+          subFieldName: null,
+          value: 'North',
+          viewFilterGroupId: null,
+          viewId: 'view-id',
+        },
+      ],
+    });
+
+    await service.getGeometryBounds({
+      authContext,
+      viewId,
+      recordFilter: requestFilter,
+    });
+
+    expect(mockApplyFilterToBuilder).toHaveBeenCalledWith(
+      expect.anything(),
+      'geoBenchmarkPoint',
+      {
+        and: [
+          requestFilter,
+          {
+            geometry: {
+              ilike: '%North%',
+            },
+          },
+        ],
+      },
     );
   });
 });

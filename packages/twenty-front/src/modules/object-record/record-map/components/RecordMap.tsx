@@ -5,17 +5,14 @@ import {
 
 import { getTokenPair } from '@/apollo/utils/getTokenPair';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
-import {
-  RECORD_MAP_LAYER_BLUE,
-  RECORD_MAP_LAYER_WHITE,
-} from '@/object-record/record-map/constants/record-map-layer-style.constants';
+import { RECORD_MAP_LAYER_COLORS } from '@/object-record/record-map/constants/record-map-layer-style.constants';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import {
   getPaddedRecordMapBounds,
   type RecordMapBounds,
 } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
 import { styled } from '@linaria/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { IconTarget } from 'twenty-ui/display';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -31,6 +28,23 @@ const RECORD_TILE_SOURCE_LAYER = 'records';
 const RECORD_TILE_FILL_LAYER_ID = 'record-map-polygons-fill';
 const RECORD_TILE_LINE_LAYER_ID = 'record-map-polygons-line';
 const RECORD_TILE_POINT_LAYER_ID = 'record-map-points';
+const RECORD_TILE_POLYGON_FILTER: maplibregl.FilterSpecification = [
+  '==',
+  ['geometry-type'],
+  'Polygon',
+];
+const RECORD_TILE_LINE_FILTER: maplibregl.FilterSpecification = [
+  'match',
+  ['geometry-type'],
+  ['LineString', 'Polygon'],
+  true,
+  false,
+];
+const RECORD_TILE_POINT_FILTER: maplibregl.FilterSpecification = [
+  '==',
+  ['geometry-type'],
+  'Point',
+];
 
 type RecordMapTileSource = {
   viewId: string;
@@ -142,9 +156,9 @@ export const RecordMap = ({
   const [tileBounds, setTileBounds] = useState<RecordMapBoundsResponse | null>(
     null,
   );
-  const hasAutoFitTileBoundsRef = useRef(false);
-  const hasUserMovedTileMapRef = useRef(false);
-  const isFittingTileBoundsRef = useRef(false);
+  const [hasAutoFitTileBounds, setHasAutoFitTileBounds] = useState(false);
+  const [hasUserMovedTileMap, setHasUserMovedTileMap] = useState(false);
+  const [isFittingTileBounds, setIsFittingTileBounds] = useState(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
@@ -159,13 +173,13 @@ export const RecordMap = ({
       return;
     }
 
-    isFittingTileBoundsRef.current = true;
+    setIsFittingTileBounds(true);
 
     map.once('moveend', () => {
-      isFittingTileBoundsRef.current = false;
+      setIsFittingTileBounds(false);
     });
     window.setTimeout(() => {
-      isFittingTileBoundsRef.current = false;
+      setIsFittingTileBounds(false);
     }, 750);
 
     map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
@@ -215,12 +229,12 @@ export const RecordMap = ({
   }, [mapContainerElement, shouldRenderMap]);
 
   useEffect(() => {
-    hasAutoFitTileBoundsRef.current = false;
-    hasUserMovedTileMapRef.current = false;
+    setHasAutoFitTileBounds(false);
+    setHasUserMovedTileMap(false);
   }, [tileSourceViewId]);
 
   useEffect(() => {
-    hasAutoFitTileBoundsRef.current = false;
+    setHasAutoFitTileBounds(false);
   }, [tileSourceFilter]);
 
   useEffect(() => {
@@ -229,8 +243,8 @@ export const RecordMap = ({
     }
 
     const markUserMovedMap = () => {
-      if (!isFittingTileBoundsRef.current) {
-        hasUserMovedTileMapRef.current = true;
+      if (!isFittingTileBounds) {
+        setHasUserMovedTileMap(true);
       }
     };
 
@@ -241,7 +255,7 @@ export const RecordMap = ({
       map.off('dragstart', markUserMovedMap);
       map.off('zoomstart', markUserMovedMap);
     };
-  }, [map, tileSourceViewId]);
+  }, [isFittingTileBounds, map, tileSourceViewId]);
 
   useEffect(() => {
     if (!isDefined(map) || isDefined(tileSource)) {
@@ -350,8 +364,9 @@ export const RecordMap = ({
         type: 'fill',
         source: RECORD_TILE_SOURCE_ID,
         'source-layer': RECORD_TILE_SOURCE_LAYER,
+        filter: RECORD_TILE_POLYGON_FILTER,
         paint: {
-          'fill-color': RECORD_MAP_LAYER_BLUE,
+          'fill-color': RECORD_MAP_LAYER_COLORS.blue,
           'fill-opacity': 0.24,
         },
       });
@@ -361,8 +376,9 @@ export const RecordMap = ({
         type: 'line',
         source: RECORD_TILE_SOURCE_ID,
         'source-layer': RECORD_TILE_SOURCE_LAYER,
+        filter: RECORD_TILE_LINE_FILTER,
         paint: {
-          'line-color': RECORD_MAP_LAYER_BLUE,
+          'line-color': RECORD_MAP_LAYER_COLORS.blue,
           'line-width': 1.4,
         },
       });
@@ -372,10 +388,11 @@ export const RecordMap = ({
         type: 'circle',
         source: RECORD_TILE_SOURCE_ID,
         'source-layer': RECORD_TILE_SOURCE_LAYER,
+        filter: RECORD_TILE_POINT_FILTER,
         paint: {
-          'circle-color': RECORD_MAP_LAYER_BLUE,
+          'circle-color': RECORD_MAP_LAYER_COLORS.blue,
           'circle-radius': 5,
-          'circle-stroke-color': RECORD_MAP_LAYER_WHITE,
+          'circle-stroke-color': RECORD_MAP_LAYER_COLORS.white,
           'circle-stroke-width': 1.5,
         },
       });
@@ -460,15 +477,20 @@ export const RecordMap = ({
   useEffect(() => {
     if (
       !isDefined(tileBounds?.bounds) ||
-      hasUserMovedTileMapRef.current ||
-      hasAutoFitTileBoundsRef.current
+      hasUserMovedTileMap ||
+      hasAutoFitTileBounds
     ) {
       return;
     }
 
     fitMapToTileBounds();
-    hasAutoFitTileBoundsRef.current = true;
-  }, [fitMapToTileBounds, tileBounds]);
+    setHasAutoFitTileBounds(true);
+  }, [
+    fitMapToTileBounds,
+    hasAutoFitTileBounds,
+    hasUserMovedTileMap,
+    tileBounds,
+  ]);
 
   if (!hasMapStyle) {
     return (

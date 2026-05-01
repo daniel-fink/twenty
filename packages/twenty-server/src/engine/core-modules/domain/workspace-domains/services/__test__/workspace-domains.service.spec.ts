@@ -213,7 +213,7 @@ describe('WorkspaceDomainsService', () => {
       expect(result?.id).toEqual('workspace-id');
     });
 
-    it('should return 1st workspace if multiple workspaces when IS_MULTIWORKSPACE_ENABLED=false', async () => {
+    it('should return Apple seed workspace if multiple workspaces exist when IS_MULTIWORKSPACE_ENABLED=false', async () => {
       jest
         .spyOn(twentyConfigService, 'get')
         .mockImplementation((key: string) => {
@@ -229,9 +229,43 @@ describe('WorkspaceDomainsService', () => {
       jest.spyOn(workspaceRepository, 'find').mockResolvedValueOnce([
         {
           id: 'workspace-id1',
+          subdomain: 'empty4',
         },
         {
           id: 'workspace-id2',
+          subdomain: 'apple',
+        },
+      ] as unknown as WorkspaceEntity[]);
+
+      const result =
+        await workspaceDomainsService.getWorkspaceByOriginOrDefaultWorkspace(
+          'https://example.com',
+        );
+
+      expect(result?.id).toEqual('workspace-id2');
+    });
+
+    it('should return 1st workspace if multiple non-seed workspaces exist when IS_MULTIWORKSPACE_ENABLED=false', async () => {
+      jest
+        .spyOn(twentyConfigService, 'get')
+        .mockImplementation((key: string) => {
+          const env = {
+            FRONTEND_URL: 'https://example.com',
+            IS_MULTIWORKSPACE_ENABLED: false,
+          };
+
+          // @ts-expect-error legacy noImplicitAny
+          return env[key];
+        });
+
+      jest.spyOn(workspaceRepository, 'find').mockResolvedValueOnce([
+        {
+          id: 'workspace-id1',
+          subdomain: 'first',
+        },
+        {
+          id: 'workspace-id2',
+          subdomain: 'second',
         },
       ] as unknown as WorkspaceEntity[]);
 

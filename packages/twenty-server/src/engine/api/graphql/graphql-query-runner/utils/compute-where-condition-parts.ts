@@ -23,7 +23,8 @@ type WhereConditionParts = {
 
 const METERS_PER_DEGREE_AT_EQUATOR = 111_320;
 
-const buildGeoJsonParamValue = (value: unknown): string => JSON.stringify(value);
+const buildGeoJsonParamValue = (value: unknown): string =>
+  JSON.stringify(value);
 
 export const computeWhereConditionParts = ({
   operator,

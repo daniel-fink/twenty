@@ -23,15 +23,15 @@ Usage:
   ./deploy.sh local
   ./deploy.sh start
   ./deploy.sh watch
-  ./deploy.sh reset-map-dev-data
+  ./deploy.sh reseed
   ./deploy.sh test-map-view
   ./deploy.sh check
   ./deploy.sh help
 
 Commands:
   local
-    Bootstrap local services, install dependencies, and reset/seed the Twenty
-    development database with map-ready address fixture data.
+    Bootstrap local services and install dependencies without modifying the
+    existing development database.
 
   start
     Start frontend, backend, and worker through the existing monorepo start
@@ -41,9 +41,8 @@ Commands:
     Start the frontend Vite dev server and backend Nest watcher for hot-reload
     development. This does not start the worker.
 
-  reset-map-dev-data
-    Reset the database and reseed development records, including company
-    address latitude and longitude fixtures used by map-view work.
+  reseed
+    Destructively reset the database and reseed development records.
 
   test-map-view
     Build required workspace packages and run focused Epic 2 map-view tests.
@@ -109,10 +108,8 @@ run_local() {
   log "Installing dependencies"
   yarn install --immutable
 
-  log "Resetting and seeding development database"
-  npx nx database:reset twenty-server
-
   log "Local Twenty development environment is ready"
+  log "Database was left unchanged. To reset/reseed intentionally, run: ./deploy.sh reseed"
 }
 
 run_start() {
@@ -146,9 +143,9 @@ run_watch() {
     "env -u NO_COLOR yarn nx run twenty-front:start --excludeTaskDependencies"
 }
 
-run_reset_map_dev_data() {
+run_reseed() {
   check_required_tools
-  log "Resetting and seeding map development data"
+  log "Resetting and reseeding development data"
   npx nx database:reset twenty-server
 }
 
@@ -182,7 +179,7 @@ run_check() {
   bash -n scripts/local/bootstrap-twenty-map-dev.sh
   bash -n scripts/local/start-twenty-dev.sh
   bash -n scripts/local/watch-twenty-dev.sh
-  bash -n scripts/local/reset-map-dev-data.sh
+  bash -n scripts/local/reseed.sh
   bash -n scripts/local/check-map-view.sh
 
   if [[ -f node_modules/.yarn-state.yml ]]; then
@@ -210,8 +207,8 @@ main() {
     watch)
       run_watch
       ;;
-    reset-map-dev-data)
-      run_reset_map_dev_data
+    reseed)
+      run_reseed
       ;;
     test-map-view)
       run_test_map_view

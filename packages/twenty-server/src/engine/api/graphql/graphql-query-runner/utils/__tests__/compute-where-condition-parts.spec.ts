@@ -46,10 +46,7 @@ describe('computeWhereConditionParts geometry filters', () => {
     expect(result.sql).toContain('"company"."location" && ST_MakeEnvelope');
     expect(result.sql).toContain('ST_Within("company"."location"');
     expect(Object.values(result.params)).toEqual([
-      151.19,
-      -33.88,
-      151.22,
-      -33.84,
+      151.19, -33.88, 151.22, -33.84,
     ]);
   });
 

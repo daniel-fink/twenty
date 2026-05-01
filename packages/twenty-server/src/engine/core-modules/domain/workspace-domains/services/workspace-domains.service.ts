@@ -14,6 +14,8 @@ import { WorkspaceNotFoundDefaultError } from 'src/engine/core-modules/workspace
 
 @Injectable()
 export class WorkspaceDomainsService {
+  private static readonly APPLE_SEED_WORKSPACE_SUBDOMAIN = 'apple';
+
   constructor(
     private readonly domainServerConfigService: DomainServerConfigService,
     private readonly twentyConfigService: TwentyConfigService,
@@ -77,7 +79,13 @@ export class WorkspaceDomainsService {
       );
     }
 
-    const foundWorkspace = workspaces[0];
+    const appleSeedWorkspace = workspaces.find(
+      (workspace) =>
+        workspace.subdomain ===
+        WorkspaceDomainsService.APPLE_SEED_WORKSPACE_SUBDOMAIN,
+    );
+
+    const foundWorkspace = appleSeedWorkspace ?? workspaces[0];
 
     assertIsDefinedOrThrow(foundWorkspace, WorkspaceNotFoundDefaultError);
 

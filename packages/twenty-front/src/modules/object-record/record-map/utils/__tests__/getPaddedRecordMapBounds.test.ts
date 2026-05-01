@@ -21,4 +21,11 @@ describe('getPaddedRecordMapBounds', () => {
       [-80, -84.995],
     ]);
   });
+
+  it('should clamp bounds to valid Web Mercator display bounds', () => {
+    expect(getPaddedRecordMapBounds([-190, -90, 190, 90])).toEqual([
+      [-180, -85.05112878],
+      [180, 85.05112878],
+    ]);
+  });
 });

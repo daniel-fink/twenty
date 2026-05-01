@@ -10,6 +10,7 @@ import { isDefined } from 'twenty-shared/utils';
 import { GraphqlQueryParser } from 'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query.parser';
 import { type ObjectRecordFilter } from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
 import { MAP_VECTOR_TILE_LAYER_NAME } from 'src/engine/core-modules/geo-map/constants/map-vector-tile.constants';
+import { buildMapViewRecordFilter } from 'src/engine/core-modules/geo-map/utils/build-map-view-record-filter.util';
 import {
   buildMapGeometryBoundsSql,
   buildMapVectorTileSql,
@@ -21,6 +22,9 @@ import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/
 import { computeColumnName } from 'src/engine/metadata-modules/field-metadata/utils/compute-column-name.util';
 import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
+import { type FlatViewFilterGroup } from 'src/engine/metadata-modules/flat-view-filter-group/types/flat-view-filter-group.type';
+import { type FlatViewFilter } from 'src/engine/metadata-modules/flat-view-filter/types/flat-view-filter.type';
+import { type FlatView } from 'src/engine/metadata-modules/flat-view/types/flat-view.type';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { getWorkspaceContext } from 'src/engine/twenty-orm/storage/orm-workspace-context.storage';
 import { resolveRolePermissionConfig } from 'src/engine/twenty-orm/utils/resolve-role-permission-config.util';
@@ -38,10 +42,13 @@ type MapViewBounds = {
 };
 
 type TileContext = {
+  flatView: FlatView;
   flatObjectMetadata: FlatObjectMetadata;
   flatObjectMetadataMaps: FlatEntityMaps<FlatObjectMetadata>;
   flatFieldMetadata: FlatFieldMetadata<FieldMetadataType.GEOMETRY>;
   flatFieldMetadataMaps: FlatEntityMaps<FlatFieldMetadata>;
+  flatViewFilterMaps: FlatEntityMaps<FlatViewFilter>;
+  flatViewFilterGroupMaps: FlatEntityMaps<FlatViewFilterGroup>;
 };
 
 type TileJson = {
@@ -120,13 +127,24 @@ export class GeoMapTileService {
     recordFilter?: Partial<ObjectRecordFilter>;
   }): Promise<MapViewBounds> {
     const {
+      flatView,
       flatObjectMetadata,
       flatObjectMetadataMaps,
       flatFieldMetadata,
       flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
     } = await this.getTileContext({
       authContext,
       viewId,
+    });
+    const effectiveRecordFilter = this.buildEffectiveRecordFilter({
+      flatView,
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
+      recordFilter,
     });
 
     return this.globalWorkspaceOrmManager.executeInWorkspaceContext(
@@ -163,11 +181,14 @@ export class GeoMapTileService {
           flatFieldMetadataMaps,
         );
 
-        graphqlQueryParser.applyDeletedAtToBuilder(queryBuilder, recordFilter);
+        graphqlQueryParser.applyDeletedAtToBuilder(
+          queryBuilder,
+          effectiveRecordFilter,
+        );
         graphqlQueryParser.applyFilterToBuilder(
           queryBuilder,
           recordAlias,
-          recordFilter,
+          effectiveRecordFilter,
         );
 
         queryBuilder.andWhere(`${geometryFieldReference} IS NOT NULL`);
@@ -214,13 +235,24 @@ export class GeoMapTileService {
     this.assertTileCoordinates({ z, x, y });
 
     const {
+      flatView,
       flatObjectMetadata,
       flatObjectMetadataMaps,
       flatFieldMetadata,
       flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
     } = await this.getTileContext({
       authContext,
       viewId,
+    });
+    const effectiveRecordFilter = this.buildEffectiveRecordFilter({
+      flatView,
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
+      recordFilter,
     });
 
     return this.globalWorkspaceOrmManager.executeInWorkspaceContext(
@@ -259,11 +291,14 @@ export class GeoMapTileService {
           flatFieldMetadataMaps,
         );
 
-        graphqlQueryParser.applyDeletedAtToBuilder(queryBuilder, recordFilter);
+        graphqlQueryParser.applyDeletedAtToBuilder(
+          queryBuilder,
+          effectiveRecordFilter,
+        );
         graphqlQueryParser.applyFilterToBuilder(
           queryBuilder,
           recordAlias,
-          recordFilter,
+          effectiveRecordFilter,
         );
 
         queryBuilder
@@ -315,6 +350,39 @@ export class GeoMapTileService {
     assertTileCoordinate({ value: y, name: 'y', max: maxCoordinate });
   }
 
+  private buildEffectiveRecordFilter({
+    flatView,
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+    flatViewFilterMaps,
+    flatViewFilterGroupMaps,
+    recordFilter,
+  }: {
+    flatView: FlatView;
+    flatObjectMetadata: FlatObjectMetadata;
+    flatFieldMetadataMaps: FlatEntityMaps<FlatFieldMetadata>;
+    flatViewFilterMaps: FlatEntityMaps<FlatViewFilter>;
+    flatViewFilterGroupMaps: FlatEntityMaps<FlatViewFilterGroup>;
+    recordFilter: Partial<ObjectRecordFilter>;
+  }) {
+    try {
+      return buildMapViewRecordFilter({
+        flatView,
+        flatObjectMetadata,
+        flatFieldMetadataMaps,
+        flatViewFilterMaps,
+        flatViewFilterGroupMaps,
+        requestRecordFilter: recordFilter,
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? `Invalid map view filter: ${error.message}`
+          : 'Invalid map view filter',
+      );
+    }
+  }
+
   private async getTileContext({
     authContext,
     viewId,
@@ -322,7 +390,13 @@ export class GeoMapTileService {
     authContext: WorkspaceAuthContext;
     viewId: string;
   }): Promise<TileContext> {
-    const { flatViewMaps, flatObjectMetadataMaps, flatFieldMetadataMaps } =
+    const {
+      flatViewMaps,
+      flatObjectMetadataMaps,
+      flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
+    } =
       await this.flatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
         {
           workspaceId: authContext.workspace.id,
@@ -330,6 +404,8 @@ export class GeoMapTileService {
             'flatViewMaps',
             'flatObjectMetadataMaps',
             'flatFieldMetadataMaps',
+            'flatViewFilterMaps',
+            'flatViewFilterGroupMaps',
           ],
         },
       );
@@ -378,11 +454,14 @@ export class GeoMapTileService {
     }
 
     return {
+      flatView,
       flatObjectMetadata,
       flatObjectMetadataMaps,
       flatFieldMetadata:
         flatFieldMetadata as FlatFieldMetadata<FieldMetadataType.GEOMETRY>,
       flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
     };
   }
 }
