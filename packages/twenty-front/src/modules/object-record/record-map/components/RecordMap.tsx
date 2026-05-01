@@ -35,11 +35,9 @@ const RECORD_TILE_POLYGON_FILTER: maplibregl.FilterSpecification = [
   'Polygon',
 ];
 const RECORD_TILE_LINE_FILTER: maplibregl.FilterSpecification = [
-  'match',
+  '==',
   ['geometry-type'],
-  ['LineString', 'Polygon'],
-  true,
-  false,
+  'LineString',
 ];
 const RECORD_TILE_POINT_FILTER: maplibregl.FilterSpecification = [
   '==',

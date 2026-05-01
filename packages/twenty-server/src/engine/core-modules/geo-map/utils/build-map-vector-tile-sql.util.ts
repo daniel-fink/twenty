@@ -54,16 +54,29 @@ export const buildMapVectorTileSql = ({
   const tileBounds4326 = `ST_Transform(${tileBounds3857}, 4326)`;
   const geometryColumnReference = `tile_source.${quoteSqlIdentifier(geometryColumnName)}`;
   const clippedGeometry4326 = `ST_Intersection(${geometryColumnReference}, ${tileBounds4326})`;
+  const clippedBoundary4326 = `ST_Intersection(ST_Boundary(${geometryColumnReference}), ${tileBounds4326})`;
   const geometry3857 = `ST_Transform(${clippedGeometry4326}, 3857)`;
+  const boundary3857 = `ST_Transform(${clippedBoundary4326}, 3857)`;
   const simplificationTolerance =
     computeMapVectorTileSimplificationTolerance(z);
   const tileGeometryExpression =
     simplificationTolerance > 0
       ? `ST_SimplifyPreserveTopology(${geometry3857}, ${simplificationTolerance})`
       : geometry3857;
+  const tileBoundaryExpression =
+    simplificationTolerance > 0
+      ? `ST_SimplifyPreserveTopology(${boundary3857}, ${simplificationTolerance})`
+      : boundary3857;
 
   return `
-    WITH tile_rows AS (
+    WITH source_rows AS (
+      SELECT
+        tile_source."id" AS "id",
+        ${geometryColumnReference} AS "geometry"
+      FROM (${sourceQuery}) tile_source
+      LIMIT ${MAP_VECTOR_TILE_MAX_FEATURES}
+    ),
+    tile_fill_rows AS (
       SELECT
         tile_source."id" AS "id",
         ST_AsMVTGeom(
@@ -73,8 +86,25 @@ export const buildMapVectorTileSql = ({
           ${MAP_VECTOR_TILE_BUFFER},
           true
         ) AS "geom"
-      FROM (${sourceQuery}) tile_source
-      LIMIT ${MAP_VECTOR_TILE_MAX_FEATURES}
+      FROM source_rows tile_source
+    ),
+    tile_boundary_rows AS (
+      SELECT
+        tile_source."id" AS "id",
+        ST_AsMVTGeom(
+          ${tileBoundaryExpression},
+          ${tileBounds3857},
+          ${MAP_VECTOR_TILE_EXTENT},
+          ${MAP_VECTOR_TILE_BUFFER},
+          true
+        ) AS "geom"
+      FROM source_rows tile_source
+      WHERE ST_Dimension(${geometryColumnReference}) = 2
+    ),
+    tile_rows AS (
+      SELECT "id", "geom" FROM tile_fill_rows
+      UNION ALL
+      SELECT "id", "geom" FROM tile_boundary_rows
     )
     SELECT ST_AsMVT(
       tile_rows,

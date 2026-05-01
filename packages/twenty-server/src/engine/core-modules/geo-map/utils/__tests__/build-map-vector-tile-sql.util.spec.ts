@@ -19,6 +19,10 @@ describe('buildMapVectorTileSql', () => {
     expect(sql).toContain(
       'ST_Intersection(tile_source."geometry", ST_Transform(ST_TileEnvelope(6, 32, 21), 4326))',
     );
+    expect(sql).toContain(
+      'ST_Intersection(ST_Boundary(tile_source."geometry"), ST_Transform(ST_TileEnvelope(6, 32, 21), 4326))',
+    );
+    expect(sql).toContain('UNION ALL');
     expect(sql).toContain('ST_AsMVT(');
     expect(sql).toContain("'records'");
     expect(sql).toContain('LIMIT 50000');
