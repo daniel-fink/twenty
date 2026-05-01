@@ -26,11 +26,17 @@ export default defineConfig(({ mode }) => {
     SSL_KEY_PATH,
     REACT_APP_PORT,
     IS_DEBUG_MODE,
+    VITE_ALLOWED_HOSTS,
   } = env;
 
   const port = isNonEmptyString(REACT_APP_PORT)
     ? parseInt(REACT_APP_PORT)
     : 3001;
+  const allowedHosts = isNonEmptyString(VITE_ALLOWED_HOSTS)
+    ? VITE_ALLOWED_HOSTS.split(',')
+        .map((host) => host.trim().toLowerCase())
+        .filter(isNonEmptyString)
+    : [];
 
   const CHUNK_SIZE_WARNING_LIMIT = 1024 * 1024; // 1MB
   // Please don't increase this limit for main index chunk
@@ -71,6 +77,36 @@ export default defineConfig(({ mode }) => {
     },
 
     plugins: [
+      ...(allowedHosts.length > 0
+        ? [
+            {
+              name: 'twenty-front-strict-host',
+              configureServer(server) {
+                server.middlewares.use((request, response, next) => {
+                  const requestHost = request.headers.host
+                    ?.split(':')[0]
+                    ?.toLowerCase();
+
+                  if (
+                    isNonEmptyString(requestHost) &&
+                    allowedHosts.includes(requestHost)
+                  ) {
+                    next();
+
+                    return;
+                  }
+
+                  response.statusCode = 403;
+                  response.end(
+                    `Host not allowed for this frontend dev server. Expected one of: ${allowedHosts.join(
+                      ', ',
+                    )}`,
+                  );
+                });
+              },
+            } satisfies PluginOption,
+          ]
+        : []),
       react({
         plugins: [['@lingui/swc-plugin', {}]],
       }),
