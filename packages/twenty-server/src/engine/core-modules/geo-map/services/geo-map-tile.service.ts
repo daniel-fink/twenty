@@ -1,20 +1,29 @@
 import {
+  Logger,
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
-import { FieldMetadataType, ViewType } from 'twenty-shared/types';
+import {
+  FieldMetadataType,
+  type GeoMapTilePolicy,
+  ViewType,
+} from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 
 import { GraphqlQueryParser } from 'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query.parser';
 import { type ObjectRecordFilter } from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
-import { MAP_VECTOR_TILE_LAYER_NAME } from 'src/engine/core-modules/geo-map/constants/map-vector-tile.constants';
+import {
+  MAP_VECTOR_TILE_LAYER_NAME,
+  MAP_VECTOR_TILE_MAX_ZOOM,
+} from 'src/engine/core-modules/geo-map/constants/map-vector-tile.constants';
 import { buildMapViewRecordFilter } from 'src/engine/core-modules/geo-map/utils/build-map-view-record-filter.util';
 import {
   buildMapGeometryBoundsSql,
   buildMapVectorTileSql,
 } from 'src/engine/core-modules/geo-map/utils/build-map-vector-tile-sql.util';
+import { resolveMapTilePolicy } from 'src/engine/core-modules/geo-map/utils/resolve-map-tile-policy.util';
 import { type WorkspaceAuthContext } from 'src/engine/core-modules/auth/types/workspace-auth-context.type';
 import { WorkspaceManyOrAllFlatEntityMapsCacheService } from 'src/engine/metadata-modules/flat-entity/services/workspace-many-or-all-flat-entity-maps-cache.service';
 import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
@@ -83,6 +92,8 @@ const assertTileCoordinate = ({
 
 @Injectable()
 export class GeoMapTileService {
+  private readonly logger = new Logger(GeoMapTileService.name);
+
   constructor(
     private readonly flatEntityMapsCacheService: WorkspaceManyOrAllFlatEntityMapsCacheService,
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
@@ -95,17 +106,19 @@ export class GeoMapTileService {
     authContext: WorkspaceAuthContext;
     viewId: string;
   }): Promise<TileJson> {
-    const { flatObjectMetadata } = await this.getTileContext({
+    const tileContext = await this.getTileContext({
       authContext,
       viewId,
     });
+    const { flatObjectMetadata } = tileContext;
+    const tilePolicy = this.resolveTilePolicy(tileContext);
 
     return {
       tilejson: '3.0.0',
       name: `${flatObjectMetadata.nameSingular}-records`,
       tiles: [`/rest/map/views/${viewId}/tiles/{z}/{x}/{y}.mvt`],
-      minzoom: 0,
-      maxzoom: 22,
+      minzoom: tilePolicy.minZoom,
+      maxzoom: tilePolicy.maxZoom,
       vector_layers: [
         {
           id: MAP_VECTOR_TILE_LAYER_NAME,
@@ -232,6 +245,8 @@ export class GeoMapTileService {
     y: number;
     recordFilter?: Partial<ObjectRecordFilter>;
   }): Promise<Buffer> {
+    const startTime = performance.now();
+
     this.assertTileCoordinates({ z, x, y });
 
     const {
@@ -246,6 +261,23 @@ export class GeoMapTileService {
       authContext,
       viewId,
     });
+    const tilePolicy = this.resolveTilePolicy({
+      flatView,
+      flatObjectMetadata,
+      flatObjectMetadataMaps,
+      flatFieldMetadata,
+      flatFieldMetadataMaps,
+      flatViewFilterMaps,
+      flatViewFilterGroupMaps,
+    });
+
+    if (z < tilePolicy.minZoom || z > tilePolicy.maxZoom) {
+      this.logger.debug(
+        `Returned empty vector tile outside zoom policy for view ${viewId} at ${z}/${x}/${y} with policy ${JSON.stringify(tilePolicy)}`,
+      );
+
+      return Buffer.alloc(0);
+    }
     const effectiveRecordFilter = this.buildEffectiveRecordFilter({
       flatView,
       flatObjectMetadata,
@@ -318,6 +350,13 @@ export class GeoMapTileService {
           z,
           x,
           y,
+          maxFeatures: tilePolicy.maxFeatureCount,
+          extent: tilePolicy.extent,
+          buffer: tilePolicy.buffer,
+          simplificationMaxZoom: tilePolicy.simplification.maxZoom,
+          simplificationToleranceMultiplier:
+            tilePolicy.simplification.toleranceMultiplier,
+          simplificationEnabled: tilePolicy.simplification.enabled,
         });
 
         const [tileResult] = await globalWorkspaceDataSource.query(
@@ -327,7 +366,14 @@ export class GeoMapTileService {
           { shouldBypassPermissionChecks: true },
         );
 
-        return tileResult?.tile ?? Buffer.alloc(0);
+        const tile = tileResult?.tile ?? Buffer.alloc(0);
+        const durationMs = Math.round(performance.now() - startTime);
+
+        this.logger.debug(
+          `Generated vector tile for view ${viewId} at ${z}/${x}/${y} in ${durationMs}ms (${tile.length} bytes) with policy ${JSON.stringify(tilePolicy)}`,
+        );
+
+        return tile;
       },
       authContext,
     );
@@ -342,12 +388,34 @@ export class GeoMapTileService {
     x: number;
     y: number;
   }) {
-    assertTileCoordinate({ value: z, name: 'z', max: 22 });
+    assertTileCoordinate({
+      value: z,
+      name: 'z',
+      max: MAP_VECTOR_TILE_MAX_ZOOM,
+    });
 
     const maxCoordinate = 2 ** z - 1;
 
     assertTileCoordinate({ value: x, name: 'x', max: maxCoordinate });
     assertTileCoordinate({ value: y, name: 'y', max: maxCoordinate });
+  }
+
+  private resolveTilePolicy({
+    flatView,
+    flatFieldMetadata,
+  }: TileContext): GeoMapTilePolicy {
+    try {
+      return resolveMapTilePolicy({
+        fieldPolicy: flatFieldMetadata.settings?.mapTilePolicy,
+        viewPolicy: flatView.mapTilePolicy,
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? `Invalid map tile policy: ${error.message}`
+          : 'Invalid map tile policy',
+      );
+    }
   }
 
   private buildEffectiveRecordFilter({

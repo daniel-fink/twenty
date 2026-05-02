@@ -55,6 +55,11 @@ type RecordMapBoundsResponse = {
   recordCount: number;
 };
 
+type RecordMapTileJsonResponse = {
+  minzoom: number;
+  maxzoom: number;
+};
+
 const StyledContainer = styled.div`
   background: ${themeCssVariables.color.gray10};
   border: 1px solid ${themeCssVariables.border.color.light};
@@ -78,6 +83,10 @@ const StyledMapCanvas = styled.div`
 `;
 
 const StyledMapControlContainer = styled.div`
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[2]};
   position: absolute;
   right: 10px;
   top: 88px;
@@ -105,6 +114,23 @@ const StyledMapControlButton = styled.button`
   &:disabled {
     color: ${themeCssVariables.font.color.extraLight};
     cursor: not-allowed;
+  }
+`;
+
+const StyledSearchAreaButton = styled.button`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.strong};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  box-shadow: ${themeCssVariables.boxShadow.light};
+  color: ${themeCssVariables.font.color.primary};
+  cursor: pointer;
+  font-size: ${themeCssVariables.font.size.sm};
+  height: 29px;
+  padding: 0 ${themeCssVariables.spacing[3]};
+  white-space: nowrap;
+
+  &:hover {
+    background: ${themeCssVariables.background.transparent.lighter};
   }
 `;
 
@@ -144,15 +170,20 @@ export const RecordMap = ({
   loading,
   recordMapPoints,
   tileSource,
+  onSearchThisArea,
 }: {
   loading: boolean;
   recordMapPoints: RecordMapPoint[];
   tileSource?: RecordMapTileSource;
+  onSearchThisArea?: (bounds: RecordMapBounds) => void;
 }) => {
   const [mapContainerElement, setMapContainerElement] =
     useState<HTMLDivElement | null>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [tileBounds, setTileBounds] = useState<RecordMapBoundsResponse | null>(
+    null,
+  );
+  const [tileJson, setTileJson] = useState<RecordMapTileJsonResponse | null>(
     null,
   );
   const [hasAutoFitTileBounds, setHasAutoFitTileBounds] = useState(false);
@@ -230,6 +261,7 @@ export const RecordMap = ({
   useEffect(() => {
     setHasAutoFitTileBounds(false);
     setHasUserMovedTileMap(false);
+    setTileJson(null);
   }, [tileSourceViewId]);
 
   useEffect(() => {
@@ -305,10 +337,11 @@ export const RecordMap = ({
   }, [map, openRecordFromIndexView, recordMapPoints, tileSource]);
 
   useEffect(() => {
-    if (!isDefined(map) || !isDefined(tileSourceViewId)) {
+    if (!isDefined(map) || !isDefined(tileSourceViewId) || tileJson === null) {
       return;
     }
 
+    const loadedTileJson = tileJson;
     const tileFilterQuery =
       tileSourceFilter === '{}'
         ? ''
@@ -355,8 +388,8 @@ export const RecordMap = ({
       map.addSource(RECORD_TILE_SOURCE_ID, {
         type: 'vector',
         tiles: [tileUrl],
-        minzoom: 0,
-        maxzoom: 22,
+        minzoom: loadedTileJson.minzoom,
+        maxzoom: loadedTileJson.maxzoom,
       });
 
       map.addLayer({
@@ -429,7 +462,66 @@ export const RecordMap = ({
         map.removeSource(RECORD_TILE_SOURCE_ID);
       }
     };
-  }, [map, openRecordFromIndexView, tileSourceFilter, tileSourceViewId]);
+  }, [
+    map,
+    openRecordFromIndexView,
+    tileJson,
+    tileSourceFilter,
+    tileSourceViewId,
+  ]);
+
+  useEffect(() => {
+    if (!isDefined(tileSourceViewId)) {
+      setTileJson(null);
+
+      return;
+    }
+
+    const abortController = new AbortController();
+    const tileJsonUrl = `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${tileSourceViewId}/tile-json`;
+
+    const fetchTileJson = async ({ forceRenewal = false } = {}) => {
+      const tokenPair = await ensureTokenPairIsFresh({ forceRenewal });
+      const token = tokenPair?.accessOrWorkspaceAgnosticToken?.token;
+
+      return fetch(tileJsonUrl, {
+        headers: token
+          ? {
+              authorization: `Bearer ${token}`,
+            }
+          : undefined,
+        signal: abortController.signal,
+      });
+    };
+
+    void fetchTileJson()
+      .then((response) =>
+        response.status === 401 || response.status === 403
+          ? fetchTileJson({ forceRenewal: true })
+          : response,
+      )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to load map tile policy');
+        }
+
+        return response.json() as Promise<RecordMapTileJsonResponse>;
+      })
+      .then((tileJsonResponse) => {
+        setTileJson(tileJsonResponse);
+      })
+      .catch((error: Error) => {
+        if (error.name === 'AbortError') {
+          return;
+        }
+
+        setTileJson(null);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [tileSourceViewId]);
 
   useEffect(() => {
     if (!isDefined(tileSourceViewId)) {
@@ -536,6 +628,27 @@ export const RecordMap = ({
           >
             <IconTarget size={16} />
           </StyledMapControlButton>
+          {isDefined(onSearchThisArea) && (
+            <StyledSearchAreaButton
+              onClick={() => {
+                const currentBounds = map?.getBounds();
+
+                if (!isDefined(currentBounds)) {
+                  return;
+                }
+
+                onSearchThisArea([
+                  currentBounds.getWest(),
+                  currentBounds.getSouth(),
+                  currentBounds.getEast(),
+                  currentBounds.getNorth(),
+                ]);
+              }}
+              type="button"
+            >
+              Search this area
+            </StyledSearchAreaButton>
+          )}
         </StyledMapControlContainer>
       )}
     </StyledContainer>

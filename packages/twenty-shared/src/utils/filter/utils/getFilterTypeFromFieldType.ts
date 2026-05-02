@@ -47,6 +47,8 @@ export const getFilterTypeFromFieldType = (
       return 'TS_VECTOR';
     case FieldMetadataType.UUID:
       return 'UUID';
+    case FieldMetadataType.GEOMETRY:
+      return 'GEOMETRY';
     default:
       return 'TEXT';
   }

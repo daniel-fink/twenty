@@ -46,17 +46,21 @@ type TileMetric = TileCoordinate & {
   p95Ms: number;
 };
 
-const parseTiles = (tiles: string): TileCoordinate[] =>
+export const parseGeoMapBenchmarkTiles = (tiles: string): TileCoordinate[] =>
   tiles.split(',').map((tile) => {
     const [z, x, y] = tile.split('/').map(Number);
 
     if (
+      tile.split('/').length !== 3 ||
       !Number.isInteger(z) ||
       !Number.isInteger(x) ||
       !Number.isInteger(y) ||
       z < 0 ||
+      z > 22 ||
       x < 0 ||
-      y < 0
+      y < 0 ||
+      x > 2 ** z - 1 ||
+      y > 2 ** z - 1
     ) {
       throw new Error(`Invalid tile coordinate ${tile}`);
     }
@@ -78,21 +82,44 @@ const percentile = (values: number[], percentileValue: number) => {
   return Number(sortedValues[index].toFixed(2));
 };
 
-const planUsesGistIndex = (plan: unknown): boolean => {
+const collectPlanIndexNames = (
+  plan: unknown,
+  indexNames: Set<string>,
+): Set<string> => {
+  if (!isDefined(plan) || typeof plan !== 'object') {
+    return indexNames;
+  }
+
+  const record = plan as Record<string, unknown>;
+  const indexName = record['Index Name'];
+
+  if (typeof indexName === 'string') {
+    indexNames.add(indexName);
+  }
+
+  const childPlans = record.Plans;
+
+  if (Array.isArray(childPlans)) {
+    for (const childPlan of childPlans) {
+      collectPlanIndexNames(childPlan, indexNames);
+    }
+  }
+
+  return indexNames;
+};
+
+const planUsesIndexNames = (
+  plan: unknown,
+  gistIndexNames: ReadonlySet<string>,
+): boolean => {
   if (!isDefined(plan) || typeof plan !== 'object') {
     return false;
   }
 
   const record = plan as Record<string, unknown>;
-  const nodeType = record['Node Type'];
   const indexName = record['Index Name'];
 
-  if (
-    typeof nodeType === 'string' &&
-    nodeType.includes('Index') &&
-    typeof indexName === 'string' &&
-    indexName.toLowerCase().includes('gist')
-  ) {
+  if (typeof indexName === 'string' && gistIndexNames.has(indexName)) {
     return true;
   }
 
@@ -100,7 +127,9 @@ const planUsesGistIndex = (plan: unknown): boolean => {
 
   return (
     Array.isArray(childPlans) &&
-    childPlans.some((childPlan) => planUsesGistIndex(childPlan))
+    childPlans.some((childPlan) =>
+      planUsesIndexNames(childPlan, gistIndexNames),
+    )
   );
 };
 
@@ -190,7 +219,7 @@ export class GeoMapTileBenchmarkCommand extends CommandRunner {
       throw new Error('--view-id is required');
     }
 
-    const tiles = parseTiles(options.tiles ?? DEFAULT_TILES);
+    const tiles = parseGeoMapBenchmarkTiles(options.tiles ?? DEFAULT_TILES);
     const iterations = options.iterations ?? DEFAULT_ITERATIONS;
     const tileMetrics: TileMetric[] = [];
 
@@ -269,6 +298,10 @@ export class GeoMapTileBenchmarkCommand extends CommandRunner {
 
     const schemaName = getWorkspaceSchemaName(options.workspaceId);
     const tableName = computeTableName(options.objectNameSingular, true);
+    const gistIndexNames = await this.getGistIndexNames({
+      schemaName,
+      tableName,
+    });
 
     return Promise.all(
       tiles.map(async (tile) => {
@@ -281,13 +314,50 @@ export class GeoMapTileBenchmarkCommand extends CommandRunner {
           }),
         );
         const plan = explainResult?.['QUERY PLAN']?.[0]?.Plan;
+        const indexNames = [...collectPlanIndexNames(plan, new Set())];
 
         return {
           ...tile,
-          usesGistIndex: planUsesGistIndex(plan),
+          usesGistIndex: planUsesIndexNames(plan, gistIndexNames),
+          indexNames,
           plan,
         };
       }),
+    );
+  }
+
+  private async getGistIndexNames({
+    schemaName,
+    tableName,
+  }: {
+    schemaName: string;
+    tableName: string;
+  }): Promise<Set<string>> {
+    const rows: Array<{ indexName?: unknown }> = await this.dataSource.query(
+      `
+        SELECT index_class.relname AS "indexName"
+        FROM pg_catalog.pg_index index_metadata
+        JOIN pg_catalog.pg_class table_class
+          ON table_class.oid = index_metadata.indrelid
+        JOIN pg_catalog.pg_namespace table_namespace
+          ON table_namespace.oid = table_class.relnamespace
+        JOIN pg_catalog.pg_class index_class
+          ON index_class.oid = index_metadata.indexrelid
+        JOIN pg_catalog.pg_am index_access_method
+          ON index_access_method.oid = index_class.relam
+        WHERE table_namespace.nspname = $1
+          AND table_class.relname = $2
+          AND index_access_method.amname = 'gist'
+      `,
+      [schemaName, tableName],
+    );
+
+    return new Set(
+      rows
+        .map((row) => row.indexName)
+        .filter(
+          (indexName): indexName is string => typeof indexName === 'string',
+        ),
     );
   }
 }

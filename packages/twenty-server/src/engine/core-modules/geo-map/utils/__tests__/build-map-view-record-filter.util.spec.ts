@@ -58,6 +58,17 @@ describe('buildMapViewRecordFilter', () => {
           viewFilterGroupId: null,
           viewId: 'view-id',
         },
+        {
+          deletedAt: null,
+          fieldMetadataId: 'geometry-field-id',
+          id: 'geometry-filter-id',
+          operand: ViewFilterOperand.WITHIN_BBOX,
+          positionInViewFilterGroup: null,
+          subFieldName: null,
+          value: { west: 1, south: 2, east: 3, north: 4 },
+          viewFilterGroupId: null,
+          viewId: 'view-id',
+        },
       ]) as never,
       flatViewFilterGroupMaps: createFlatEntityMaps([]) as never,
       requestRecordFilter: {
@@ -75,9 +86,23 @@ describe('buildMapViewRecordFilter', () => {
           },
         },
         {
-          name: {
-            ilike: '%borough%',
-          },
+          and: [
+            {
+              name: {
+                ilike: '%borough%',
+              },
+            },
+            {
+              geometry: {
+                withinBbox: {
+                  east: 3,
+                  north: 4,
+                  south: 2,
+                  west: 1,
+                },
+              },
+            },
+          ],
         },
         {
           or: [

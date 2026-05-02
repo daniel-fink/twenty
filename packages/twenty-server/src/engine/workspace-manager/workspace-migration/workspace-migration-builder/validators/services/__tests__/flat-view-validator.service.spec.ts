@@ -50,6 +50,7 @@ const baseFlatView = (
   calendarLayout: null,
   calendarFieldMetadataUniversalIdentifier: null,
   mapFieldMetadataUniversalIdentifier: addressFieldUniversalIdentifier,
+  mapTilePolicy: null,
   mainGroupByFieldMetadataUniversalIdentifier: null,
   shouldHideEmptyGroups: false,
   anyFieldFilterValue: null,

@@ -1,3 +1,5 @@
+import { type PartialGeoMapTilePolicy } from '@/types/GeoMapTilePolicy';
+
 export type GeoJsonPoint = {
   type: 'Point';
   coordinates: [number, number];
@@ -26,6 +28,7 @@ export type FieldMetadataGeometrySettings = {
   geometryType: GeometryType;
   srid: 4326;
   isGeography: false;
+  mapTilePolicy?: PartialGeoMapTilePolicy;
 };
 
 export const DEFAULT_GEOMETRY_FIELD_SETTINGS = {

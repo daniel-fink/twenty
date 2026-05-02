@@ -12,6 +12,9 @@ import {
 } from '@/object-record/record-map/utils/isValidMapFieldMetadataItem';
 import { RecordComponentInstanceContextsWrapper } from '@/object-record/components/RecordComponentInstanceContextsWrapper';
 import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
+import { useUpsertRecordFilter } from '@/object-record/record-filter/hooks/useUpsertRecordFilter';
+import { buildRecordMapSearchAreaRecordFilter } from '@/object-record/record-map/utils/buildRecordMapSearchAreaRecordFilter';
+import { type RecordMapBounds } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
 import { isDefined } from 'twenty-shared/utils';
 import { FieldMetadataType } from '~/generated-metadata/graphql';
 
@@ -72,6 +75,7 @@ const RecordIndexMapContent = ({
     return (
       <RecordIndexGeometryMapContent
         viewId={viewId}
+        mapFieldSource={mapFieldSource}
         objectNameSingular={objectNameSingular}
       />
     );
@@ -87,17 +91,30 @@ const RecordIndexMapContent = ({
 
 const RecordIndexGeometryMapContent = ({
   viewId,
+  mapFieldSource,
   objectNameSingular,
 }: {
   viewId: string;
+  mapFieldSource: MapFieldSource;
   objectNameSingular: string;
 }) => {
   const { filter } = useFindManyRecordIndexTableParams(objectNameSingular);
+  const { upsertRecordFilter } = useUpsertRecordFilter();
+
+  const handleSearchThisArea = (bounds: RecordMapBounds) => {
+    upsertRecordFilter(
+      buildRecordMapSearchAreaRecordFilter({
+        bounds,
+        mapFieldSource,
+      }),
+    );
+  };
 
   return (
     <RecordMap
       loading={false}
       recordMapPoints={[]}
+      onSearchThisArea={handleSearchThisArea}
       tileSource={{ viewId, filter }}
     />
   );

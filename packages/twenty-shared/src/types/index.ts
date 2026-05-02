@@ -139,6 +139,12 @@ export {
   isGeoJsonMultiPolygon,
   isGeoJsonGeometry,
 } from './GeoJsonPoint';
+export type {
+  GeoMapTilePolicySimplification,
+  GeoMapTilePolicy,
+  PartialGeoMapTilePolicy,
+} from './GeoMapTilePolicy';
+export { validatePartialGeoMapTilePolicy } from './GeoMapTilePolicy';
 export { HTTPMethod } from './HttpMethod';
 export type { IndexOf } from './IndexOf.type';
 export type { IsEmptyObject } from './IsEmptyObject.type';
@@ -255,6 +261,9 @@ export type {
   RichTextLeafFilter,
   RichTextFilter,
   TSVectorFilter,
+  GeometryDistanceFilter,
+  GeometryBboxFilter,
+  GeometryFilter,
   LeafFilter,
   AndObjectRecordFilter,
   OrObjectRecordFilter,

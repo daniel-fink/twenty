@@ -50,7 +50,7 @@ export class GeoMapTileController {
   }
 
   @Get(':viewId/tile-json')
-  @Header('Cache-Control', 'private, max-age=60')
+  @Header('Cache-Control', 'private, no-cache')
   async getTileJson(@Param('viewId') viewId: string) {
     return this.geoMapTileService.getTileJson({
       authContext: getWorkspaceAuthContext(),
@@ -59,7 +59,7 @@ export class GeoMapTileController {
   }
 
   @Get(':viewId/bounds')
-  @Header('Cache-Control', 'private, max-age=60')
+  @Header('Cache-Control', 'private, no-cache')
   async getGeometryBounds(
     @Param('viewId') viewId: string,
     @Query('filter') filter: string | undefined,
@@ -90,7 +90,7 @@ export class GeoMapTileController {
     });
 
     response.setHeader('Content-Type', 'application/vnd.mapbox-vector-tile');
-    response.setHeader('Cache-Control', 'private, max-age=60');
+    response.setHeader('Cache-Control', 'private, no-cache');
     response.send(tile);
   }
 }

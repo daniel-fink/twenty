@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 
+import GraphQLJSON from 'graphql-type-json';
 import {
   IsBoolean,
   IsEnum,
@@ -10,6 +11,7 @@ import {
 } from 'class-validator';
 import {
   AggregateOperations,
+  type PartialGeoMapTilePolicy,
   ViewCalendarLayout,
   ViewOpenRecordIn,
   ViewType,
@@ -89,6 +91,10 @@ export class UpdateViewInput {
   @IsUUID()
   @Field(() => UUIDScalarType, { nullable: true })
   mapFieldMetadataId?: string;
+
+  @IsOptional()
+  @Field(() => GraphQLJSON, { nullable: true })
+  mapTilePolicy?: PartialGeoMapTilePolicy | null;
 
   @IsOptional()
   @IsEnum(ViewVisibility)

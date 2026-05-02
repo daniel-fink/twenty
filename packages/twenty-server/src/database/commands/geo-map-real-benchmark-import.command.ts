@@ -9,6 +9,7 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 import {
   FieldMetadataType,
   type FieldMetadataGeometrySettings,
+  type PartialGeoMapTilePolicy,
   ViewKey,
   ViewType,
   ViewVisibility,
@@ -22,6 +23,11 @@ import {
   buildGeoMapBenchmarkGistIndexSql,
   buildGeoMapBenchmarkTruncateSql,
 } from 'src/database/commands/geo-map-benchmark/geo-map-benchmark-sql.util';
+import {
+  buildGeoMapBenchmarkMapTilePolicy,
+  parseGeoMapBenchmarkMaxFeatureCountOption,
+  parseGeoMapBenchmarkZoomOption,
+} from 'src/database/commands/geo-map-benchmark/geo-map-benchmark-map-tile-policy.util';
 import { buildGeoMapRealBenchmarkInsertSql } from 'src/database/commands/geo-map-benchmark/geo-map-real-benchmark-sql.util';
 import { FieldMetadataService } from 'src/engine/metadata-modules/field-metadata/services/field-metadata.service';
 import { ObjectMetadataService } from 'src/engine/metadata-modules/object-metadata/object-metadata.service';
@@ -51,6 +57,9 @@ type GeoMapRealBenchmarkImportOptions = {
   limit?: number;
   reset?: boolean;
   createMapView?: boolean;
+  mapMinZoom?: number;
+  mapMaxZoom?: number;
+  mapMaxFeatureCount?: number;
 };
 
 type GeoJsonFeature = {
@@ -208,6 +217,27 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
     return true;
   }
 
+  @Option({ flags: '--map-min-zoom <mapMinZoom>' })
+  parseMapMinZoom(mapMinZoom: string): number {
+    return parseGeoMapBenchmarkZoomOption({
+      value: mapMinZoom,
+      optionName: '--map-min-zoom',
+    });
+  }
+
+  @Option({ flags: '--map-max-zoom <mapMaxZoom>' })
+  parseMapMaxZoom(mapMaxZoom: string): number {
+    return parseGeoMapBenchmarkZoomOption({
+      value: mapMaxZoom,
+      optionName: '--map-max-zoom',
+    });
+  }
+
+  @Option({ flags: '--map-max-feature-count <mapMaxFeatureCount>' })
+  parseMapMaxFeatureCount(mapMaxFeatureCount: string): number {
+    return parseGeoMapBenchmarkMaxFeatureCountOption(mapMaxFeatureCount);
+  }
+
   async run(
     _passedParams: string[],
     options: GeoMapRealBenchmarkImportOptions,
@@ -232,6 +262,12 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
     const geometryFieldName =
       options.geometryFieldName ?? DEFAULT_GEOMETRY_FIELD_NAME;
     const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
+    const mapTilePolicy = buildGeoMapBenchmarkMapTilePolicy({
+      objectNameSingular,
+      mapMinZoom: options.mapMinZoom,
+      mapMaxZoom: options.mapMaxZoom,
+      mapMaxFeatureCount: options.mapMaxFeatureCount,
+    });
 
     assertGeoMapBenchmarkIdentifier(objectNameSingular);
     assertGeoMapBenchmarkIdentifier(objectNamePlural);
@@ -247,6 +283,7 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
       workspaceId,
       objectMetadataId: objectMetadata.id,
       geometryFieldName,
+      mapTilePolicy,
     });
 
     const schemaName = getWorkspaceSchemaName(workspaceId);
@@ -365,10 +402,12 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
     workspaceId,
     objectMetadataId,
     geometryFieldName,
+    mapTilePolicy,
   }: {
     workspaceId: string;
     objectMetadataId: string;
     geometryFieldName: string;
+    mapTilePolicy?: PartialGeoMapTilePolicy;
   }) {
     const existingFieldMetadata =
       await this.fieldMetadataService.findOneWithinWorkspace(workspaceId, {
@@ -385,6 +424,19 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
         );
       }
 
+      if (isDefined(mapTilePolicy)) {
+        await this.fieldMetadataService.updateOneField({
+          workspaceId,
+          updateFieldInput: {
+            id: existingFieldMetadata.id,
+            settings: {
+              ...(existingFieldMetadata.settings as FieldMetadataGeometrySettings),
+              mapTilePolicy,
+            },
+          },
+        });
+      }
+
       return existingFieldMetadata;
     }
 
@@ -397,7 +449,10 @@ export class GeoMapRealBenchmarkImportCommand extends CommandRunner {
         type: FieldMetadataType.GEOMETRY,
         icon: 'IconMap2',
         isNullable: true,
-        settings: DEFAULT_GEOMETRY_SETTINGS,
+        settings: {
+          ...DEFAULT_GEOMETRY_SETTINGS,
+          ...(isDefined(mapTilePolicy) ? { mapTilePolicy } : {}),
+        },
       },
     });
   }

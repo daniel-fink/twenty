@@ -1,5 +1,6 @@
 import {
   FieldMetadataType,
+  type PartialGeoMapTilePolicy,
   ViewFilterOperand,
   ViewType,
 } from 'twenty-shared/types';
@@ -42,9 +43,13 @@ const createFlatEntityMaps = <T extends { id: string }>(entities: T[]) => ({
 });
 
 const createTileContextMaps = ({
+  fieldMapTilePolicy,
+  viewMapTilePolicy = null,
   viewFilters = [],
   viewFilterGroups = [],
 }: {
+  fieldMapTilePolicy?: PartialGeoMapTilePolicy;
+  viewMapTilePolicy?: PartialGeoMapTilePolicy | null;
   viewFilters?: ({ id: string } & Record<string, unknown>)[];
   viewFilterGroups?: ({ id: string } & Record<string, unknown>)[];
 } = {}) => {
@@ -57,6 +62,7 @@ const createTileContextMaps = ({
       {
         id: viewId,
         deletedAt: null,
+        mapTilePolicy: viewMapTilePolicy,
         mapFieldMetadataId: fieldMetadataId,
         objectMetadataId,
         type: ViewType.MAP,
@@ -78,6 +84,18 @@ const createTileContextMaps = ({
         name: 'geometry',
         objectMetadataId,
         options: null,
+        settings: fieldMapTilePolicy
+          ? {
+              geometryType: 'GEOMETRY',
+              isGeography: false,
+              mapTilePolicy: fieldMapTilePolicy,
+              srid: 4326,
+            }
+          : {
+              geometryType: 'GEOMETRY',
+              isGeography: false,
+              srid: 4326,
+            },
         type: FieldMetadataType.GEOMETRY,
       },
     ]),
@@ -103,15 +121,21 @@ const createQueryBuilder = () => {
 };
 
 const createService = ({
+  fieldMapTilePolicy,
   queryResult,
+  viewMapTilePolicy,
   viewFilters,
   viewFilterGroups,
 }: {
+  fieldMapTilePolicy?: PartialGeoMapTilePolicy;
   queryResult: unknown[];
+  viewMapTilePolicy?: PartialGeoMapTilePolicy | null;
   viewFilters?: ({ id: string } & Record<string, unknown>)[];
   viewFilterGroups?: ({ id: string } & Record<string, unknown>)[];
 }) => {
   const tileContextMaps = createTileContextMaps({
+    fieldMapTilePolicy,
+    viewMapTilePolicy,
     viewFilters,
     viewFilterGroups,
   });
@@ -167,6 +191,27 @@ describe('GeoMapTileService', () => {
     );
   });
 
+  it('should expose the configured tile policy in TileJSON', async () => {
+    const { service, viewId } = createService({
+      queryResult: [],
+      fieldMapTilePolicy: {
+        minZoom: 13,
+        maxZoom: 22,
+      },
+      viewMapTilePolicy: {
+        minZoom: 11,
+      },
+    });
+
+    const tileJson = await service.getTileJson({ authContext, viewId });
+
+    expect(tileJson).toMatchObject({
+      maxzoom: 22,
+      minzoom: 11,
+      vector_layers: [{ id: 'records' }],
+    });
+  });
+
   it('should query vector tiles with raw PostGIS geometry and bypass only the final wrapper query', async () => {
     const tile = Buffer.from('tile');
     const { query, queryBuilder, service, viewId } = createService({
@@ -176,9 +221,9 @@ describe('GeoMapTileService', () => {
     await service.getVectorTile({
       authContext,
       viewId,
-      x: 0,
-      y: 0,
-      z: 0,
+      x: 256,
+      y: 170,
+      z: 9,
     });
 
     expect(queryBuilder.addSelect).toHaveBeenCalledWith(
@@ -187,6 +232,71 @@ describe('GeoMapTileService', () => {
     );
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('ST_AsMVTGeom'),
+      ['parameter'],
+      undefined,
+      { shouldBypassPermissionChecks: true },
+    );
+  });
+
+  it('should return an empty vector tile below the configured minimum zoom', async () => {
+    const { query, service, viewId } = createService({
+      fieldMapTilePolicy: {
+        minZoom: 13,
+      },
+      queryResult: [{ tile: Buffer.from('tile') }],
+    });
+
+    const tile = await service.getVectorTile({
+      authContext,
+      viewId,
+      x: 0,
+      y: 384,
+      z: 9,
+    });
+
+    expect(tile).toEqual(Buffer.alloc(0));
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('should pass configured tile policy values into SQL generation', async () => {
+    const tile = Buffer.from('tile');
+    const { query, service, viewId } = createService({
+      fieldMapTilePolicy: {
+        buffer: 128,
+        extent: 8192,
+        maxFeatureCount: 25_000,
+        minZoom: 9,
+        simplification: {
+          enabled: false,
+        },
+      },
+      queryResult: [{ tile }],
+    });
+
+    await service.getVectorTile({
+      authContext,
+      viewId,
+      x: 256,
+      y: 170,
+      z: 9,
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('LIMIT 25000'),
+      ['parameter'],
+      undefined,
+      { shouldBypassPermissionChecks: true },
+    );
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "ST_AsMVT(\n      tile_rows,\n      'records',\n      8192",
+      ),
+      ['parameter'],
+      undefined,
+      { shouldBypassPermissionChecks: true },
+    );
+    expect(query).toHaveBeenCalledWith(
+      expect.not.stringContaining('ST_SimplifyPreserveTopology'),
       ['parameter'],
       undefined,
       { shouldBypassPermissionChecks: true },
@@ -206,10 +316,10 @@ describe('GeoMapTileService', () => {
           id: 'view-filter-id',
           deletedAt: null,
           fieldMetadataId: 'field-id',
-          operand: ViewFilterOperand.CONTAINS,
+          operand: ViewFilterOperand.WITHIN_BBOX,
           positionInViewFilterGroup: null,
           subFieldName: null,
-          value: 'North',
+          value: { west: 1, south: 2, east: 3, north: 4 },
           viewFilterGroupId: null,
           viewId: 'view-id',
         },
@@ -230,7 +340,12 @@ describe('GeoMapTileService', () => {
           requestFilter,
           {
             geometry: {
-              ilike: '%North%',
+              withinBbox: {
+                west: 1,
+                south: 2,
+                east: 3,
+                north: 4,
+              },
             },
           },
         ],

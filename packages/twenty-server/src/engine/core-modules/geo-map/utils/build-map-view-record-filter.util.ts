@@ -1,4 +1,5 @@
 import {
+  FieldMetadataType,
   type CompositeFieldSubFieldName,
   type PartialFieldMetadataItemOption,
   RecordFilterGroupLogicalOperator,
@@ -89,10 +90,15 @@ export const buildMapViewRecordFilter = ({
       );
     }
 
+    const value =
+      fieldMetadata.type === FieldMetadataType.GEOMETRY
+        ? JSON.stringify(flatViewFilter.value)
+        : convertViewFilterValueToString(flatViewFilter.value);
+
     return {
       id: flatViewFilter.id,
       fieldMetadataId: flatViewFilter.fieldMetadataId,
-      value: convertViewFilterValueToString(flatViewFilter.value),
+      value,
       type: getFilterTypeFromFieldType(fieldMetadata.type),
       operand: flatViewFilter.operand,
       recordFilterGroupId: flatViewFilter.viewFilterGroupId,
