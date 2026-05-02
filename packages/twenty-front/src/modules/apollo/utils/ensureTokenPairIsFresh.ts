@@ -64,4 +64,3 @@ export const ensureTokenPairIsFresh = async ({
 
   return tokenRenewalPromise;
 };
-
