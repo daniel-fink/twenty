@@ -9,4 +9,5 @@ export const TEXT_FILTER_TYPES = [
   'RAW_JSON',
   'FILES',
   'UUID',
+  'GEOMETRY',
 ];

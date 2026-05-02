@@ -1,3 +1,5 @@
+import { type GeoJsonGeometry, type GeoJsonPoint } from './GeoJsonPoint';
+
 export type UUIDFilterValue = string;
 
 export type IsFilter = 'NULL' | 'NOT_NULL';
@@ -159,6 +161,28 @@ export type TSVectorFilter = {
   search: string;
 };
 
+export type GeometryDistanceFilter = {
+  point: GeoJsonPoint;
+  distanceInMeters: number;
+};
+
+export type GeometryBboxFilter = {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+};
+
+export type GeometryFilter = {
+  is?: IsFilter;
+  withinDistance?: GeometryDistanceFilter;
+  withinBbox?: GeometryBboxFilter;
+  intersects?: GeoJsonGeometry;
+  contains?: GeoJsonGeometry;
+  within?: GeoJsonGeometry;
+  near?: GeometryDistanceFilter;
+};
+
 export type LeafFilter =
   | UUIDFilter
   | StringFilter
@@ -178,6 +202,7 @@ export type LeafFilter =
   | FilesFilter
   | RichTextFilter
   | TSVectorFilter
+  | GeometryFilter
   | undefined;
 
 export type AndObjectRecordFilter = {

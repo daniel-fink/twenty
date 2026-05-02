@@ -1,4 +1,8 @@
-import { type CompositeProperty, FieldMetadataType } from 'twenty-shared/types';
+import {
+  type CompositeProperty,
+  type FieldMetadataGeometrySettings,
+  FieldMetadataType,
+} from 'twenty-shared/types';
 import { type ColumnType } from 'typeorm';
 
 import { type CompositeFieldMetadataType } from 'src/engine/metadata-modules/field-metadata/types/composite-field-metadata-type.type';
@@ -139,8 +143,13 @@ const generateColumnDefinition = ({
   schemaName: string;
 }): WorkspaceSchemaColumnDefinition => {
   const columnName = computeColumnName(flatFieldMetadata.name);
+  const geometrySettings =
+    flatFieldMetadata.type === FieldMetadataType.GEOMETRY
+      ? (flatFieldMetadata.settings as FieldMetadataGeometrySettings | null)
+      : undefined;
   const columnType = fieldMetadataTypeToColumnType(
     flatFieldMetadata.type,
+    geometrySettings,
   ) as ColumnType;
   const serializedDefaultValue = serializeDefaultValue({
     columnName,

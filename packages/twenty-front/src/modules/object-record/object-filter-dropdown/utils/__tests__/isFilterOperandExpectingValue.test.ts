@@ -13,6 +13,12 @@ describe('isRecordFilterOperandExpectingValue', () => {
     { operand: ViewFilterOperand.IS_RELATIVE, expectedResult: true },
     { operand: ViewFilterOperand.IS_BEFORE, expectedResult: true },
     { operand: ViewFilterOperand.IS_AFTER, expectedResult: true },
+    { operand: ViewFilterOperand.WITHIN_DISTANCE, expectedResult: true },
+    { operand: ViewFilterOperand.WITHIN_BBOX, expectedResult: true },
+    { operand: ViewFilterOperand.INTERSECTS, expectedResult: true },
+    { operand: ViewFilterOperand.CONTAINS_GEOMETRY, expectedResult: true },
+    { operand: ViewFilterOperand.WITHIN_GEOMETRY, expectedResult: true },
+    { operand: ViewFilterOperand.NEAR, expectedResult: true },
 
     { operand: ViewFilterOperand.IS_NOT_NULL, expectedResult: false },
     { operand: ViewFilterOperand.IS_EMPTY, expectedResult: false },

@@ -3,7 +3,6 @@ import { pascalCase } from 'twenty-shared/utils';
 import { type WorkspaceResolverBuilderMethodNames } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 
 import { type ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
-import { camelCase } from 'src/utils/camel-case';
 
 export const getResolverName = (
   objectMetadata: Pick<ObjectMetadataEntity, 'namePlural' | 'nameSingular'>,
@@ -11,11 +10,11 @@ export const getResolverName = (
 ) => {
   switch (type) {
     case 'findMany':
-      return `${camelCase(objectMetadata.namePlural)}`;
+      return objectMetadata.namePlural;
     case 'findOne':
-      return `${camelCase(objectMetadata.nameSingular)}`;
+      return objectMetadata.nameSingular;
     case 'findDuplicates':
-      return `${camelCase(objectMetadata.nameSingular)}Duplicates`;
+      return `${objectMetadata.nameSingular}Duplicates`;
 
     case 'createOne':
       return `create${pascalCase(objectMetadata.nameSingular)}`;
@@ -46,7 +45,7 @@ export const getResolverName = (
       return `merge${pascalCase(objectMetadata.namePlural)}`;
 
     case 'groupBy':
-      return `${camelCase(objectMetadata.namePlural)}GroupBy`;
+      return `${objectMetadata.namePlural}GroupBy`;
 
     default:
       throw new Error(`Unknown resolver type: ${type}`);

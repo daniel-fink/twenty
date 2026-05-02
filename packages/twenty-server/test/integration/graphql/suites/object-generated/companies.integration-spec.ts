@@ -157,4 +157,95 @@ describe('companiesResolver (e2e)', () => {
         });
       });
   });
+
+  it('should filter company records within a distance from a GeoJSON Point', () => {
+    const queryData = {
+      query: `
+        query companies {
+          companies(
+            filter: {
+              and: [
+                { id: { eq: "${TEST_COMPANY_WITH_LOCATION_ID}" } }
+                {
+                  location: {
+                    withinDistance: {
+                      point: {
+                        type: "Point"
+                        coordinates: [-122.0841, 37.422]
+                      }
+                      distanceInMeters: 25
+                    }
+                  }
+                }
+              ]
+            }
+          ) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+    };
+
+    return client
+      .post('/graphql')
+      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+      .send(queryData)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.companies.edges).toHaveLength(1);
+        expect(res.body.data.companies.edges[0].node.id).toBe(
+          TEST_COMPANY_WITH_LOCATION_ID,
+        );
+      });
+  });
+
+  it('should filter company records within a bounding box', () => {
+    const queryData = {
+      query: `
+        query companies {
+          companies(
+            filter: {
+              and: [
+                { id: { eq: "${TEST_COMPANY_WITH_LOCATION_ID}" } }
+                {
+                  location: {
+                    withinBbox: {
+                      west: -122.09
+                      south: 37.41
+                      east: -122.08
+                      north: 37.43
+                    }
+                  }
+                }
+              ]
+            }
+          ) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+    };
+
+    return client
+      .post('/graphql')
+      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+      .send(queryData)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.companies.edges).toHaveLength(1);
+        expect(res.body.data.companies.edges[0].node.id).toBe(
+          TEST_COMPANY_WITH_LOCATION_ID,
+        );
+      });
+  });
 });

@@ -13,6 +13,7 @@ import {
   type DateFilter,
   type FilesFilter,
   type FloatFilter,
+  type GeometryFilter,
   type MultiSelectFilter,
   type PhonesFilter,
   type RatingFilter,
@@ -54,6 +55,17 @@ import {
 import { arrayOfStringsOrVariablesSchema } from '@/utils/filter/utils/validation-schemas/arrayOfStringsOrVariablesSchema';
 import { arrayOfUuidOrVariableSchema } from '@/utils/filter/utils/validation-schemas/arrayOfUuidsOrVariablesSchema';
 import { jsonRelationFilterValueSchema } from '@/utils/filter/utils/validation-schemas/jsonRelationFilterValueSchema';
+
+const parseGeometryFilterValue = (value: string) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new CustomError(
+      'Invalid geometry filter value',
+      'INVALID_GEOMETRY_FILTER_VALUE',
+    );
+  }
+};
 
 type FieldShared = {
   id: string;
@@ -140,6 +152,55 @@ export const turnRecordFilterIntoRecordGqlOperationFilter = ({
             [correspondingFieldMetadataItem.name]: {
               search: recordFilter.value,
             } as TSVectorFilter,
+          };
+        default:
+          throw new Error(
+            `Unknown operand ${recordFilter.operand} for ${filterType} filter`,
+          );
+      }
+    case 'GEOMETRY':
+      switch (recordFilter.operand) {
+        case RecordFilterOperand.WITHIN_DISTANCE:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              withinDistance: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.WITHIN_BBOX:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              withinBbox: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.INTERSECTS:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              intersects: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.CONTAINS_GEOMETRY:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              contains: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.WITHIN_GEOMETRY:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              within: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.NEAR:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              near: parseGeometryFilterValue(recordFilter.value),
+            } as GeometryFilter,
+          };
+        case RecordFilterOperand.IS:
+          return {
+            [correspondingFieldMetadataItem.name]: {
+              is: recordFilter.value,
+            } as GeometryFilter,
           };
         default:
           throw new Error(

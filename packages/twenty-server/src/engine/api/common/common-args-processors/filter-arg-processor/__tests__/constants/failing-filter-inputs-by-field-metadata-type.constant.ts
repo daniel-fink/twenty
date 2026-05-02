@@ -116,6 +116,39 @@ export const failingFilterInputsByFieldMetadataType: {
     { filter: { filesField: { invalidOperator: 'test' } } },
     { filter: { filesField: {} } },
   ],
+  [FieldMetadataType.GEOMETRY]: [
+    { filter: { geometryField: { invalidOperator: 'test' } } },
+    { filter: { geometryField: {} } },
+    {
+      filter: {
+        geometryField: {
+          withinDistance: {
+            point: { type: 'Point', coordinates: [151.2093, -33.8688] },
+            distanceInMeters: 0,
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          withinBbox: {
+            west: 151.22,
+            south: -33.88,
+            east: 151.19,
+            north: -33.84,
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          intersects: { type: 'Point', coordinates: [191.2093, -33.8688] },
+        },
+      },
+    },
+  ],
   [FieldMetadataType.RICH_TEXT]: [
     { filter: { richTextField: { invalidOperator: 'test' } } },
     { filter: { richTextField: { markdown: { invalidOperator: 'test' } } } },

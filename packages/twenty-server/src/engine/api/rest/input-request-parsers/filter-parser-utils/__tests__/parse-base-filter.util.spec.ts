@@ -46,4 +46,17 @@ describe('parseBaseFilter', () => {
       value: '["2023-12-01T14:23:23.914Z","2024-12-01T14:23:23.914Z"]',
     });
   });
+
+  it('should parse a spatial filter comparator', () => {
+    expect(
+      parseBaseFilter(
+        'location[withinDistance]:{"point":{"type":"Point","coordinates":[151.2093,-33.8688]},"distanceInMeters":500}',
+      ),
+    ).toEqual({
+      fields: ['location'],
+      comparator: 'withinDistance',
+      value:
+        '{"point":{"type":"Point","coordinates":[151.2093,-33.8688]},"distanceInMeters":500}',
+    });
+  });
 });

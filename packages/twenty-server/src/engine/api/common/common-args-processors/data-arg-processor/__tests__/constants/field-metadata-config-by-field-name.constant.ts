@@ -1,5 +1,6 @@
 import { joinColumnNameForManyToOneMorphRelationField1 } from 'test/integration/graphql/suites/inputs-validation/utils/setup-test-objects-with-all-field-types.util';
 import {
+  DEFAULT_GEOMETRY_FIELD_SETTINGS,
   type FieldMetadataDefaultOption,
   type FieldMetadataOptions,
   type FieldMetadataSettings,
@@ -158,6 +159,12 @@ export const fieldMetadataConfigByFieldName: Record<
     type: FieldMetadataType.FILES,
     isNullable: true,
     settings: {} as FieldMetadataSettings,
+  },
+  geometryField: {
+    name: 'geometryField',
+    type: FieldMetadataType.GEOMETRY,
+    isNullable: true,
+    settings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
   },
   actorField: {
     name: 'actorField',

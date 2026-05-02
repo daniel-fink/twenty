@@ -1,5 +1,7 @@
 import { msg } from '@lingui/core/macro';
 import {
+  DEFAULT_GEOMETRY_FIELD_SETTINGS,
+  type FieldMetadataGeometrySettings,
   FieldMetadataType,
   type FieldMetadataOptions,
 } from 'twenty-shared/types';
@@ -168,16 +170,27 @@ export const fromCreateFieldInputToFlatFieldMetadatasToCreate = async ({
       };
     }
     case FieldMetadataType.GEOMETRY: {
+      const flatFieldMetadata = {
+        ...commonFlatFieldMetadata,
+        type: createFieldInput.type,
+        defaultValue: null,
+        options: null,
+        universalSettings:
+          (createFieldInput.settings as FieldMetadataGeometrySettings | null) ??
+          DEFAULT_GEOMETRY_FIELD_SETTINGS,
+      } satisfies UniversalFlatFieldMetadata<typeof createFieldInput.type>;
+
       return {
-        status: 'fail',
-        errors: [
-          {
-            code: FieldMetadataExceptionCode.INVALID_FIELD_INPUT,
-            message:
-              'Geometry fields are not supported for custom field creation',
-            userFriendlyMessage: msg`Geometry fields cannot be created yet.`,
-          },
-        ],
+        status: 'success',
+        result: {
+          flatFieldMetadatas: [flatFieldMetadata],
+          indexMetadatas: [
+            generateIndexForFlatFieldMetadata({
+              flatFieldMetadata,
+              flatObjectMetadata: parentFlatObjectMetadata,
+            }),
+          ],
+        },
       };
     }
     case FieldMetadataType.UUID:

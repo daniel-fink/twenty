@@ -4,6 +4,7 @@ import {
 } from 'twenty-shared/utils';
 import { v4 } from 'uuid';
 import {
+  validatePartialGeoMapTilePolicy,
   ViewOpenRecordIn,
   ViewType,
   ViewVisibility,
@@ -64,6 +65,10 @@ export const fromCreateViewInputToFlatViewToCreate = ({
   const mainGroupByFieldMetadataId =
     createViewInput.mainGroupByFieldMetadataId ?? null;
 
+  if (!validatePartialGeoMapTilePolicy(createViewInput.mapTilePolicy)) {
+    throw new Error('Invalid map tile policy');
+  }
+
   const flatViewToCreate: UniversalFlatView & { id: string } = {
     id: viewId,
     objectMetadataUniversalIdentifier,
@@ -75,6 +80,7 @@ export const fromCreateViewInputToFlatViewToCreate = ({
     anyFieldFilterValue: createViewInput.anyFieldFilterValue ?? null,
     calendarFieldMetadataUniversalIdentifier,
     mapFieldMetadataUniversalIdentifier,
+    mapTilePolicy: createViewInput.mapTilePolicy ?? null,
     calendarLayout: createViewInput.calendarLayout ?? null,
     icon: createViewInput.icon,
     isCompact: createViewInput.isCompact ?? false,

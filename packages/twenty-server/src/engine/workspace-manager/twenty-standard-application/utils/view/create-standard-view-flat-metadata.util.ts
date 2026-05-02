@@ -143,6 +143,7 @@ export const createStandardViewFlatMetadata = <
     calendarLayout: null,
     calendarFieldMetadataId,
     mapFieldMetadataId,
+    mapTilePolicy: null,
     anyFieldFilterValue: null,
     visibility: ViewVisibility.WORKSPACE,
     createdByUserWorkspaceId: null,

@@ -1,8 +1,10 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 import { IDField } from '@ptc-org/nestjs-query-graphql';
+import GraphQLJSON from 'graphql-type-json';
 import {
   AggregateOperations,
+  type PartialGeoMapTilePolicy,
   ViewCalendarLayout,
   ViewOpenRecordIn,
   ViewType,
@@ -76,6 +78,9 @@ export class ViewDTO {
 
   @Field(() => UUIDScalarType, { nullable: true })
   mapFieldMetadataId?: string | null;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  mapTilePolicy?: PartialGeoMapTilePolicy | null;
 
   @Field(() => UUIDScalarType, { nullable: false })
   workspaceId: string;

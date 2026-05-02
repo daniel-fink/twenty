@@ -74,6 +74,16 @@ exports[`FilterArgProcessorService failing filter inputs validation FULL_NAME sh
 
 exports[`FilterArgProcessorService failing filter inputs validation FULL_NAME should throw for invalid filter #2: {"fullNameField":{"firstName":{"invalidOperator":"test"}}} 1`] = `"Operator "invalidOperator" is not valid for field "fullNameField.firstName" of type TEXT - Allowed operators: eq, neq, gt, gte, lt, lte, in, is, like, ilike, startsWith, endsWith"`;
 
+exports[`FilterArgProcessorService failing filter inputs validation GEOMETRY should throw for invalid filter #1: {"geometryField":{"invalidOperator":"test"}} 1`] = `"Operator "invalidOperator" is not valid for field "geometryField" of type GEOMETRY - Allowed operators: is, withinDistance, withinBbox, intersects, contains, within, near"`;
+
+exports[`FilterArgProcessorService failing filter inputs validation GEOMETRY should throw for invalid filter #2: {"geometryField":{}} 1`] = `"Filter for field "geometryField" must have exactly one operator"`;
+
+exports[`FilterArgProcessorService failing filter inputs validation GEOMETRY should throw for invalid filter #3: {"geometryField":{"withinDistance":{"point":{"type":"Point","coordinates":[151.2093,-33.8688]},"distanceInMeters":0}}} 1`] = `"Invalid distance geometry filter for field "geometryField""`;
+
+exports[`FilterArgProcessorService failing filter inputs validation GEOMETRY should throw for invalid filter #4: {"geometryField":{"withinBbox":{"west":151.22,"south":-33.88,"east":151.19,"north":-33.84}}} 1`] = `"Invalid bounding box geometry filter for field "geometryField""`;
+
+exports[`FilterArgProcessorService failing filter inputs validation GEOMETRY should throw for invalid filter #5: {"geometryField":{"intersects":{"type":"Point","coordinates":[191.2093,-33.8688]}}} 1`] = `"Invalid GeoJSON geometry filter for field "geometryField""`;
+
 exports[`FilterArgProcessorService failing filter inputs validation LINKS should throw for invalid filter #1: {"linksField":{"invalidSubField":{"eq":"test"}}} 1`] = `"Sub field "invalidSubField" not found for composite type: LINKS"`;
 
 exports[`FilterArgProcessorService failing filter inputs validation LINKS should throw for invalid filter #2: {"linksField":{"primaryLinkUrl":{"invalidOperator":"test"}}} 1`] = `"Operator "invalidOperator" is not valid for field "linksField.primaryLinkUrl" of type TEXT - Allowed operators: eq, neq, gt, gte, lt, lte, in, is, like, ilike, startsWith, endsWith"`;

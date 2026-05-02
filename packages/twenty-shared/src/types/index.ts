@@ -125,12 +125,26 @@ export type { FormatRecordSerializedRelationProperties } from './FormatRecordSer
 export type { FromTo } from './FromToType';
 export type {
   GeoJsonPoint,
+  GeoJsonLinearRing,
+  GeoJsonPolygon,
+  GeoJsonMultiPolygon,
+  GeoJsonGeometry,
+  GeometryType,
   FieldMetadataGeometrySettings,
 } from './GeoJsonPoint';
 export {
   DEFAULT_GEOMETRY_FIELD_SETTINGS,
   isGeoJsonPoint,
+  isGeoJsonPolygon,
+  isGeoJsonMultiPolygon,
+  isGeoJsonGeometry,
 } from './GeoJsonPoint';
+export type {
+  GeoMapTilePolicySimplification,
+  GeoMapTilePolicy,
+  PartialGeoMapTilePolicy,
+} from './GeoMapTilePolicy';
+export { validatePartialGeoMapTilePolicy } from './GeoMapTilePolicy';
 export { HTTPMethod } from './HttpMethod';
 export type { IndexOf } from './IndexOf.type';
 export type { IsEmptyObject } from './IsEmptyObject.type';
@@ -247,6 +261,9 @@ export type {
   RichTextLeafFilter,
   RichTextFilter,
   TSVectorFilter,
+  GeometryDistanceFilter,
+  GeometryBboxFilter,
+  GeometryFilter,
   LeafFilter,
   AndObjectRecordFilter,
   OrObjectRecordFilter,

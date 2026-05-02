@@ -1,4 +1,7 @@
-import { FieldMetadataType } from 'twenty-shared/types';
+import {
+  FieldMetadataType,
+  type FieldMetadataGeometrySettings,
+} from 'twenty-shared/types';
 
 import {
   WorkspaceMigrationActionExecutionException,
@@ -6,9 +9,24 @@ import {
 } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/exceptions/workspace-migration-action-execution.exception';
 import { isTextColumnType } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/utils/is-text-column-type.util';
 
+const geometryTypeToPostgresGeometryType = (
+  geometryType: FieldMetadataGeometrySettings['geometryType'] = 'POINT',
+) => {
+  switch (geometryType) {
+    case 'POINT':
+      return 'Point';
+    case 'POLYGON':
+      return 'Polygon';
+    case 'MULTIPOLYGON':
+      return 'MultiPolygon';
+    case 'GEOMETRY':
+      return 'Geometry';
+  }
+};
+
 export const fieldMetadataTypeToColumnType = <Type extends FieldMetadataType>(
   fieldMetadataType: Type,
-  // Should be columnType
+  settings?: FieldMetadataGeometrySettings | null,
 ): string => {
   /**
    * Composite types are not implemented here, as they are flattened by their composite definitions.
@@ -41,7 +59,7 @@ export const fieldMetadataTypeToColumnType = <Type extends FieldMetadataType>(
     case FieldMetadataType.TS_VECTOR:
       return 'tsvector';
     case FieldMetadataType.GEOMETRY:
-      return 'geometry(Point, 4326)';
+      return `geometry(${geometryTypeToPostgresGeometryType(settings?.geometryType)}, 4326)`;
     default:
       throw new WorkspaceMigrationActionExecutionException({
         message: `Cannot convert ${fieldMetadataType} to column type.`,

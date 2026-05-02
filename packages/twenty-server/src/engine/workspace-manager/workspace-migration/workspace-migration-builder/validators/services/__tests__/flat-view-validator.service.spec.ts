@@ -50,6 +50,7 @@ const baseFlatView = (
   calendarLayout: null,
   calendarFieldMetadataUniversalIdentifier: null,
   mapFieldMetadataUniversalIdentifier: addressFieldUniversalIdentifier,
+  mapTilePolicy: null,
   mainGroupByFieldMetadataUniversalIdentifier: null,
   shouldHideEmptyGroups: false,
   anyFieldFilterValue: null,
@@ -180,7 +181,7 @@ describe('FlatViewValidatorService', () => {
     );
   });
 
-  it('rejects a map view backed by a non-address, non-point-geometry field', () => {
+  it('rejects a map view backed by a non-address, non-geometry field', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
@@ -191,7 +192,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS or Point GEOMETRY field',
+        message: 'Map field must be an ADDRESS or GEOMETRY field',
       }),
     );
   });
@@ -241,7 +242,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('rejects updating a view to map when backed by a non-address, non-point-geometry field', () => {
+  it('rejects updating a view to map when backed by a non-address, non-geometry field', () => {
     const result = service.validateFlatViewUpdate(
       buildUpdateValidationArgs({
         flatEntityUpdate: {
@@ -255,7 +256,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS or Point GEOMETRY field',
+        message: 'Map field must be an ADDRESS or GEOMETRY field',
       }),
     );
   });

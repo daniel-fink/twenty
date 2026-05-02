@@ -20,12 +20,15 @@ const getDefaultUrl = () => {
 export const REACT_APP_SERVER_BASE_URL =
   window._env_?.REACT_APP_SERVER_BASE_URL || getDefaultUrl();
 
+export const DEFAULT_MAP_VIEW_STYLE_URL =
+  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
 const getDefaultMapViewStyleUrl = () => {
   if (
     window.location.hostname.endsWith('localhost') ||
     window.location.hostname.endsWith('127.0.0.1')
   ) {
-    return 'https://demotiles.maplibre.org/style.json';
+    return DEFAULT_MAP_VIEW_STYLE_URL;
   }
 
   return '';

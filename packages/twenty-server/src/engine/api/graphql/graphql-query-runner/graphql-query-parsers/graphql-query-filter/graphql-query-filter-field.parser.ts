@@ -1,5 +1,8 @@
 import { msg } from '@lingui/core/macro';
-import { compositeTypeDefinitions } from 'twenty-shared/types';
+import {
+  compositeTypeDefinitions,
+  FieldMetadataType,
+} from 'twenty-shared/types';
 import { capitalize, isDefined } from 'twenty-shared/utils';
 import { type WhereExpressionBuilder } from 'typeorm';
 
@@ -73,6 +76,7 @@ export class GraphqlQueryFilterFieldParser {
 
     if (
       ARRAY_OPERATORS.includes(operator) &&
+      fieldMetadata.type !== FieldMetadataType.GEOMETRY &&
       (!Array.isArray(value) || value.length === 0)
     ) {
       throw new GraphqlQueryRunnerException(
@@ -136,6 +140,7 @@ export class GraphqlQueryFilterFieldParser {
 
       if (
         ARRAY_OPERATORS.includes(operator) &&
+        fieldMetadata.type !== FieldMetadataType.GEOMETRY &&
         (!Array.isArray(value) || value.length === 0)
       ) {
         throw new GraphqlQueryRunnerException(

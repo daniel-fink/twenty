@@ -71,5 +71,29 @@ describe('formatFieldValue', () => {
     ).toThrow(
       "'filter' invalid for 'containsAny' operator. Received '2024-12-01T14:23:23.914Z' but array value expected eg: 'field[containsAny]:[value_1,value_2]'",
     );
+
+    expect(
+      formatFieldValue(
+        '{"point":{"type":"Point","coordinates":[151.2093,-33.8688]},"distanceInMeters":500}',
+        undefined,
+        'withinDistance',
+      ),
+    ).toEqual({
+      point: { type: 'Point', coordinates: [151.2093, -33.8688] },
+      distanceInMeters: 500,
+    });
+
+    expect(
+      formatFieldValue(
+        '\'{"west":151.19,"south":-33.88,"east":151.22,"north":-33.84}\'',
+        undefined,
+        'withinBbox',
+      ),
+    ).toEqual({
+      west: 151.19,
+      south: -33.88,
+      east: 151.22,
+      north: -33.84,
+    });
   });
 });

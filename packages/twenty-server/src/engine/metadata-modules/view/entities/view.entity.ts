@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import {
   AggregateOperations,
+  type PartialGeoMapTilePolicy,
   ViewCalendarLayout,
   ViewKey,
   ViewOpenRecordIn,
@@ -31,6 +32,7 @@ import { ViewFilterEntity } from 'src/engine/metadata-modules/view-filter/entiti
 import { ViewGroupEntity } from 'src/engine/metadata-modules/view-group/entities/view-group.entity';
 import { ViewSortEntity } from 'src/engine/metadata-modules/view-sort/entities/view-sort.entity';
 import { SyncableEntity } from 'src/engine/workspace-manager/types/syncable-entity.interface';
+import { JsonbProperty } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/types/jsonb-property.type';
 
 // We could refactor this type to be dynamic to view type
 @Entity({ name: 'view', schema: 'core' })
@@ -163,6 +165,9 @@ export class ViewEntity extends SyncableEntity implements Required<ViewEntity> {
   )
   @JoinColumn({ name: 'mapFieldMetadataId' })
   mapFieldMetadata: Relation<FieldMetadataEntity> | null;
+
+  @Column('jsonb', { nullable: true })
+  mapTilePolicy: JsonbProperty<PartialGeoMapTilePolicy> | null;
 
   @Column({ nullable: true, type: 'uuid' })
   mainGroupByFieldMetadataId: string | null;

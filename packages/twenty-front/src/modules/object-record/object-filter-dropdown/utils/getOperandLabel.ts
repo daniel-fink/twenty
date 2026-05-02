@@ -44,6 +44,18 @@ export const getOperandLabel = (
       return t`Is in future`;
     case ViewFilterOperand.IS_TODAY:
       return t`Is today${timeZoneAbbreviationSuffix}`;
+    case ViewFilterOperand.WITHIN_DISTANCE:
+      return t`Within distance`;
+    case ViewFilterOperand.WITHIN_BBOX:
+      return t`Within bounding box`;
+    case ViewFilterOperand.INTERSECTS:
+      return t`Intersects`;
+    case ViewFilterOperand.CONTAINS_GEOMETRY:
+      return t`Contains geometry`;
+    case ViewFilterOperand.WITHIN_GEOMETRY:
+      return t`Within geometry`;
+    case ViewFilterOperand.NEAR:
+      return t`Near`;
     default:
       return '';
   }
@@ -87,6 +99,18 @@ export const getOperandLabelShort = (
       return t`: Future`;
     case ViewFilterOperand.IS_TODAY:
       return t`: Today${timeZoneAbbreviationSuffix}`;
+    case ViewFilterOperand.WITHIN_DISTANCE:
+      return t`: Within distance`;
+    case ViewFilterOperand.WITHIN_BBOX:
+      return t`: Within bbox`;
+    case ViewFilterOperand.INTERSECTS:
+      return t`: Intersects`;
+    case ViewFilterOperand.CONTAINS_GEOMETRY:
+      return t`: Contains geometry`;
+    case ViewFilterOperand.WITHIN_GEOMETRY:
+      return t`: Within geometry`;
+    case ViewFilterOperand.NEAR:
+      return t`: Near`;
     default:
       return ': ';
   }

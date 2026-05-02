@@ -23,6 +23,7 @@ export const FILTERABLE_FIELD_TYPES = [
   'FILES',
   'BOOLEAN',
   'UUID',
+  'GEOMETRY',
 ] as const;
 
 type FilterableFieldTypeBaseLiteral = (typeof FILTERABLE_FIELD_TYPES)[number];
