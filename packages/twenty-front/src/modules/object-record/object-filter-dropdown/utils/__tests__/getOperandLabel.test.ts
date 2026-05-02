@@ -15,6 +15,12 @@ describe('getOperandLabel', () => {
     [ViewFilterOperand.IS, 'Is'],
     [ViewFilterOperand.IS_NOT, 'Is not'],
     [ViewFilterOperand.IS_NOT_NULL, 'Is not null'],
+    [ViewFilterOperand.WITHIN_DISTANCE, 'Within distance'],
+    [ViewFilterOperand.WITHIN_BBOX, 'Within bounding box'],
+    [ViewFilterOperand.INTERSECTS, 'Intersects'],
+    [ViewFilterOperand.CONTAINS_GEOMETRY, 'Contains geometry'],
+    [ViewFilterOperand.WITHIN_GEOMETRY, 'Within geometry'],
+    [ViewFilterOperand.NEAR, 'Near'],
     [undefined, ''], // undefined operand
   ];
 
@@ -37,6 +43,12 @@ describe('getOperandLabelShort', () => {
     [ViewFilterOperand.IS_NOT_NULL, ': NotNull'],
     [ViewFilterOperand.GREATER_THAN_OR_EQUAL, '\u00A0≥ '],
     [ViewFilterOperand.LESS_THAN_OR_EQUAL, '\u00A0≤ '],
+    [ViewFilterOperand.WITHIN_DISTANCE, ': Within distance'],
+    [ViewFilterOperand.WITHIN_BBOX, ': Within bbox'],
+    [ViewFilterOperand.INTERSECTS, ': Intersects'],
+    [ViewFilterOperand.CONTAINS_GEOMETRY, ': Contains geometry'],
+    [ViewFilterOperand.WITHIN_GEOMETRY, ': Within geometry'],
+    [ViewFilterOperand.NEAR, ': Near'],
     [undefined, ': '], // undefined operand
   ];
 

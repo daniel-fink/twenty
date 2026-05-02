@@ -14,4 +14,10 @@ export type FilterOperator =
   | 'containsAny'
   | 'containsIlike'
   | 'isEmptyArray'
-  | 'search';
+  | 'search'
+  | 'withinDistance'
+  | 'withinBbox'
+  | 'intersects'
+  | 'contains'
+  | 'within'
+  | 'near';

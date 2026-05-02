@@ -1,5 +1,5 @@
 import { GraphQLScalarType, Kind, type ValueNode } from 'graphql';
-import { isGeoJsonPoint, type GeoJsonPoint } from 'twenty-shared/types';
+import { isGeoJsonGeometry, type GeoJsonGeometry } from 'twenty-shared/types';
 
 import { ValidationError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 
@@ -26,22 +26,23 @@ const parseObjectLiteral = (ast: ValueNode): unknown => {
   }
 };
 
-const checkGeoJsonPoint = (value: unknown): GeoJsonPoint => {
-  if (isGeoJsonPoint(value)) {
+const checkGeoJsonGeometry = (value: unknown): GeoJsonGeometry => {
+  if (isGeoJsonGeometry(value)) {
     return value;
   }
 
   throw new ValidationError(
-    'Invalid geometry value. Geometry must be a GeoJSON Point with WGS84 coordinates [longitude, latitude].',
+    'Invalid geometry value. Geometry must be a GeoJSON Point, Polygon, or MultiPolygon with WGS84 coordinates.',
   );
 };
 
 export const GeometryScalarType = new GraphQLScalarType({
   name: 'Geometry',
-  description: 'GeoJSON Point geometry using WGS84 coordinates',
-  serialize: checkGeoJsonPoint,
-  parseValue: checkGeoJsonPoint,
-  parseLiteral(ast): GeoJsonPoint {
-    return checkGeoJsonPoint(parseObjectLiteral(ast));
+  description:
+    'GeoJSON Point, Polygon, or MultiPolygon using WGS84 coordinates',
+  serialize: checkGeoJsonGeometry,
+  parseValue: checkGeoJsonGeometry,
+  parseLiteral(ast): GeoJsonGeometry {
+    return checkGeoJsonGeometry(parseObjectLiteral(ast));
   },
 });

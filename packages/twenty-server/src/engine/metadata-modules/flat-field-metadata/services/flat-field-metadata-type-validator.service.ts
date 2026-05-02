@@ -46,19 +46,6 @@ const rejectUserCreation = (
   };
 };
 
-const validateGeometryAndRejectUserCreation = (
-  args: FlatFieldMetadataTypeValidationArgs<FieldMetadataType>,
-): FlatFieldMetadataValidationError[] => [
-  ...rejectUserCreation(
-    FieldMetadataType.GEOMETRY,
-    'Field type GEOMETRY is not supported for custom field creation.',
-    msg`Geometry fields cannot be created yet.`,
-  )(args),
-  ...validateGeometryFlatFieldMetadata(
-    args as FlatFieldMetadataTypeValidationArgs<FieldMetadataType.GEOMETRY>,
-  ),
-];
-
 @Injectable()
 export class FlatFieldMetadataTypeValidatorService {
   constructor() {}
@@ -75,7 +62,7 @@ export class FlatFieldMetadataTypeValidatorService {
       EMAILS: DEFAULT_NO_VALIDATION,
       FILES: validateFilesFlatFieldMetadata,
       FULL_NAME: DEFAULT_NO_VALIDATION,
-      GEOMETRY: validateGeometryAndRejectUserCreation,
+      GEOMETRY: validateGeometryFlatFieldMetadata,
       LINKS: DEFAULT_NO_VALIDATION,
       NUMBER: DEFAULT_NO_VALIDATION,
       NUMERIC: rejectUserCreation(

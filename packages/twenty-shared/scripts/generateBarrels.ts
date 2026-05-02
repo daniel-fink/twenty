@@ -500,4 +500,11 @@ const main = () => {
   writeInPackageJson(packageJsonConfig);
   moduleIndexFiles.forEach(createTypeScriptFile);
 };
-main();
+
+try {
+  main();
+  process.exit(0);
+} catch (error) {
+  process.stderr.write(`${String(error)}\n`);
+  process.exit(1);
+}

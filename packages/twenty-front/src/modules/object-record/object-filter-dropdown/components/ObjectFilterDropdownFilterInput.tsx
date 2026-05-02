@@ -49,6 +49,12 @@ export const ObjectFilterDropdownFilterInput = ({
       ViewFilterOperand.CONTAINS,
       ViewFilterOperand.DOES_NOT_CONTAIN,
       ViewFilterOperand.IS_RELATIVE,
+      ViewFilterOperand.WITHIN_DISTANCE,
+      ViewFilterOperand.WITHIN_BBOX,
+      ViewFilterOperand.INTERSECTS,
+      ViewFilterOperand.CONTAINS_GEOMETRY,
+      ViewFilterOperand.WITHIN_GEOMETRY,
+      ViewFilterOperand.NEAR,
     ].includes(selectedOperandInDropdown);
 
   if (!isDefined(fieldMetadataItemUsedInDropdown)) {

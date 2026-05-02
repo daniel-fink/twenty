@@ -42,6 +42,13 @@ describe('isRecordFilterValueValid', () => {
       ViewFilterOperand.IS_BEFORE,
       ViewFilterOperand.IS_AFTER,
       ViewFilterOperand.IS_RELATIVE,
+      ViewFilterOperand.VECTOR_SEARCH,
+      ViewFilterOperand.WITHIN_DISTANCE,
+      ViewFilterOperand.WITHIN_BBOX,
+      ViewFilterOperand.INTERSECTS,
+      ViewFilterOperand.CONTAINS_GEOMETRY,
+      ViewFilterOperand.WITHIN_GEOMETRY,
+      ViewFilterOperand.NEAR,
     ];
 
     it.each(operandsExpectingValue)(

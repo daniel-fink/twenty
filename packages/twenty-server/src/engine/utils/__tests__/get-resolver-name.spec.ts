@@ -23,6 +23,20 @@ describe('getResolverName', () => {
     ).toBe(expectedResult);
   });
 
+  it('should preserve metadata names for query resolvers', () => {
+    const metadataWithDigitSuffix = {
+      nameSingular: 'geoBenchmarkNaturalEarthAdmin0',
+      namePlural: 'geoBenchmarkNaturalEarthAdmin0s',
+    };
+
+    expect(getResolverName(metadataWithDigitSuffix, 'findMany')).toBe(
+      'geoBenchmarkNaturalEarthAdmin0s',
+    );
+    expect(getResolverName(metadataWithDigitSuffix, 'groupBy')).toBe(
+      'geoBenchmarkNaturalEarthAdmin0sGroupBy',
+    );
+  });
+
   it('should throw an error for an unknown resolver type', () => {
     const unknownType = 'unknownType';
 

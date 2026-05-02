@@ -36,6 +36,12 @@ const operandMapping: Record<string, ViewFilterOperand> = {
   [ViewFilterOperand.IS_IN_FUTURE]: ViewFilterOperand.IS_IN_FUTURE,
   [ViewFilterOperand.IS_TODAY]: ViewFilterOperand.IS_TODAY,
   [ViewFilterOperand.VECTOR_SEARCH]: ViewFilterOperand.VECTOR_SEARCH,
+  [ViewFilterOperand.WITHIN_DISTANCE]: ViewFilterOperand.WITHIN_DISTANCE,
+  [ViewFilterOperand.WITHIN_BBOX]: ViewFilterOperand.WITHIN_BBOX,
+  [ViewFilterOperand.INTERSECTS]: ViewFilterOperand.INTERSECTS,
+  [ViewFilterOperand.CONTAINS_GEOMETRY]: ViewFilterOperand.CONTAINS_GEOMETRY,
+  [ViewFilterOperand.WITHIN_GEOMETRY]: ViewFilterOperand.WITHIN_GEOMETRY,
+  [ViewFilterOperand.NEAR]: ViewFilterOperand.NEAR,
 };
 
 export const convertViewFilterOperandToCoreOperand = (

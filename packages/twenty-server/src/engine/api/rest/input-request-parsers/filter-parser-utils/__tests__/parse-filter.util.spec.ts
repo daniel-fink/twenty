@@ -79,4 +79,23 @@ describe('parseFilter', () => {
       ],
     });
   });
+
+  it('should parse quoted spatial filter JSON with commas', () => {
+    expect(
+      parseFilter(
+        'and(location[withinDistance]:\'{"point":{"type":"Point","coordinates":[151.2093,-33.8688]},"distanceInMeters":500}\')',
+      ),
+    ).toEqual({
+      and: [
+        {
+          location: {
+            withinDistance: {
+              point: { type: 'Point', coordinates: [151.2093, -33.8688] },
+              distanceInMeters: 500,
+            },
+          },
+        },
+      ],
+    });
+  });
 });

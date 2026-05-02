@@ -127,6 +127,12 @@ const fields = [
     type: FieldMetadataType.UUID,
     label: 'Record ID',
   },
+  {
+    id: 'f-geometry',
+    name: 'geometry',
+    type: FieldMetadataType.GEOMETRY,
+    label: 'Geometry',
+  },
 ];
 
 const filterValueDependencies = { timeZone: 'UTC' };
@@ -1005,6 +1011,57 @@ describe('turnRecordFilterIntoRecordGqlOperationFilter', () => {
       });
 
       expect(result).toHaveProperty('companyId.in');
+    });
+  });
+
+  describe('GEOMETRY filter', () => {
+    it('should handle WITHIN_BBOX operand', () => {
+      const result = turnRecordFilterIntoRecordGqlOperationFilter({
+        filterValueDependencies,
+        recordFilter: makeFilter(
+          'f-geometry',
+          RecordFilterOperand.WITHIN_BBOX,
+          JSON.stringify({ west: -74, south: 40, east: -73, north: 41 }),
+          'GEOMETRY',
+        ),
+        fieldMetadataItems: fields,
+      });
+
+      expect(result).toEqual({
+        geometry: {
+          withinBbox: {
+            east: -73,
+            north: 41,
+            south: 40,
+            west: -74,
+          },
+        },
+      });
+    });
+
+    it('should handle WITHIN_DISTANCE operand', () => {
+      const result = turnRecordFilterIntoRecordGqlOperationFilter({
+        filterValueDependencies,
+        recordFilter: makeFilter(
+          'f-geometry',
+          RecordFilterOperand.WITHIN_DISTANCE,
+          JSON.stringify({
+            distanceInMeters: 500,
+            point: { type: 'Point', coordinates: [-73.9, 40.7] },
+          }),
+          'GEOMETRY',
+        ),
+        fieldMetadataItems: fields,
+      });
+
+      expect(result).toEqual({
+        geometry: {
+          withinDistance: {
+            distanceInMeters: 500,
+            point: { coordinates: [-73.9, 40.7], type: 'Point' },
+          },
+        },
+      });
     });
   });
 });

@@ -75,4 +75,12 @@ export const RAW_JSON_FILTER_OPERATORS: FilterOperator[] = ['is', 'like'];
 
 export const RICH_TEXT_FILTER_OPERATORS: FilterOperator[] = ['ilike'];
 
-export const GEOMETRY_FILTER_OPERATORS: FilterOperator[] = ['is'];
+export const GEOMETRY_FILTER_OPERATORS: FilterOperator[] = [
+  'is',
+  'withinDistance',
+  'withinBbox',
+  'intersects',
+  'contains',
+  'within',
+  'near',
+];

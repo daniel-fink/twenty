@@ -25,6 +25,34 @@ export const formatFieldValue = (
   if (comparator === 'is') {
     return value;
   }
+
+  if (
+    isDefined(comparator) &&
+    [
+      'withinDistance',
+      'withinBbox',
+      'intersects',
+      'contains',
+      'within',
+      'near',
+    ].includes(comparator)
+  ) {
+    const unquotedValue =
+      (value[0] === '"' || value[0] === "'") &&
+      (value.charAt(value.length - 1) === '"' ||
+        value.charAt(value.length - 1) === "'")
+        ? value.substring(1, value.length - 1)
+        : value;
+
+    try {
+      return JSON.parse(unquotedValue) as FieldValue;
+    } catch {
+      throw new BadRequestException(
+        `'filter' invalid for '${comparator}' operator. Received '${value}' but JSON value expected`,
+      );
+    }
+  }
+
   switch (fieldType) {
     case FieldMetadataType.NUMERIC:
       return parseInt(value);

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import {
+  type FieldMetadataGeometrySettings,
   FieldMetadataType,
   compositeTypeDefinitions,
 } from 'twenty-shared/types';
@@ -24,6 +25,22 @@ import { fieldMetadataTypeToColumnType } from 'src/engine/workspace-manager/work
 
 type EntitySchemaColumnMap = {
   [key: string]: EntitySchemaColumnOptions;
+};
+
+const geometryTypeToSpatialFeatureType = (
+  geometryType?: FieldMetadataGeometrySettings['geometryType'],
+): EntitySchemaColumnOptions['spatialFeatureType'] => {
+  switch (geometryType) {
+    case 'POLYGON':
+      return 'Polygon';
+    case 'MULTIPOLYGON':
+      return 'MultiPolygon';
+    case 'GEOMETRY':
+      return undefined;
+    case 'POINT':
+    default:
+      return 'Point';
+  }
 };
 
 @Injectable()
@@ -83,7 +100,14 @@ export class EntitySchemaColumnFactory {
         continue;
       }
 
-      const columnType = fieldMetadataTypeToColumnType(fieldMetadata.type);
+      const geometrySettings =
+        fieldMetadata.type === FieldMetadataType.GEOMETRY
+          ? (fieldMetadata.settings as FieldMetadataGeometrySettings | null)
+          : undefined;
+      const columnType = fieldMetadataTypeToColumnType(
+        fieldMetadata.type,
+        geometrySettings,
+      );
       const defaultValue = serializeDefaultValue(fieldMetadata.defaultValue);
 
       entitySchemaColumnMap[key] = {
@@ -94,7 +118,7 @@ export class EntitySchemaColumnFactory {
             : (columnType as ColumnType),
         spatialFeatureType:
           fieldMetadata.type === FieldMetadataType.GEOMETRY
-            ? 'Point'
+            ? geometryTypeToSpatialFeatureType(geometrySettings?.geometryType)
             : undefined,
         srid:
           fieldMetadata.type === FieldMetadataType.GEOMETRY ? 4326 : undefined,

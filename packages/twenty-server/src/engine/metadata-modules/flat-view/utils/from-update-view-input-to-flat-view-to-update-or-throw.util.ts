@@ -4,6 +4,7 @@ import {
   isDefined,
   trimAndRemoveDuplicatedWhitespacesFromObjectStringProperties,
 } from 'twenty-shared/utils';
+import { validatePartialGeoMapTilePolicy } from 'twenty-shared/types';
 
 import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
@@ -61,6 +62,17 @@ export const fromUpdateViewInputToFlatViewToUpdateOrThrow = ({
     rawUpdateViewInput,
     FLAT_VIEW_EDITABLE_PROPERTIES,
   );
+
+  if (
+    !validatePartialGeoMapTilePolicy(
+      updatedEditableFieldProperties.mapTilePolicy,
+    )
+  ) {
+    throw new ViewException(
+      t`Invalid map tile policy`,
+      ViewExceptionCode.INVALID_VIEW_DATA,
+    );
+  }
 
   const flatViewToUpdate = mergeUpdateInExistingRecord({
     existing: existingFlatViewToUpdate,

@@ -324,6 +324,11 @@ export const ALL_ENTITY_PROPERTIES_CONFIGURATION_BY_METADATA_NAME = {
       toStringify: false,
       universalProperty: 'mapFieldMetadataUniversalIdentifier',
     },
+    mapTilePolicy: {
+      toCompare: true,
+      toStringify: true,
+      universalProperty: undefined,
+    },
     visibility: {
       toCompare: true,
       toStringify: false,

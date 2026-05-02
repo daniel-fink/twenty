@@ -505,23 +505,52 @@ const getSelectedColumnsFromExpressionMap = ({
   return selectedColumns;
 };
 
+export const extractSelectedColumnNameFromSelectExpression = (
+  selectExpression: string,
+) => {
+  const quotedColumnMatches = [
+    ...selectExpression.matchAll(/(?:^|[^\w])"([^"]+)"(?=\s*(?:::|,|\)|$))/g),
+  ];
+
+  if (
+    quotedColumnMatches.length > 0 &&
+    (selectExpression.includes('::') || selectExpression.startsWith('ST_'))
+  ) {
+    return quotedColumnMatches[quotedColumnMatches.length - 1][1];
+  }
+
+  const aggregateColumns =
+    ProcessAggregateHelper.extractColumnNamesFromAggregateExpression(
+      selectExpression,
+    );
+
+  if (aggregateColumns) {
+    return aggregateColumns;
+  }
+
+  if (quotedColumnMatches.length > 0) {
+    return quotedColumnMatches[quotedColumnMatches.length - 1][1];
+  }
+
+  const columnReferenceMatch = selectExpression.match(
+    /(?:^|[^\w.])([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:::|,|\)|$)/,
+  );
+
+  if (columnReferenceMatch) {
+    return columnReferenceMatch[1];
+  }
+
+  const parts = selectExpression.split('.');
+
+  return parts[parts.length - 1];
+};
+
 const getSelectedColumnsFromExpressionMapSelects = (
   selects: { selection: string }[],
 ) => {
   return selects
     ?.map((select) => {
-      const columnsFromAggregateExpression =
-        ProcessAggregateHelper.extractColumnNamesFromAggregateExpression(
-          select.selection,
-        );
-
-      if (columnsFromAggregateExpression) {
-        return columnsFromAggregateExpression;
-      }
-
-      const parts = select.selection.split('.');
-
-      return parts[parts.length - 1];
+      return extractSelectedColumnNameFromSelectExpression(select.selection);
     })
     .flat();
 };

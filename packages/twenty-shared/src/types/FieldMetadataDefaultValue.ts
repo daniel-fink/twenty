@@ -1,6 +1,6 @@
 import { type LinkMetadata } from '@/types/composite-types/links.composite-type';
 import { type FieldMetadataType } from '@/types/FieldMetadataType';
-import { type GeoJsonPoint } from '@/types/GeoJsonPoint';
+import { type GeoJsonGeometry } from '@/types/GeoJsonPoint';
 import { type IsExactly } from '@/types/IsExactly';
 
 export const fieldMetadataDefaultValueFunctionName = {
@@ -86,7 +86,7 @@ export type FieldMetadataDefaultValueMapping = {
   [FieldMetadataType.LINKS]: FieldMetadataDefaultValueLinks | null;
   [FieldMetadataType.CURRENCY]: FieldMetadataDefaultValueCurrency | null;
   [FieldMetadataType.FULL_NAME]: FieldMetadataDefaultValueFullName | null;
-  [FieldMetadataType.GEOMETRY]: GeoJsonPoint | null;
+  [FieldMetadataType.GEOMETRY]: GeoJsonGeometry | null;
   [FieldMetadataType.ADDRESS]: FieldMetadataDefaultValueAddress | null;
   [FieldMetadataType.RATING]: string | null;
   [FieldMetadataType.SELECT]: string | null;

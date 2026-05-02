@@ -140,6 +140,15 @@ export const FILTER_OPERANDS_MAP = {
   BOOLEAN: [RecordFilterOperand.IS],
   TS_VECTOR: [RecordFilterOperand.VECTOR_SEARCH],
   UUID: [RecordFilterOperand.IS],
+  GEOMETRY: [
+    RecordFilterOperand.WITHIN_BBOX,
+    RecordFilterOperand.WITHIN_DISTANCE,
+    RecordFilterOperand.INTERSECTS,
+    RecordFilterOperand.CONTAINS_GEOMETRY,
+    RecordFilterOperand.WITHIN_GEOMETRY,
+    RecordFilterOperand.NEAR,
+    ...emptyOperands,
+  ],
 } as const satisfies FilterOperandMap;
 
 export const COMPOSITE_FIELD_FILTER_OPERANDS_MAP = {
@@ -223,6 +232,8 @@ export const getRecordFilterOperands = ({
       return FILTER_OPERANDS_MAP.TS_VECTOR;
     case 'UUID':
       return FILTER_OPERANDS_MAP.UUID;
+    case 'GEOMETRY':
+      return FILTER_OPERANDS_MAP.GEOMETRY;
     default:
       assertUnreachable(filterType, `Unknown filter type ${filterType}`);
   }

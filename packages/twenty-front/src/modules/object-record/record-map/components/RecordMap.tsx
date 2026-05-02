@@ -1,18 +1,23 @@
 import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 
+import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
+import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
+import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
+import { useRecordMapAddressMarkers } from '@/object-record/record-map/hooks/useRecordMapAddressMarkers';
+import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
+import { type RecordMapTileSource } from '@/object-record/record-map/types/RecordMapTileSource';
+import {
+  getPaddedRecordMapBounds,
+  type RecordMapBounds,
+} from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
 import { styled } from '@linaria/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
-import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-const DEFAULT_MAP_CENTER = { latitude: 20, longitude: 0 };
-const DEFAULT_MAP_ZOOM = 1.4;
-const SINGLE_POINT_MAP_ZOOM = 12;
 
 const StyledContainer = styled.div`
   background: ${themeCssVariables.color.gray10};
@@ -47,113 +52,128 @@ const StyledEmptyState = styled.div`
   text-align: center;
 `;
 
-const buildMarkerElement = (recordName?: string) => {
-  const markerElement = document.createElement('button');
-  const accessibleName = isDefined(recordName)
-    ? `Open ${recordName}`
-    : 'Open map record';
-
-  markerElement.type = 'button';
-  markerElement.setAttribute('aria-label', accessibleName);
-  markerElement.style.background = themeCssVariables.color.blue;
-  markerElement.style.border = `2px solid ${themeCssVariables.background.primary}`;
-  markerElement.style.borderRadius = '50%';
-  markerElement.style.boxShadow = themeCssVariables.boxShadow.strong;
-  markerElement.style.cursor = 'pointer';
-  markerElement.style.height = '18px';
-  markerElement.style.padding = '0';
-  markerElement.title = accessibleName;
-  markerElement.style.width = '18px';
-
-  return markerElement;
-};
-
 export const RecordMap = ({
   loading,
   recordMapPoints,
+  tileSource,
+  onSearchThisArea,
 }: {
   loading: boolean;
   recordMapPoints: RecordMapPoint[];
+  tileSource?: RecordMapTileSource;
+  onSearchThisArea?: (bounds: RecordMapBounds) => void;
 }) => {
   const [mapContainerElement, setMapContainerElement] =
     useState<HTMLDivElement | null>(null);
-  const [map, setMap] = useState<maplibregl.Map | null>(null);
+  const [hasAutoFitTileBounds, setHasAutoFitTileBounds] = useState(false);
+  const [hasUserMovedTileMap, setHasUserMovedTileMap] = useState(false);
+  const [isFittingTileBounds, setIsFittingTileBounds] = useState(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
   const shouldRenderMap =
-    hasMapStyle && (loading || recordMapPoints.length > 0);
+    hasMapStyle &&
+    (isDefined(tileSource) || loading || recordMapPoints.length > 0);
+  const tileSourceViewId = tileSource?.viewId;
+  const tileSourceFilter = JSON.stringify(tileSource?.filter ?? {});
+  const { map } = useMapLibreMap({
+    mapContainerElement,
+    shouldRenderMap,
+  });
+  const { tileBounds, tileJson } = useMapTileMetadata({
+    tileSourceFilter,
+    tileSourceViewId,
+  });
 
-  useEffect(() => {
-    if (!shouldRenderMap || !isDefined(mapContainerElement)) {
+  const handleRecordClick = useCallback(
+    (recordId: string) => {
+      openRecordFromIndexView({ recordId });
+    },
+    [openRecordFromIndexView],
+  );
+
+  const fitMapToTileBounds = useCallback(() => {
+    if (!isDefined(map) || !isDefined(tileBounds?.bounds)) {
       return;
     }
 
-    const mapInstance = new maplibregl.Map({
-      container: mapContainerElement,
-      style: REACT_APP_MAP_VIEW_STYLE_URL,
-      center: [DEFAULT_MAP_CENTER.longitude, DEFAULT_MAP_CENTER.latitude],
-      zoom: DEFAULT_MAP_ZOOM,
+    setIsFittingTileBounds(true);
+
+    map.once('moveend', () => {
+      setIsFittingTileBounds(false);
     });
+    window.setTimeout(() => {
+      setIsFittingTileBounds(false);
+    }, 750);
 
-    mapInstance.addControl(
-      new maplibregl.NavigationControl({ showCompass: false }),
-    );
-    setMap(mapInstance);
-
-    return () => {
-      setMap((currentMap) => (currentMap === mapInstance ? null : currentMap));
-      mapInstance.remove();
-    };
-  }, [mapContainerElement, shouldRenderMap]);
+    map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
+      padding: 64,
+      maxZoom: 12,
+      essential: true,
+    });
+  }, [map, tileBounds]);
 
   useEffect(() => {
-    if (!isDefined(map)) {
+    setHasAutoFitTileBounds(false);
+    setHasUserMovedTileMap(false);
+  }, [tileSourceViewId]);
+
+  useEffect(() => {
+    setHasAutoFitTileBounds(false);
+  }, [tileSourceFilter]);
+
+  useEffect(() => {
+    if (!isDefined(map) || !isDefined(tileSourceViewId)) {
       return;
     }
 
-    const markers = recordMapPoints.map((point) => {
-      const recordName = point.record.name ?? point.record.displayName;
-      const markerElement = buildMarkerElement(recordName);
+    const markUserMovedMap = () => {
+      if (!isFittingTileBounds) {
+        setHasUserMovedTileMap(true);
+      }
+    };
 
-      markerElement.addEventListener('click', () => {
-        openRecordFromIndexView({ recordId: point.record.id });
-      });
-
-      const marker = new maplibregl.Marker({ element: markerElement })
-        .setLngLat([point.longitude, point.latitude])
-        .addTo(map);
-
-      return marker;
-    });
-
-    const firstPoint = recordMapPoints[0];
-
-    if (recordMapPoints.length === 1 && isDefined(firstPoint)) {
-      map.flyTo({
-        center: [firstPoint.longitude, firstPoint.latitude],
-        zoom: SINGLE_POINT_MAP_ZOOM,
-        essential: true,
-      });
-    }
-
-    if (recordMapPoints.length > 1) {
-      const bounds = new maplibregl.LngLatBounds();
-
-      recordMapPoints.forEach((point) => {
-        bounds.extend([point.longitude, point.latitude]);
-      });
-
-      map.fitBounds(bounds, {
-        padding: 64,
-        maxZoom: 12,
-      });
-    }
+    map.on('dragstart', markUserMovedMap);
+    map.on('zoomstart', markUserMovedMap);
 
     return () => {
-      markers.forEach((marker) => marker.remove());
+      map.off('dragstart', markUserMovedMap);
+      map.off('zoomstart', markUserMovedMap);
     };
-  }, [map, openRecordFromIndexView, recordMapPoints]);
+  }, [isFittingTileBounds, map, tileSourceViewId]);
+
+  useRecordMapAddressMarkers({
+    map,
+    onRecordClick: handleRecordClick,
+    recordMapPoints,
+    tileSource,
+  });
+
+  useRecordMapVectorTileLayers({
+    map,
+    onFeatureClick: handleRecordClick,
+    tileJson,
+    tileSourceFilter,
+    tileSourceViewId,
+  });
+
+  useEffect(() => {
+    if (
+      !isDefined(tileBounds?.bounds) ||
+      hasUserMovedTileMap ||
+      hasAutoFitTileBounds
+    ) {
+      return;
+    }
+
+    fitMapToTileBounds();
+    setHasAutoFitTileBounds(true);
+  }, [
+    fitMapToTileBounds,
+    hasAutoFitTileBounds,
+    hasUserMovedTileMap,
+    tileBounds,
+  ]);
 
   if (!hasMapStyle) {
     return (
@@ -174,6 +194,14 @@ export const RecordMap = ({
   return (
     <StyledContainer>
       <StyledMapCanvas ref={setMapContainerElement} />
+      {isDefined(tileSource) && (
+        <RecordMapControls
+          canFitToTileBounds={isDefined(tileBounds?.bounds)}
+          map={map}
+          onFitToTileBounds={fitMapToTileBounds}
+          onSearchThisArea={onSearchThisArea}
+        />
+      )}
     </StyledContainer>
   );
 };

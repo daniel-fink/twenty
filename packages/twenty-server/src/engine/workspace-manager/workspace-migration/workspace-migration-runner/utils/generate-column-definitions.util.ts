@@ -1,9 +1,9 @@
 import {
   type CompositeProperty,
+  type FieldMetadataGeometrySettings,
   FieldMetadataType,
   RelationType,
 } from 'twenty-shared/types';
-
 import { type ColumnType } from 'typeorm';
 
 import { computeMorphOrRelationFieldJoinColumnName } from 'src/engine/metadata-modules/field-metadata/utils/compute-morph-or-relation-field-join-column-name.util';
@@ -150,8 +150,13 @@ const generateColumnDefinition = ({
   schemaName: string;
 }): WorkspaceSchemaColumnDefinition => {
   const columnName = computeColumnName(flatFieldMetadata.name);
+  const geometrySettings =
+    flatFieldMetadata.type === FieldMetadataType.GEOMETRY
+      ? (flatFieldMetadata.settings as FieldMetadataGeometrySettings | null)
+      : undefined;
   const columnType = fieldMetadataTypeToColumnType(
     flatFieldMetadata.type,
+    geometrySettings,
   ) as ColumnType;
   const serializedDefaultValue = serializeDefaultValue({
     columnName,

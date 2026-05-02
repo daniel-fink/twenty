@@ -6,6 +6,7 @@ import {
   type CurrencyFilter,
   type DateFilter,
   type FloatFilter,
+  type GeometryFilter,
   type MultiSelectFilter,
   type PartialFieldMetadataItem,
   type PhonesFilter,
@@ -363,6 +364,11 @@ export const getEmptyRecordGqlOperationFilter = ({
             [correspondingField.name]: { is: 'NULL' } as RawJsonFilter,
           },
         ],
+      };
+      break;
+    case 'GEOMETRY':
+      emptyRecordFilter = {
+        [correspondingField.name]: { is: 'NULL' } as GeometryFilter,
       };
       break;
     case 'EMAILS':

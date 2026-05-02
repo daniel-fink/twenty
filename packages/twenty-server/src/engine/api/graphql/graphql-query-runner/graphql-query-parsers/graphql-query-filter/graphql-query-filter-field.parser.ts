@@ -4,7 +4,11 @@ import {
   type ObjectLiteral,
   type WhereExpressionBuilder,
 } from 'typeorm';
-import { compositeTypeDefinitions, RelationType } from 'twenty-shared/types';
+import {
+  compositeTypeDefinitions,
+  FieldMetadataType,
+  RelationType,
+} from 'twenty-shared/types';
 import { capitalize, isDefined } from 'twenty-shared/utils';
 
 import { MAX_RELATION_FILTER_DEPTH } from 'src/engine/api/common/common-args-processors/filter-arg-processor/constants/max-relation-filter-depth.constant';
@@ -107,6 +111,7 @@ export class GraphqlQueryFilterFieldParser {
 
     if (
       ARRAY_OPERATORS.includes(operator) &&
+      fieldMetadata.type !== FieldMetadataType.GEOMETRY &&
       (!Array.isArray(value) || value.length === 0)
     ) {
       throw new GraphqlQueryRunnerException(
@@ -249,6 +254,7 @@ export class GraphqlQueryFilterFieldParser {
 
       if (
         ARRAY_OPERATORS.includes(operator) &&
+        fieldMetadata.type !== FieldMetadataType.GEOMETRY &&
         (!Array.isArray(value) || value.length === 0)
       ) {
         throw new GraphqlQueryRunnerException(

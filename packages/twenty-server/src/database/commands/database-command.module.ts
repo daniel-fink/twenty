@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { WorkspaceIteratorModule } from 'src/database/commands/command-runners/workspace-iterator.module';
 import { CronRegisterAllCommand } from 'src/database/commands/cron-register-all.command';
 import { DataSeedWorkspaceCommand } from 'src/database/commands/data-seed-dev-workspace.command';
+import { GeoMapBenchmarkSeedCommand } from 'src/database/commands/geo-map-benchmark-seed.command';
+import { GeoMapRealBenchmarkImportCommand } from 'src/database/commands/geo-map-real-benchmark-import.command';
+import { GeoMapTileBenchmarkCommand } from 'src/database/commands/geo-map-tile-benchmark.command';
 import { GenerateInstanceCommandCommand } from 'src/database/commands/generate-instance-command.command';
 import { InstallPreInstalledAppsCommand } from 'src/database/commands/install-pre-installed-apps.command';
 import { InstanceCommandGenerationService } from 'src/database/commands/instance-command-generation.service';
@@ -34,6 +37,8 @@ import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.ent
 import { WorkspaceModule } from 'src/engine/core-modules/workspace/workspace.module';
 import { FieldMetadataModule } from 'src/engine/metadata-modules/field-metadata/field-metadata.module';
 import { ObjectMetadataModule } from 'src/engine/metadata-modules/object-metadata/object-metadata.module';
+import { ViewModule } from 'src/engine/metadata-modules/view/view.module';
+import { WorkspaceMetadataVersionModule } from 'src/engine/metadata-modules/workspace-metadata-version/workspace-metadata-version.module';
 import { TrashCleanupModule } from 'src/engine/trash-cleanup/trash-cleanup.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { WorkspaceCacheModule } from 'src/engine/workspace-cache/workspace-cache.module';
@@ -63,6 +68,8 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
     TypeORMModule,
     FieldMetadataModule,
     ObjectMetadataModule,
+    ViewModule,
+    WorkspaceMetadataVersionModule,
     DevSeederModule,
     WorkspaceManagerModule,
     WorkspaceCacheStorageModule,
@@ -87,6 +94,9 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
   ],
   providers: [
     DataSeedWorkspaceCommand,
+    GeoMapBenchmarkSeedCommand,
+    GeoMapRealBenchmarkImportCommand,
+    GeoMapTileBenchmarkCommand,
     ConfirmationQuestion,
     CronRegisterAllCommand,
     GenerateInstanceCommandCommand,

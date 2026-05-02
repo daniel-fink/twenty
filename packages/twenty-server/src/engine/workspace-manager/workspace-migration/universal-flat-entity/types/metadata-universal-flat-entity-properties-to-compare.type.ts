@@ -60,6 +60,7 @@ type Assertions = [
       | 'calendarLayout'
       | 'calendarFieldMetadataUniversalIdentifier'
       | 'mapFieldMetadataUniversalIdentifier'
+      | 'mapTilePolicy'
       | 'mainGroupByFieldMetadataUniversalIdentifier'
       | 'shouldHideEmptyGroups'
       | 'anyFieldFilterValue'

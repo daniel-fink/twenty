@@ -190,6 +190,85 @@ export const successfulFilterInputsByFieldMetadataType: {
     { filter: { filesField: { is: 'NOT_NULL' } } },
     { filter: { filesField: { like: '%test%' } } },
   ],
+  [FieldMetadataType.GEOMETRY]: [
+    { filter: { geometryField: { is: 'NULL' } } },
+    { filter: { geometryField: { is: 'NOT_NULL' } } },
+    {
+      filter: {
+        geometryField: {
+          withinDistance: {
+            point: { type: 'Point', coordinates: [151.2093, -33.8688] },
+            distanceInMeters: 500,
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          withinBbox: {
+            west: 151.19,
+            south: -33.88,
+            east: 151.22,
+            north: -33.84,
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          intersects: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [151.19, -33.88],
+                [151.22, -33.88],
+                [151.22, -33.84],
+                [151.19, -33.88],
+              ],
+            ],
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          contains: { type: 'Point', coordinates: [151.2093, -33.8688] },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          within: {
+            type: 'MultiPolygon',
+            coordinates: [
+              [
+                [
+                  [151.19, -33.88],
+                  [151.22, -33.88],
+                  [151.22, -33.84],
+                  [151.19, -33.88],
+                ],
+              ],
+            ],
+          },
+        },
+      },
+    },
+    {
+      filter: {
+        geometryField: {
+          near: {
+            point: { type: 'Point', coordinates: [151.2093, -33.8688] },
+            distanceInMeters: 500,
+          },
+        },
+      },
+    },
+  ],
   [FieldMetadataType.RICH_TEXT]: [
     { filter: { richTextField: { markdown: { ilike: '%test%' } } } },
   ],
