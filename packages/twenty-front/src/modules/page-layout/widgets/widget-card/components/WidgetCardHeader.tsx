@@ -23,6 +23,7 @@ export type WidgetCardHeaderProps = {
   forbiddenDisplay?: ReactNode;
   actions?: WidgetAction[];
   className?: string;
+  componentInstanceId?: string;
   isResizing?: boolean;
   isReorderEnabled?: boolean;
   isDeletingWidgetEnabled?: boolean;
@@ -79,11 +80,13 @@ export const WidgetCardHeader = ({
   forbiddenDisplay,
   actions,
   className,
+  componentInstanceId,
 }: WidgetCardHeaderProps) => {
   const { theme } = useContext(ThemeContext);
   const widgetCardHovered = useAtomComponentFamilyStateValue(
     widgetCardHoveredComponentFamilyState,
     widgetId,
+    componentInstanceId,
   );
 
   return (

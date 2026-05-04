@@ -17,9 +17,11 @@ Add a first-class registry for large reference and analytical geospatial layers
 that can appear in Twenty map views without requiring every dataset to become a
 Twenty object.
 
-This epic starts with the same PostgreSQL instance used by Twenty, but stores
-pipeline-owned spatial datasets in separate geospatial schemas and registers
-them through metadata that the map module can read.
+This epic starts with PostGIS tables that are owned by data pipelines, not by
+Twenty object metadata. Those tables can live in the same PostgreSQL instance as
+Twenty or in an allowlisted external PostGIS connection configured by
+environment variable. Twenty stores only catalog-derived registry metadata and
+map-view attachments in `core` tables.
 
 The goal is to support large PostGIS datasets that enrich a map with context,
 computed attributes, overlays, and insights while preserving Epic 4's object map
@@ -62,8 +64,9 @@ Twenty should become capable of composing maps from two families of layers:
 - Registered reference geospatial layers, from this epic.
 
 The first version should be intentionally platform-oriented rather than a
-full GIS layer manager. Administrators or local orchestration pipelines register
-layers. End users consume curated layers in map views.
+full GIS layer manager. Local orchestration pipelines and backend commands
+register layers from text-based catalog files. End users consume curated layers
+in map views.
 
 The product should support:
 
@@ -77,19 +80,26 @@ The product should support:
 The first implementation should not try to make every layer editable, every
 attribute filterable, or every reference feature into a CRM record.
 
-## Product Decisions To Resolve Before Coding
+## Resolved V1 Decisions
 
-- First dataset: choose the initial reference layer used for local validation
-  and demos, such as building footprints, parcels, boundaries, or another
-  available PostGIS dataset.
-- Ownership model: decide whether v1 registry records are workspace-scoped only
-  or also support instance-level/shared reference layer definitions.
-- Registration path: decide whether v1 layers are registered only by local
-  commands/pipeline code or whether admins also need an in-app create/edit UI.
-- Permission model: choose the v1 security policy for reference tables; the
-  default should be authenticated workspace access with allowlisted properties.
-- Tile endpoint shape: decide whether v1 exposes one endpoint per attached map
-  view layer or one direct endpoint per registered layer.
+- Admin UI is out of scope for v1.
+- Registry records are workspace-scoped only. Shared or instance-level layer
+  catalogs are deferred until the core model proves useful.
+- Text-based JSON catalogs are the authoring source of truth. Runtime database
+  rows are materialized state for validation, FK integrity, and fast tile
+  request lookup.
+- Catalog files live under the owning server package, not a new root-level
+  `config/` directory.
+- Secrets and connection strings are never committed. Catalogs reference
+  connection keys whose URIs are resolved from env/config variables.
+- The v1 security policy is authenticated workspace access with allowlisted
+  properties only.
+- The initial demo catalog should use the inspected `geofs` PostGIS database:
+  `model.parcels` as the primary polygon reference layer and
+  `model.transactions` as a dense point overlay. `model.forecast_houses` and
+  `model.forecast_apartments` are good follow-up analytic polygon layers.
+- The tile service must support source SRIDs other than `4326`; the `geofs`
+  tables use EPSG `7856`.
 
 ## User Outcome
 
@@ -114,9 +124,16 @@ there is a normal Twenty record page.
 
 - Add a registry for non-object geospatial map layers.
 - Store registry metadata in Twenty-controlled tables.
-- Store large spatial datasets in separate PostGIS schemas in the same
-  PostgreSQL instance.
-- Define a stable ingestion contract for local orchestration/data pipelines.
+- Define a package-owned JSON catalog format for reference layer definitions.
+- Load catalog files through a server config variable, following the existing
+  AI catalog pattern rather than adding a root-level config directory.
+- Resolve catalog connection keys from env/config variables.
+- Materialize validated catalog layers into Twenty-controlled runtime metadata
+  tables.
+- Support PostGIS source tables in either the primary database or an allowlisted
+  external PostGIS connection.
+- Define a stable ingestion/registration contract for local orchestration/data
+  pipelines.
 - Support vector tile rendering for registered reference layers.
 - Allow a map view to include one or more registered reference layers.
 - Support basic layer visibility, ordering, min/max zoom, geometry type, style,
@@ -124,7 +141,7 @@ there is a normal Twenty record page.
 - Support a curated list of exposed properties for tooltips and insight panels.
 - Keep reference layer tables outside the Twenty object metadata system.
 - Keep Epic 4 object-layer rendering available on the same map.
-- Add local benchmark/reference-layer seed commands or scripts.
+- Add catalog sync and validation commands.
 - Preserve a future path to Martin, pg_tileserv, Tegola, PMTiles, or MBTiles.
 
 ### Excluded
@@ -139,17 +156,27 @@ there is a normal Twenty record page.
 - Per-feature Twenty record pages for non-object layer rows.
 - Per-user row-level permission predicates inside external pipeline tables in
   the first version.
-- Cross-database or cloud object storage source adapters in the first version.
-- Moving reference layers to a separate PostGIS database in the first version.
+- Arbitrary user-entered connection strings, SQL definitions, or source
+  adapters in the UI.
+- Cloud object storage, PMTiles, MBTiles, Martin, or pg_tileserv providers in
+  the first implementation.
 - Replacing the Epic 4 native object tile service.
+- Root-level repo `config/` conventions.
+- App manifest integration through `twenty-sdk` in this epic. That belongs in a
+  later epic once the reference-layer model is proven.
 
 ## Architecture Decisions
 
 - Keep Epic 4 object maps as the source of truth for Twenty records.
 - Add reference layers as a separate map-layer provider family.
-- Start in the same PostgreSQL database for operational simplicity.
-- Use separate schemas for pipeline-owned geospatial datasets.
-- Keep registry metadata in a Twenty-owned schema.
+- Keep authored layer definitions in JSON catalog files.
+- Store sanitized runtime registry metadata in Twenty-owned `core` tables.
+- Load catalogs from a package-owned built-in path or from a storage path
+  configured through `TwentyConfigService`.
+- Resolve external PostGIS credentials from env/config variables, never from
+  committed catalog files.
+- Support same-database PostGIS sources and explicitly configured external
+  PostGIS sources in v1.
 - Treat reference layers as read-only in the Twenty UI for v1.
 - Use PostGIS MVT generation directly in Twenty for the first implementation.
 - Keep the tile provider abstraction open so heavy layers can later move to
@@ -160,30 +187,144 @@ there is a normal Twenty record page.
 - Require every tile-served geometry column to have a spatial index.
 - Keep layer feature properties minimal and allowlist-based.
 - Treat layer registry records as configuration, not as end-user CRM data.
+- Do not introduce a new root-level config directory for upstream PRs; keep
+  server-owned catalogs under `packages/twenty-server`.
 
-## Schema Strategy
+## Catalog Strategy
 
-Use at least two schema families:
+Follow the existing Twenty pattern used by the AI model catalog:
+
+- Define the catalog type and Zod schema in the owning server module.
+- Keep a built-in default catalog checked into `packages/twenty-server`.
+- Allow deployments to override or extend the catalog with a storage path
+  config variable.
+- Resolve secrets through config/env templates, not through committed JSON.
+- Validate the entire catalog before materializing it into runtime metadata
+  tables.
+
+Recommended upstreamable location:
 
 ```txt
-core / metadata schemas
-  Twenty-owned registry tables and configuration.
-
-geo_<workspace_or_domain> schemas
-  Pipeline-owned spatial datasets and indexes.
+packages/twenty-server/src/engine/core-modules/geo-map/reference-layer-catalog/
+  geo-reference-layer-catalog.schema.ts
+  geo-reference-layer-catalog.types.ts
+  default-geo-reference-layer-catalog.json
+  examples/
+    geofs-demo.example.json
 ```
 
-For the first local implementation, a workspace-scoped schema is acceptable:
+Do not add a root-level `config/` directory for this feature. The root already
+contains workspace/tooling files, while runtime server catalogs live inside
+their owning package/module.
 
-```txt
-geo_workspace_20202020_1c25_4d02_bf25_6aeccf7ea419
+Add config variables through Twenty's config system:
+
+```bash
+GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH=
+GEO_REFERENCE_CONNECTION_GEOFS_DEMO=
 ```
 
-If PostgreSQL identifier length or readability becomes a problem, use a stable
-short hash:
+`GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH` points to a JSON catalog loaded
+through the existing storage driver. Catalog `uriEnv` values should resolve
+registered config variables first and then fall back to `process.env`, matching
+the AI provider template-resolution pattern. If a connection variable is added
+to `ConfigVariables`, it must be marked sensitive; otherwise it should remain an
+environment-only deployment secret and never be returned through admin config
+APIs.
+
+Example catalog:
+
+```json
+{
+  "version": 1,
+  "connections": {
+    "geofs-demo": {
+      "uriEnv": "GEO_REFERENCE_CONNECTION_GEOFS_DEMO"
+    }
+  },
+  "layers": [
+    {
+      "key": "geofs-parcels",
+      "name": "Parcels",
+      "description": "Parcel boundaries from the geofs demo PostGIS database.",
+      "source": {
+        "connectionKey": "geofs-demo",
+        "schemaName": "model",
+        "tableName": "parcels",
+        "idColumnName": "property_PROPID",
+        "geometryColumnName": "geometry",
+        "geometrySrid": 7856,
+        "geometryType": "MULTIPOLYGON"
+      },
+      "tile": {
+        "minZoom": 10,
+        "maxZoom": 16
+      },
+      "style": {
+        "type": "fill",
+        "fillColor": "#22c55e",
+        "fillOpacity": 0.18,
+        "lineColor": "#15803d",
+        "lineWidth": 1
+      },
+      "exposedProperties": [
+        { "column": "property_ADDRESS", "label": "Address", "type": "TEXT" },
+        { "column": "address_SUBURBNAME", "label": "Suburb", "type": "TEXT" },
+        { "column": "property_AREA", "label": "Area", "type": "NUMBER" }
+      ]
+    }
+  ],
+  "viewAttachments": []
+}
+```
+
+The built-in default catalog should be empty or contain only non-sensitive
+example entries that cannot leak private infrastructure.
+
+## App Manifest Boundary
+
+Do not fold reference layers into Twenty's application manifest system in this
+epic.
+
+The app manifest path is promising because Twenty already supports
+text-defined objects, fields, roles, views, page layouts, and application
+variables through `twenty-sdk` definitions. However, adding reference layers to
+that system would touch `twenty-sdk`, manifest types, app install/sync,
+universal identifiers, marketplace review semantics, and application migration
+behavior.
+
+Recommended sequencing:
+
+- Epic 05: server-owned JSON catalog, validation, sync command, runtime
+  registry tables, tiles, and frontend rendering.
+- Later epic: `defineGeoReferenceLayer`, manifest schema/types, application
+  install/sync support, and marketplace-compatible packaging.
+
+## Data Source Strategy
+
+Reference datasets are external source tables, not Twenty object tables.
+
+Supported v1 source types:
+
+- `TWENTY_WORKSPACE_POSTGIS`: source table is in the current Twenty Postgres
+  connection.
+- `EXTERNAL_POSTGIS`: source table is in an allowlisted PostGIS connection
+  resolved from a catalog connection key and env/config variable.
+
+For first-party local datasets created by pipelines in the Twenty database,
+separate `geo_*` schemas remain a good convention:
 
 ```txt
 geo_ws_1wgvd1injqtife6y4rvfbu3h5
+```
+
+For the `geofs` demo database, the existing schemas are accepted as-is:
+
+```txt
+model.parcels
+model.transactions
+model.forecast_houses
+model.forecast_apartments
 ```
 
 Reference data tables should use conventional spatial names where possible:
@@ -228,8 +369,17 @@ should leave room for it.
 
 ## Registry Model
 
-Introduce a registry table for reference layers. Exact naming can follow Twenty
-metadata conventions, but the conceptual model should include:
+Introduce two Twenty-controlled runtime metadata tables in the `core` schema:
+
+- `core.geoReferenceLayer`: one materialized, validated layer from a catalog.
+- `core.viewGeoReferenceLayer`: map-view attachment rows for registered
+  layers.
+
+The catalog remains the authoring source of truth. These tables exist so tile
+requests can use validated, indexed, workspace-scoped metadata without reading
+and parsing JSON on the hot path.
+
+Conceptual layer model:
 
 ```ts
 type GeoReferenceLayer = {
@@ -238,7 +388,8 @@ type GeoReferenceLayer = {
   key: string;
   name: string;
   description: string | null;
-  sourceType: 'POSTGIS_TABLE';
+  sourceType: 'TWENTY_WORKSPACE_POSTGIS' | 'EXTERNAL_POSTGIS';
+  sourceConnectionKey: string | null;
   schemaName: string;
   tableName: string;
   idColumnName: string;
@@ -255,6 +406,7 @@ type GeoReferenceLayer = {
   style: GeoReferenceLayerStyle;
   exposedProperties: GeoReferenceLayerProperty[];
   securityPolicy: GeoReferenceLayerSecurityPolicy;
+  metadata: Record<string, unknown>;
 };
 ```
 
@@ -271,16 +423,55 @@ sales-territories
 network-coverage-score
 ```
 
-Expose properties through an allowlist, not by returning arbitrary table
+Recommended table shape:
+
+```sql
+CREATE TABLE "core"."geoReferenceLayer" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "workspaceId" uuid NOT NULL,
+  "key" text NOT NULL,
+  "name" text NOT NULL,
+  "description" text,
+  "sourceType" text NOT NULL,
+  "sourceConnectionKey" text,
+  "schemaName" text NOT NULL,
+  "tableName" text NOT NULL,
+  "idColumnName" text NOT NULL,
+  "geometryColumnName" text NOT NULL,
+  "geometrySrid" integer NOT NULL,
+  "geometryType" text NOT NULL,
+  "minZoom" integer NOT NULL DEFAULT 0,
+  "maxZoom" integer NOT NULL DEFAULT 14,
+  "tileProvider" text NOT NULL DEFAULT 'TWENTY_POSTGIS',
+  "isEnabled" boolean NOT NULL DEFAULT true,
+  "isQueryable" boolean NOT NULL DEFAULT true,
+  "isVisibleByDefault" boolean NOT NULL DEFAULT true,
+  "attribution" text,
+  "style" jsonb NOT NULL DEFAULT '{}',
+  "exposedProperties" jsonb NOT NULL DEFAULT '[]',
+  "securityPolicy" jsonb NOT NULL DEFAULT '{}',
+  "metadata" jsonb NOT NULL DEFAULT '{}',
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now(),
+  "deletedAt" timestamptz,
+  CONSTRAINT "PK_GEO_REFERENCE_LAYER" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "IDX_GEO_REFERENCE_LAYER_KEY_WORKSPACE_UNIQUE"
+ON "core"."geoReferenceLayer" ("workspaceId", "key")
+WHERE "deletedAt" IS NULL;
+
+CREATE INDEX "IDX_GEO_REFERENCE_LAYER_WORKSPACE"
+ON "core"."geoReferenceLayer" ("workspaceId")
+WHERE "deletedAt" IS NULL;
+```
+
+Expose properties through a catalog allowlist, not by returning arbitrary table
 columns:
 
 ```ts
 type GeoReferenceLayerProperty = {
-  key: string;
-  source: {
-    kind: 'COLUMN' | 'JSON_PROPERTY';
-    name: string;
-  };
+  column: string;
   label: string;
   type: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE' | 'DATETIME' | 'JSON';
   isVisibleInTooltip: boolean;
@@ -288,16 +479,30 @@ type GeoReferenceLayerProperty = {
 };
 ```
 
-Style can start small:
+Style should be intentionally narrow and map to static MapLibre paint/layout
+properties:
 
 ```ts
-type GeoReferenceLayerStyle = {
-  color: string;
-  fillOpacity?: number;
-  lineOpacity?: number;
-  lineWidth?: number;
-  pointRadius?: number;
-};
+type GeoReferenceLayerStyle =
+  | {
+      type: 'fill';
+      fillColor: string;
+      fillOpacity?: number;
+      lineColor?: string;
+      lineWidth?: number;
+    }
+  | {
+      type: 'line';
+      lineColor: string;
+      lineWidth?: number;
+      lineOpacity?: number;
+    }
+  | {
+      type: 'circle';
+      circleColor: string;
+      circleRadius?: number;
+      circleOpacity?: number;
+    };
 ```
 
 Future styling can add zoom expressions, categorical styling, ramps, and
@@ -317,9 +522,44 @@ type MapViewReferenceLayer = {
   viewId: string;
   geoReferenceLayerId: string;
   position: number;
-  isVisibleByDefault: boolean;
+  isVisible: boolean;
+  minZoomOverride: number | null;
+  maxZoomOverride: number | null;
   styleOverride: GeoReferenceLayerStyle | null;
 };
+```
+
+Recommended table shape:
+
+```sql
+CREATE TABLE "core"."viewGeoReferenceLayer" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "workspaceId" uuid NOT NULL,
+  "viewId" uuid NOT NULL,
+  "geoReferenceLayerId" uuid NOT NULL,
+  "position" double precision NOT NULL DEFAULT 0,
+  "isVisible" boolean NOT NULL DEFAULT true,
+  "minZoomOverride" integer,
+  "maxZoomOverride" integer,
+  "styleOverride" jsonb,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now(),
+  "deletedAt" timestamptz,
+  CONSTRAINT "PK_VIEW_GEO_REFERENCE_LAYER" PRIMARY KEY ("id"),
+  CONSTRAINT "FK_VIEW_GEO_REFERENCE_LAYER_VIEW"
+    FOREIGN KEY ("viewId") REFERENCES "core"."view"("id") ON DELETE CASCADE,
+  CONSTRAINT "FK_VIEW_GEO_REFERENCE_LAYER_LAYER"
+    FOREIGN KEY ("geoReferenceLayerId")
+    REFERENCES "core"."geoReferenceLayer"("id") ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_UNIQUE"
+ON "core"."viewGeoReferenceLayer" ("viewId", "geoReferenceLayerId")
+WHERE "deletedAt" IS NULL;
+
+CREATE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_VIEW"
+ON "core"."viewGeoReferenceLayer" ("workspaceId", "viewId")
+WHERE "deletedAt" IS NULL;
 ```
 
 This keeps layer availability separate from view composition.
@@ -344,14 +584,15 @@ Pipeline responsibilities:
 
 1. Create or update the target geospatial schema.
 2. Create or replace the layer table.
-3. Normalize geometry to SRID 4326.
+3. Declare the source geometry SRID in the catalog. Normalizing to `4326` is
+   allowed but not required.
 4. Validate geometries.
 5. Store stable feature ids.
 6. Store computed attributes in typed columns or `properties`.
 7. Create required spatial indexes.
 8. Run `ANALYZE`.
-9. Upsert the layer registry entry.
-10. Optionally attach the layer to one or more map views.
+9. Update the JSON catalog entry.
+10. Run the catalog sync/validation command.
 
 Recommended load path:
 
@@ -369,47 +610,34 @@ For dataframe pipelines, use `COPY`, `GeoPandas.to_postgis`, SQLAlchemy, dbt,
 Dagster, Airflow, or direct PostgreSQL clients. The important constraint is the
 table contract, not the ingestion tool.
 
-Registry updates should have a supported command/API so pipelines do not edit
-Twenty metadata tables by hand:
+Catalog sync should have a supported command so pipelines do not edit Twenty
+metadata tables by hand:
 
 ```bash
-npx nx command twenty-server -- workspace:upsert:geo-reference-layer \
+npx nx command twenty-server -- workspace:sync:geo-reference-layer-catalog \
   --workspace-id <workspace-id> \
-  --key microsoft-us-buildings-dc \
-  --schema geo_ws_1wgvd1injqtife6y4rvfbu3h5 \
-  --table microsoft_buildings_dc \
-  --id-column id \
-  --geometry-column geometry \
-  --geometry-type MULTIPOLYGON \
-  --min-zoom 9 \
-  --max-zoom 22 \
-  --style-json ./layer-style.json \
-  --properties-json ./layer-properties.json
+  --catalog-path packages/twenty-server/src/engine/core-modules/geo-map/reference-layer-catalog/examples/geofs-demo.example.json
 ```
 
-The command should validate table existence, geometry type, SRID, spatial index,
-and exposed property names before enabling the layer.
+The command should validate catalog shape, connection key resolution, table
+existence, geometry type, SRID, spatial index, and exposed property names before
+enabling each layer. It should upsert `core.geoReferenceLayer` and
+`core.viewGeoReferenceLayer` rows in one transaction per workspace.
 
 ## Tile Serving Architecture
 
-Add a reference-layer tile endpoint or extend the map tile service with a layer
-provider abstraction.
+Add view-scoped reference-layer tile endpoints and extend the map tile service
+with a layer provider abstraction.
 
 Recommended endpoint shape:
-
-```txt
-GET /rest/map/reference-layers/:layerId/tiles/:z/:x/:y.mvt
-```
-
-Alternative view-scoped endpoint:
 
 ```txt
 GET /rest/map/views/:viewId/reference-layers/:layerId/tiles/:z/:x/:y.mvt
 ```
 
-Use the view-scoped endpoint when a layer's visibility or style depends on view
-attachment. Use the direct layer endpoint for globally registered layers whose
-access policy is independent of a specific view.
+Use the view-scoped endpoint because v1 layer availability is defined by a
+`viewGeoReferenceLayer` attachment. This also prevents clients from probing
+workspace layers that are registered but not attached to the current map view.
 
 Tile response:
 
@@ -430,6 +658,7 @@ Tile SQL should use the same safe PostGIS pattern from Epic 4:
 - `ST_AsMVTGeom`
 - `ST_AsMVT`
 - simplification appropriate to zoom
+- `ST_Transform` to Web Mercator when the catalog `geometrySrid` is not `3857`
 
 For polygon reference layers, keep the Epic 4 boundary lesson:
 
@@ -473,14 +702,13 @@ Provider-specific details should stay on the backend or in registry metadata.
 Reference layers are data. A visible feature can reveal sensitive information
 even if it does not open a Twenty record.
 
-The first version should support clear layer-level policies:
+The first version should support one clear layer-level policy:
 
 ```ts
-type GeoReferenceLayerSecurityPolicy =
-  | { kind: 'WORKSPACE_MEMBERS' }
-  | { kind: 'ADMIN_ONLY' }
-  | { kind: 'ROLE_IDS'; roleIds: string[] }
-  | { kind: 'INTERNAL_ONLY' };
+type GeoReferenceLayerSecurityPolicy = {
+  kind: 'AUTHENTICATED_WORKSPACE';
+  propertyPolicy: 'ALLOWLIST_ONLY';
+};
 ```
 
 Rules:
@@ -496,8 +724,9 @@ Rules:
 - Use parameterized SQL for runtime values.
 - Use allowlisted property expressions only.
 
-Per-user row-level filtering inside reference tables is deferred. If a layer
-needs row-level security, model that as a later provider capability, not as an
+Admin-only layers, role-specific layers, internal-only layers, and per-user
+row-level filtering inside reference tables are deferred. If a layer needs that
+security model, add it later as an explicit provider capability, not as an
 implicit feature of every reference layer.
 
 ## Frontend Map Integration
@@ -534,7 +763,7 @@ For v1, the tile may include only the properties required for tooltip display.
 If the insight panel needs more data, fetch it by layer id and feature id:
 
 ```txt
-GET /rest/map/reference-layers/:layerId/features/:featureId
+GET /rest/map/views/:viewId/reference-layers/:layerId/features/:featureId
 ```
 
 Feature detail response should include:
@@ -591,9 +820,9 @@ operational metadata:
 Add a validation command:
 
 ```bash
-npx nx command twenty-server -- workspace:validate:geo-reference-layer \
+npx nx command twenty-server -- workspace:validate:geo-reference-layer-catalog \
   --workspace-id <workspace-id> \
-  --key microsoft-us-buildings-dc
+  --catalog-path <catalog-path>
 ```
 
 Validation should check:
@@ -606,12 +835,12 @@ Validation should check:
 - geometry column has a GiST index
 - exposed properties resolve
 - row count and bounds can be computed
-- sample tile can be generated
+- sample tiles can be generated for each enabled layer
 
 ## Performance Strategy
 
-Start with live PostGIS MVT generation in the same database so the architecture
-is simple and inspectable.
+Start with live PostGIS MVT generation against the configured source PostGIS
+connection so the architecture is simple and inspectable.
 
 Use explicit budgets:
 
@@ -637,12 +866,21 @@ does not need to implement every serving strategy.
 
 ## Backend Tasks
 
+- Add catalog types and validation:
+  - `geo-reference-layer-catalog.types.ts`
+  - `geo-reference-layer-catalog.schema.ts`
+  - built-in empty/default catalog JSON
+  - sanitized `geofs-demo.example.json`
+- Add config variables:
+  - `GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH`
+  - sensitive `GEO_REFERENCE_CONNECTION_*` resolution path
 - Add registry persistence:
-  - reference layer table
-  - reference layer property table or JSON config
-  - map-view reference layer attachment table
+  - `core.geoReferenceLayer`
+  - `core.viewGeoReferenceLayer`
   - migrations and indexes
 - Add registry validation:
+  - catalog schema validation
+  - connection key resolution
   - identifier validation
   - schema/table existence checks
   - geometry column checks
@@ -650,9 +888,8 @@ does not need to implement every serving strategy.
   - geometry type compatibility checks
   - GiST index checks
   - exposed property checks
-- Add command/API for layer upsert from local pipelines.
-- Add command/API for layer validation.
-- Add command/API for attaching layers to map views.
+- Add command for catalog sync into runtime registry rows.
+- Add command for catalog validation without materializing changes.
 - Add service for resolving visible reference layers for a map view.
 - Add authenticated tile endpoint for reference layers.
 - Add MVT SQL builder for reference layer tables.
@@ -678,14 +915,16 @@ does not need to implement every serving strategy.
 
 ## Local Pipeline and Tooling Tasks
 
-- Add sample pipeline script for loading a reference dataset into a `geo_*`
-  schema.
-- Add sample registry JSON files for style and exposed properties.
-- Add command examples for Microsoft building footprints, Natural Earth, and
-  other benchmark layers.
-- Add a validation script that can be run after local pipeline loads.
+- Add a sanitized `geofs` example catalog for parcels and transactions.
+- Add command examples for syncing and validating that catalog.
+- Add optional sample pipeline script for loading a new reference dataset into a
+  `geo_*` schema in the primary database.
+- Add a validation script that can be run after local pipeline loads or external
+  catalog changes.
 - Keep generated datasets and reports under `.local/geo-reference-layers/`.
 - Do not commit large generated spatial files.
+- Do not commit live database credentials or host-specific private catalogs to
+  upstream PR branches.
 
 ## Benchmark Data Strategy
 
@@ -694,10 +933,13 @@ reference layer rather than a Twenty object.
 
 Recommended v1 reference-layer benchmarks:
 
-- Natural Earth Admin 0 as a global low-volume polygon reference layer.
-- Microsoft US Building Footprints DC as a dense building-footprint reference
-  layer.
-- Microsoft US Building Footprints Rhode Island as a heavier local benchmark.
+- `geofs` `model.parcels`: 26,335 indexed `MULTIPOLYGON` rows in SRID `7856`.
+- `geofs` `model.transactions`: 91,808 indexed `POINT` rows in SRID `7856`.
+- `geofs` `model.forecast_houses`: 375 styled analytic `MULTIPOLYGON` rows.
+- `geofs` `model.forecast_apartments`: 375 styled analytic `MULTIPOLYGON`
+  rows.
+- Natural Earth or Microsoft building footprints can remain optional public
+  benchmarks after the catalog path is working.
 
 For each benchmark, validate:
 
@@ -712,6 +954,8 @@ For each benchmark, validate:
 
 ### Unit Tests
 
+- Catalog schema validation.
+- Catalog connection-key validation.
 - Registry identifier validation.
 - Property allowlist validation.
 - Style metadata validation.
@@ -722,7 +966,10 @@ For each benchmark, validate:
 
 ### Backend Integration Tests
 
-- Upsert a reference layer for an existing table.
+- Validate and sync a catalog for an existing PostGIS table.
+- Materialize synced catalog entries into `core.geoReferenceLayer` and
+  `core.viewGeoReferenceLayer`.
+- Resolve an external PostGIS connection from an env-backed connection key.
 - Reject a layer with a missing geometry column.
 - Reject a layer without a spatial index when enabled.
 - Reject an exposed property that is not present or not allowed.
@@ -731,9 +978,10 @@ For each benchmark, validate:
 - Ensure unauthenticated users cannot read reference tiles.
 - Ensure users from another workspace cannot read reference tiles.
 - Ensure disabled layers do not serve tiles.
-- Fetch feature detail by layer id and feature id.
+- Fetch feature detail by view id, layer id, and feature id.
 - Attach a reference layer to a map view.
 - Resolve attached layers in position order.
+- Generate tiles from a source layer whose SRID is not `4326`.
 
 ### Frontend Tests
 
@@ -756,10 +1004,16 @@ For each benchmark, validate:
 
 ## Acceptance Criteria
 
-- A pipeline-owned PostGIS table can be registered as a reference geospatial
-  layer without creating a Twenty object.
-- Registered reference layers live in separate `geo_*` schemas in the same
-  PostgreSQL instance.
+- A JSON catalog can define a pipeline-owned PostGIS table as a reference
+  geospatial layer without creating a Twenty object.
+- The catalog lives under the owning server package or a configured storage
+  path, not a new root-level config directory.
+- Connection strings are resolved from env/config variables and are not stored
+  in committed catalogs or runtime metadata rows.
+- Catalog sync materializes validated rows into `core.geoReferenceLayer` and
+  `core.viewGeoReferenceLayer`.
+- Registered reference layers may point to same-database `geo_*` schemas or to
+  explicitly configured external PostGIS connections.
 - Registry metadata declares source table, id column, geometry column,
   geometry type, zoom range, style, attribution, and exposed properties.
 - Registry validation rejects unsafe identifiers, missing tables, missing
@@ -776,6 +1030,8 @@ For each benchmark, validate:
 - Disabled or unauthorized layers do not serve metadata, tiles, or feature
   details.
 - Large reference datasets can be loaded outside normal seed data.
+- Source SRIDs other than `4326`, including the `geofs` SRID `7856`, render
+  correctly through MVT tiles.
 - The design keeps a future path to Martin, pg_tileserv, PMTiles, or MBTiles.
 
 ## Risks

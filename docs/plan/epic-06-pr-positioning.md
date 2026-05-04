@@ -15,6 +15,10 @@ Use two branch classes:
 - Upstream PR branches: contain only implementation code, tests, migrations,
   generated files, and maintainer-facing docs.
 
+Use [PR File Manifest](./pr-file-manifest.md) as the current source of truth for
+local-only paths, upstream-candidate paths, and files that need explicit review
+before inclusion.
+
 Do not merge private development branches directly into upstream PR branches.
 Replay only the intended implementation changes by explicit file restore,
 clean cherry-pick, or a cleanup commit that removes local-only files before

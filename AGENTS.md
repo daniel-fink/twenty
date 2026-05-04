@@ -196,6 +196,15 @@ For this full Twenty monorepo, use the native Nx/Yarn workflow and
 useful as a reference for shell-script structure; its engine sidecar, app sync,
 and Twenty dev container orchestration do not apply here.
 
+### Upstream PR Readiness
+
+Treat every code change as intended for a pull request into the main Twenty
+repository. Prefer generic, maintainable implementations that fit existing
+Twenty architecture, naming, configuration style, and review expectations over
+fork-specific shortcuts. Avoid project-specific names, local-only assumptions,
+or temporary workarounds in shared code unless they are explicitly isolated
+behind configuration and documented as such.
+
 ### Before Making Changes
 1. Always run linting (`lint:diff-with-main`) and type checking after code changes
 2. Test changes with relevant test suites (prefer single-file test runs)

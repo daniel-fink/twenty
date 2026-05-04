@@ -32,6 +32,8 @@ import { EventLogCleanupModule } from 'src/engine/core-modules/event-logs/cleanu
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
 import { FileModule } from 'src/engine/core-modules/file/file.module';
 import { PublicDomainModule } from 'src/engine/core-modules/public-domain/public-domain.module';
+import { GeoReferenceLayerCatalogSyncCommand } from 'src/engine/core-modules/geo-map/commands/geo-reference-layer-catalog-sync.command';
+import { GeoMapModule } from 'src/engine/core-modules/geo-map/geo-map-module';
 import { TwentyConfigModule } from 'src/engine/core-modules/twenty-config/twenty-config.module';
 import { UpgradeStatusCommand } from 'src/engine/core-modules/upgrade/commands/upgrade-status.command';
 import { UpgradeModule } from 'src/engine/core-modules/upgrade/upgrade.module';
@@ -80,6 +82,7 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
     WorkspaceMigrationModule,
     TrashCleanupModule,
     PublicDomainModule,
+    GeoMapModule,
     EventLogCleanupModule,
     EnterpriseModule,
     TwentyConfigModule,
@@ -98,6 +101,7 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
     GeoMapBenchmarkSeedCommand,
     GeoMapRealBenchmarkImportCommand,
     GeoMapTileBenchmarkCommand,
+    GeoReferenceLayerCatalogSyncCommand,
     ConfirmationQuestion,
     CronRegisterAllCommand,
     GenerateInstanceCommandCommand,

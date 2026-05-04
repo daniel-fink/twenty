@@ -1382,6 +1382,15 @@ export class ConfigVariables {
   AI_CATALOG_STORAGE_PATH?: string;
 
   @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
+      'Storage path for the geo reference layer catalog override. Private deployments can point this to a repo-managed catalog file while upstream defaults remain empty.',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH?: string;
+
+  @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.LLM,
     description:
       'AI model admin preferences: disabled models, recommended models, and default fast/smart model lists. Managed via admin panel or env.',

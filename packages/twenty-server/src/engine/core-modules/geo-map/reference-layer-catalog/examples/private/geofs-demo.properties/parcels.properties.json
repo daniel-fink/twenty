@@ -1,0 +1,823 @@
+{
+  "version": 1,
+  "kind": "geo-reference-layer-property-manifest",
+  "layerKey": "geofs-parcels",
+  "exposure": {
+    "mode": "EXPLICIT_ALLOWLIST",
+    "notes": "All non-geometry fields are explicitly exposed for private review; schema.parcels user_facing flags were not treated as authoritative."
+  },
+  "title": {
+    "fields": [
+      "address_ADDRESS",
+      "property_PROPID"
+    ],
+    "fallback": "featureId"
+  },
+  "sourceMetadata": {
+    "metadataSchema": "schema",
+    "metadataTable": "parcels",
+    "runtimeDependency": false
+  },
+  "properties": [
+    {
+      "column": "address_ADDRESS",
+      "label": "Address",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Address",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_ADDRESS",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "address_ADDRESSCONFIDENCE",
+      "label": "Address Confidence",
+      "type": "INTEGER",
+      "tab": "Attributes",
+      "group": "Address",
+      "role": null,
+      "description": "Quality rank from GNAF where 0 means no matching source, 1 means one match, and 2 means two matches.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_ADDRESSCONFIDENCE",
+        "sourceType": "bigint",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "address_POSTCODE",
+      "label": "Postcode",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Address",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_POSTCODE",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "property_PROPID",
+      "label": "Property ID",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "A unique identifier of a Property feature as provided by the Valuer General.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "property_PROPID",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "property_ADDRESSSTRINGOID",
+      "label": "Address String Object ID",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "The object ID of an AddressString, referenced by another feature or object class.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "property_ADDRESSSTRINGOID",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "property_GURASID",
+      "label": "GURAS ID",
+      "type": "INTEGER",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "A unique identifier of an addressing feature in the NSW Address Database.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "property_GURASID",
+        "sourceType": "integer",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "zoning_LGA_NAME",
+      "label": "LGA",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "Local Government Area",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "zoning_LGA_NAME",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "address_COUNCIL",
+      "label": "Local Government Area",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "The name of the LGA in which an AddressPoint is spatially located.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_COUNCIL",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "address_SPPROPID",
+      "label": "Strata Property ID",
+      "type": "INTEGER",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "Unique identifier for a child property in a strata scheme as provided by the Valuer General.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_SPPROPID",
+        "sourceType": "bigint",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "property_SUPERLOT",
+      "label": "Super Lot",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Info",
+      "role": null,
+      "description": "Flag for a super lot associated with the property, if present.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "property_SUPERLOT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "zoning_LAY_CLASS",
+      "label": "Zone Class",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Zoning",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "zoning_LAY_CLASS",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "zoning_SYM_CODE",
+      "label": "Zone Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Zoning",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "zoning_SYM_CODE",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "zoning_LABEL",
+      "label": "Zone Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Zoning",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "zoning_LABEL",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "zoning_AMENDMENT",
+      "label": "Zoning Amendment",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Zoning",
+      "role": null,
+      "description": "Environmental Planning and Assessment Legislation Amendments",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "zoning_AMENDMENT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "fsr_LAY_CLASS",
+      "label": "Floor Space Ratio Class",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Floor Space Ratio",
+      "role": null,
+      "description": "Floor-space-ratio class for the parcel.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "fsr_LAY_CLASS",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "fsr_FSR",
+      "label": "Floor Space Ratio",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Floor Space Ratio",
+      "role": null,
+      "description": "FSR Value",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "fsr_FSR",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "fsr_AMENDMENT",
+      "label": "FSR Amendment",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Floor Space Ratio",
+      "role": null,
+      "description": "Environmental Planning and Assessment Legislation Amendments",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "fsr_AMENDMENT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "fsr_LEGIS_REF_CLAUSE",
+      "label": "FSR Legislation Clause References",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Floor Space Ratio",
+      "role": null,
+      "description": "Clause reference for the floor-space-ratio legislation.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "fsr_LEGIS_REF_CLAUSE",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "fsr_LEGIS_REF_AREA",
+      "label": "FSR Legislation Reference",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Floor Space Ratio",
+      "role": null,
+      "description": "Environmental Planning and Assessment Legislation References",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "fsr_LEGIS_REF_AREA",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "hob_AMENDMENT",
+      "label": "Heritage Amendments",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Maximum Building Height",
+      "role": null,
+      "description": "Environmental Planning and Assessment Legislation Amendments",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "hob_AMENDMENT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "hob_LEGIS_REF_CLAUSE",
+      "label": "Maximum Building Height Legislation Clause Reference",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Maximum Building Height",
+      "role": null,
+      "description": "Reference to a related legislative clause impacting a particular feature",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "hob_LEGIS_REF_CLAUSE",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "hob_MAX_B_H_M",
+      "label": "Maximum Building Height",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Maximum Building Height",
+      "role": null,
+      "description": "Maximum Building Height from ground",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "hob_MAX_B_H_M",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "hob_MAX_B_H_RL",
+      "label": "Relative Maximum Building Height",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Maximum Building Height",
+      "role": null,
+      "description": "Relative Maximum Building Height to the Australian Height Datum (AHD)",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "hob_MAX_B_H_RL",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "heritage_AMENDMENT",
+      "label": "Heritage Amendment",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Heritage",
+      "role": null,
+      "description": "Environmental Planning and Assessment Legislation Amendments",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "heritage_AMENDMENT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "heritage_LAY_CLASS",
+      "label": "Heritage Class",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Heritage",
+      "role": null,
+      "description": null,
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "heritage_LAY_CLASS",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "heritage_H_NAME",
+      "label": "Heritage Item Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Heritage",
+      "role": null,
+      "description": "Name of a particular Heritage item in the EPI",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "heritage_H_NAME",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "heritage_LEGIS_REF_CLAUSE",
+      "label": "Heritage Legislation Clause Reference",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Heritage",
+      "role": null,
+      "description": "Reference to a related clause impacting a particular feature",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "heritage_LEGIS_REF_CLAUSE",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "heritage_SIG",
+      "label": "Heritage Significance",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "Heritage",
+      "role": null,
+      "description": "Local or State recognition of heritage for a particular Heritage item",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "heritage_SIG",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_GCCSA_CODE_2021",
+      "label": "Greater Capital City Statistical Area Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Greater Capital City Statistical Area Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_GCCSA_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_GCCSA_NAME_2021",
+      "label": "Greater Capital City Statistical Area Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Greater Capital City Statistical Area Name",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_GCCSA_NAME_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_MB_CATEGORY_2021",
+      "label": "Mesh Block Category",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Mesh Block Category",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_MB_CATEGORY_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_MB_CODE_2021",
+      "label": "Mesh Block Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Mesh Block Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_MB_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA1_CODE_2021",
+      "label": "SA1 Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 1 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA1_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA2_CODE_2021",
+      "label": "SA2 Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 2 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA2_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA2_NAME_2021",
+      "label": "SA2 Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 2 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA2_NAME_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA3_CODE_2021",
+      "label": "SA3 Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 3 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA3_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA3_NAME_2021",
+      "label": "SA3 Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 3 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA3_NAME_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA4_CODE_2021",
+      "label": "SA4 Code",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 4 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA4_CODE_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "abs_SA4_NAME_2021",
+      "label": "SA4 Name",
+      "type": "TEXT",
+      "tab": "Attributes",
+      "group": "ABS",
+      "role": null,
+      "description": "Australian Bureau of Statistics (ABS) Statistical Area 4 Code",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "abs_SA4_NAME_2021",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    },
+    {
+      "column": "address_ADDRESSPOINT",
+      "label": "Address Point",
+      "type": "TEXT",
+      "tab": null,
+      "group": null,
+      "role": null,
+      "description": "Serialized or linked address-point information associated with the address.",
+      "nullable": false,
+      "isExposed": true,
+      "source": {
+        "metadataSchema": "schema",
+        "metadataTable": "parcels",
+        "sourceColumn": "address_ADDRESSPOINT",
+        "sourceType": "text",
+        "provenance": null,
+        "metadataUserFacing": false,
+        "allowedValues": null
+      }
+    }
+  ]
+}

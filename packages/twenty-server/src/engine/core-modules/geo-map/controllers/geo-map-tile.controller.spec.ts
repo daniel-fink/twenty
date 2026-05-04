@@ -20,7 +20,11 @@ describe('GeoMapTileController', () => {
       getTileJson: jest.fn(),
       getVectorTile: jest.fn(),
     };
-    const controller = new GeoMapTileController(geoMapTileService as never);
+    const geoReferenceLayerService = {};
+    const controller = new GeoMapTileController(
+      geoMapTileService as never,
+      geoReferenceLayerService as never,
+    );
 
     for (const filter of ['null', '[]', '"name"', '{']) {
       await expect(
@@ -45,7 +49,11 @@ describe('GeoMapTileController', () => {
       send: jest.fn(),
       setHeader: jest.fn(),
     };
-    const controller = new GeoMapTileController(geoMapTileService as never);
+    const geoReferenceLayerService = {};
+    const controller = new GeoMapTileController(
+      geoMapTileService as never,
+      geoReferenceLayerService as never,
+    );
     const filter = '{"id":{"in":["record-id"]}}';
 
     await controller.getGeometryBounds('view-id', filter);

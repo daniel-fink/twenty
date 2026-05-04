@@ -15,7 +15,7 @@ export type RecordMapTileJsonResponse = {
   maxzoom: number;
 };
 
-const fetchWithFreshToken = async ({
+export const fetchWithFreshToken = async ({
   abortController,
   forceRenewal = false,
   url,

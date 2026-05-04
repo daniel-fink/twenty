@@ -3,8 +3,11 @@ import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
+import { useMapReferenceLayerBounds } from '@/object-record/record-map/hooks/useMapReferenceLayerBounds';
+import { useMapReferenceLayers } from '@/object-record/record-map/hooks/useMapReferenceLayers';
 import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
 import { useRecordMapAddressMarkers } from '@/object-record/record-map/hooks/useRecordMapAddressMarkers';
+import { useRecordMapReferenceLayers } from '@/object-record/record-map/hooks/useRecordMapReferenceLayers';
 import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { type RecordMapTileSource } from '@/object-record/record-map/types/RecordMapTileSource';
@@ -66,8 +69,9 @@ export const RecordMap = ({
   const [mapContainerElement, setMapContainerElement] =
     useState<HTMLDivElement | null>(null);
   const [hasAutoFitTileBounds, setHasAutoFitTileBounds] = useState(false);
+  const [hasAutoFitReferenceLayerBounds, setHasAutoFitReferenceLayerBounds] =
+    useState(false);
   const [hasUserMovedTileMap, setHasUserMovedTileMap] = useState(false);
-  const [isFittingTileBounds, setIsFittingTileBounds] = useState(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
@@ -84,6 +88,13 @@ export const RecordMap = ({
     tileSourceFilter,
     tileSourceViewId,
   });
+  const { referenceLayers } = useMapReferenceLayers({
+    viewId: tileSourceViewId,
+  });
+  const { referenceLayerBounds } = useMapReferenceLayerBounds({
+    referenceLayers,
+    viewId: tileSourceViewId,
+  });
 
   const handleRecordClick = useCallback(
     (recordId: string) => {
@@ -97,15 +108,6 @@ export const RecordMap = ({
       return;
     }
 
-    setIsFittingTileBounds(true);
-
-    map.once('moveend', () => {
-      setIsFittingTileBounds(false);
-    });
-    window.setTimeout(() => {
-      setIsFittingTileBounds(false);
-    }, 750);
-
     map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
       padding: 64,
       maxZoom: 12,
@@ -113,8 +115,21 @@ export const RecordMap = ({
     });
   }, [map, tileBounds]);
 
+  const fitMapToReferenceLayerBounds = useCallback(() => {
+    if (!isDefined(map) || !isDefined(referenceLayerBounds?.bounds)) {
+      return;
+    }
+
+    map.fitBounds(getPaddedRecordMapBounds(referenceLayerBounds.bounds), {
+      padding: 64,
+      maxZoom: 15,
+      essential: true,
+    });
+  }, [map, referenceLayerBounds]);
+
   useEffect(() => {
     setHasAutoFitTileBounds(false);
+    setHasAutoFitReferenceLayerBounds(false);
     setHasUserMovedTileMap(false);
   }, [tileSourceViewId]);
 
@@ -128,25 +143,27 @@ export const RecordMap = ({
     }
 
     const markUserMovedMap = () => {
-      if (!isFittingTileBounds) {
-        setHasUserMovedTileMap(true);
-      }
+      setHasUserMovedTileMap(true);
     };
 
     map.on('dragstart', markUserMovedMap);
-    map.on('zoomstart', markUserMovedMap);
 
     return () => {
       map.off('dragstart', markUserMovedMap);
-      map.off('zoomstart', markUserMovedMap);
     };
-  }, [isFittingTileBounds, map, tileSourceViewId]);
+  }, [map, tileSourceViewId]);
 
   useRecordMapAddressMarkers({
     map,
     onRecordClick: handleRecordClick,
     recordMapPoints,
     tileSource,
+  });
+
+  useRecordMapReferenceLayers({
+    map,
+    referenceLayers,
+    viewId: tileSourceViewId,
   });
 
   useRecordMapVectorTileLayers({
@@ -160,6 +177,7 @@ export const RecordMap = ({
   useEffect(() => {
     if (
       !isDefined(tileBounds?.bounds) ||
+      isDefined(referenceLayerBounds?.bounds) ||
       hasUserMovedTileMap ||
       hasAutoFitTileBounds
     ) {
@@ -172,7 +190,26 @@ export const RecordMap = ({
     fitMapToTileBounds,
     hasAutoFitTileBounds,
     hasUserMovedTileMap,
+    referenceLayerBounds,
     tileBounds,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isDefined(referenceLayerBounds?.bounds) ||
+      hasUserMovedTileMap ||
+      hasAutoFitReferenceLayerBounds
+    ) {
+      return;
+    }
+
+    fitMapToReferenceLayerBounds();
+    setHasAutoFitReferenceLayerBounds(true);
+  }, [
+    fitMapToReferenceLayerBounds,
+    hasAutoFitReferenceLayerBounds,
+    hasUserMovedTileMap,
+    referenceLayerBounds,
   ]);
 
   if (!hasMapStyle) {

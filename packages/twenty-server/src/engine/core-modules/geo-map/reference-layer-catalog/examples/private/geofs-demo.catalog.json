@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "kind": "geo-reference-layer-catalog",
+  "name": "Private geofs demo reference layer catalog",
+  "private": true,
+  "connections": {
+    "geofs-demo": {
+      "type": "POSTGIS",
+      "uriEnv": "GEO_REFERENCE_CONNECTION_GEOFS_DEMO"
+    }
+  },
+  "layers": [
+    {
+      "key": "geofs-parcels",
+      "name": "Parcels",
+      "description": "Parcel boundaries from the private geofs demo PostGIS database.",
+      "source": {
+        "provider": "EXTERNAL_POSTGIS",
+        "connectionKey": "geofs-demo",
+        "schemaName": "model",
+        "tableName": "parcels",
+        "idColumnName": "property_PROPID",
+        "geometryColumnName": "geometry",
+        "geometrySrid": 7856,
+        "geometryType": "MULTIPOLYGON"
+      },
+      "propertyManifestPath": "./geofs-demo.properties/parcels.properties.json",
+      "title": {
+        "fields": [
+          "address_ADDRESS",
+          "property_PROPID"
+        ],
+        "fallback": "featureId"
+      },
+      "tile": {
+        "minZoom": 12,
+        "maxZoom": 18
+      },
+      "style": {
+        "type": "fill",
+        "fillColor": "#3B82F6",
+        "fillOpacity": 0.14,
+        "lineColor": "#1D4ED8",
+        "lineOpacity": 0.82,
+        "lineWidth": 1
+      },
+      "defaultAttachment": {
+        "isVisible": true,
+        "position": 10
+      }
+    },
+    {
+      "key": "geofs-transactions",
+      "name": "Transactions",
+      "description": "Property transaction points from the private geofs demo PostGIS database.",
+      "source": {
+        "provider": "EXTERNAL_POSTGIS",
+        "connectionKey": "geofs-demo",
+        "schemaName": "model",
+        "tableName": "transactions",
+        "idColumnName": "psi_ID",
+        "geometryColumnName": "geometry",
+        "geometrySrid": 7856,
+        "geometryType": "POINT"
+      },
+      "propertyManifestPath": "./geofs-demo.properties/transactions.properties.json",
+      "title": {
+        "fields": [
+          "address_ADDRESS",
+          "psi_ID"
+        ],
+        "fallback": "featureId"
+      },
+      "tile": {
+        "minZoom": 11,
+        "maxZoom": 18
+      },
+      "style": {
+        "type": "circle",
+        "circleColor": "#F97316",
+        "circleOpacity": 0.88,
+        "circleRadius": 4,
+        "circleStrokeColor": "#9A3412",
+        "circleStrokeWidth": 1
+      },
+      "defaultAttachment": {
+        "isVisible": true,
+        "position": 20
+      }
+    }
+  ],
+  "defaultViewAttachments": [
+    {
+      "layerKey": "geofs-parcels",
+      "isVisible": true,
+      "position": 10
+    },
+    {
+      "layerKey": "geofs-transactions",
+      "isVisible": true,
+      "position": 20
+    }
+  ]
+}

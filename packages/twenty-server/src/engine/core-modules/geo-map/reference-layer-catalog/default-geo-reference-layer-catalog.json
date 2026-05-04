@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "kind": "geo-reference-layer-catalog",
+  "name": "Default reference layer catalog",
+  "connections": {},
+  "layers": [],
+  "defaultViewAttachments": []
+}

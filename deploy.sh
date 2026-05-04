@@ -7,8 +7,14 @@ cd "$SCRIPT_DIR"
 EXPECTED_NODE_MAJOR="24"
 EXPECTED_NODE_MIN_MINOR="5"
 EXPECTED_YARN_MAJOR="4"
-TWENTY_GEO_FRONTEND_URL="http://twenty-geo.localhost:3001"
-TWENTY_GEO_SERVER_URL="http://twenty-geo.localhost:3000"
+TWENTY_GEO_ISOLATED_HOST="${TWENTY_GEO_ISOLATED_HOST:-0}"
+TWENTY_GEO_HOSTNAME="twenty-geo.localhost"
+TWENTY_GEO_LOOPBACK_IP="127.0.0.2"
+TWENTY_GEO_FRONTEND_URL="http://${TWENTY_GEO_HOSTNAME}:3001"
+TWENTY_GEO_SERVER_URL="http://${TWENTY_GEO_HOSTNAME}:3000"
+TWENTY_LOCAL_FRONTEND_URL="http://localhost:3001"
+TWENTY_LOCAL_SERVER_URL="http://localhost:3000"
+TWENTY_LOCAL_FRONTEND_BIND_HOST="${TWENTY_LOCAL_FRONTEND_BIND_HOST:-::}"
 
 log() {
   printf '[twenty-geo] %s\n' "$*"
@@ -64,9 +70,16 @@ Commands:
     Verify required tooling and run lightweight initialization checks.
 
 Local URLs after start:
-  Frontend: http://twenty-geo.localhost:3001
-  Server:   http://twenty-geo.localhost:3000
-  GraphQL:  http://twenty-geo.localhost:3000/graphql
+  Frontend: http://localhost:3001
+  Server:   http://localhost:3000
+  GraphQL:  http://localhost:3000/graphql
+
+Optional isolated browser-cookie mode:
+  TWENTY_GEO_ISOLATED_HOST=1 ./deploy.sh watch
+  TWENTY_GEO_ISOLATED_HOST=1 ./deploy.sh start
+
+Required /etc/hosts entry for isolated mode:
+  127.0.0.2 twenty-geo.localhost
 USAGE
 }
 
@@ -112,6 +125,99 @@ check_required_tools() {
   require_command npx
 }
 
+is_isolated_host_enabled() {
+  [[ "$TWENTY_GEO_ISOLATED_HOST" == "1" ||
+    "$TWENTY_GEO_ISOLATED_HOST" == "true" ||
+    "$TWENTY_GEO_ISOLATED_HOST" == "yes" ]]
+}
+
+check_twenty_geo_host() {
+  if ! is_isolated_host_enabled; then
+    log "Isolated host mode disabled; using localhost"
+    return
+  fi
+
+  log "Checking isolated local hostname"
+
+  if ! TWENTY_GEO_HOSTNAME="$TWENTY_GEO_HOSTNAME" \
+    TWENTY_GEO_LOOPBACK_IP="$TWENTY_GEO_LOOPBACK_IP" \
+    node <<'NODE'
+const dns = require('node:dns');
+
+const hostname = process.env.TWENTY_GEO_HOSTNAME;
+const expectedAddress = process.env.TWENTY_GEO_LOOPBACK_IP;
+
+dns.lookup(hostname, { all: true }, (error, addresses) => {
+  if (error) {
+    console.error(`Unable to resolve ${hostname}: ${error.message}`);
+    process.exit(1);
+  }
+
+  const resolvedAddresses = addresses.map(({ address }) => address);
+  const hasExpectedAddress = resolvedAddresses.includes(expectedAddress);
+  const hasDefaultLocalhostAddress =
+    resolvedAddresses.includes('127.0.0.1') || resolvedAddresses.includes('::1');
+
+  if (!hasExpectedAddress || hasDefaultLocalhostAddress) {
+    console.error(
+      [
+        `${hostname} must resolve only to the isolated loopback address ${expectedAddress}.`,
+        `Current resolution: ${resolvedAddresses.join(', ') || '(none)'}`,
+        '',
+        'Add this exact line to /etc/hosts:',
+        `${expectedAddress} ${hostname}`,
+      ].join('\n'),
+    );
+    process.exit(1);
+  }
+});
+NODE
+  then
+    die "Isolated local hostname is not configured"
+  fi
+
+  log "Hostname OK: $TWENTY_GEO_HOSTNAME -> $TWENTY_GEO_LOOPBACK_IP"
+}
+
+get_frontend_url() {
+  if is_isolated_host_enabled; then
+    printf '%s\n' "$TWENTY_GEO_FRONTEND_URL"
+    return
+  fi
+
+  printf '%s\n' "$TWENTY_LOCAL_FRONTEND_URL"
+}
+
+get_server_url() {
+  if is_isolated_host_enabled; then
+    printf '%s\n' "$TWENTY_GEO_SERVER_URL"
+    return
+  fi
+
+  printf '%s\n' "$TWENTY_LOCAL_SERVER_URL"
+}
+
+get_frontend_env_prefix() {
+  local server_url="$1"
+
+  if is_isolated_host_enabled; then
+    printf 'VITE_HOST=%s REACT_APP_SERVER_BASE_URL=%s ' \
+      "$TWENTY_GEO_LOOPBACK_IP" "$server_url"
+    return
+  fi
+
+  printf 'VITE_HOST=%s REACT_APP_SERVER_BASE_URL=%s ' \
+    "$TWENTY_LOCAL_FRONTEND_BIND_HOST" "$server_url"
+}
+
+get_server_env_prefix() {
+  local frontend_url="$1"
+  local server_url="$2"
+
+  printf 'FRONTEND_URL=%s SERVER_URL=%s IS_MULTIWORKSPACE_ENABLED=true ' \
+    "$frontend_url" "$server_url"
+}
+
 run_bootstrap() {
   check_required_tools
 
@@ -135,6 +241,9 @@ run_local() {
 }
 
 run_dev() {
+  check_required_tools
+  check_twenty_geo_host
+
   run_bootstrap
 
   check_database_schema
@@ -144,10 +253,25 @@ run_dev() {
 
 run_start() {
   check_required_tools
+  check_twenty_geo_host
+
+  local frontend_url
+  local server_url
+  local frontend_env_prefix
+  local server_env_prefix
+
+  frontend_url="$(get_frontend_url)"
+  server_url="$(get_server_url)"
+  frontend_env_prefix="$(get_frontend_env_prefix "$server_url")"
+  server_env_prefix="$(get_server_env_prefix "$frontend_url" "$server_url")"
+
   log "Starting Twenty development processes"
-  log "Frontend will be available at $TWENTY_GEO_FRONTEND_URL"
-  log "Server will be available at $TWENTY_GEO_SERVER_URL"
-  yarn start
+  log "Frontend will be available at $frontend_url"
+  log "Server will be available at $server_url"
+  npx concurrently --kill-others --names twenty-server,twenty-front,twenty-worker \
+    "env -u NO_COLOR ${server_env_prefix}yarn nx run twenty-server:start" \
+    "env -u NO_COLOR ${frontend_env_prefix}yarn nx run twenty-front:start" \
+    "npx wait-on tcp:3000 && env -u NO_COLOR ${server_env_prefix}yarn nx run twenty-server:worker"
 }
 
 check_database_schema() {
@@ -262,10 +386,20 @@ NODE
 
 run_watch() {
   check_required_tools
+  check_twenty_geo_host
 
+  local frontend_url
+  local server_url
+  local frontend_env_prefix
+  local server_env_prefix
   local watch_ulimit="${TWENTY_GEO_WATCH_ULIMIT:-65536}"
   local watch_polling="${TWENTY_GEO_WATCH_POLLING:-1}"
   local watch_interval="${TWENTY_GEO_WATCH_INTERVAL:-1000}"
+
+  frontend_url="$(get_frontend_url)"
+  server_url="$(get_server_url)"
+  frontend_env_prefix="$(get_frontend_env_prefix "$server_url")"
+  server_env_prefix="$(get_server_env_prefix "$frontend_url" "$server_url")"
 
   if ulimit -n "$watch_ulimit" 2>/dev/null; then
     log "File descriptor limit set to $(ulimit -n) for watch processes"
@@ -280,11 +414,11 @@ run_watch() {
   fi
 
   log "Starting frontend and backend hot-reload processes"
-  log "Frontend will be available at $TWENTY_GEO_FRONTEND_URL"
-  log "Server will be available at $TWENTY_GEO_SERVER_URL"
+  log "Frontend will be available at $frontend_url"
+  log "Server will be available at $server_url"
   npx concurrently --kill-others --names twenty-server,twenty-front \
-    "env -u NO_COLOR CHOKIDAR_USEPOLLING=$watch_polling CHOKIDAR_INTERVAL=$watch_interval yarn nx run twenty-server:start --excludeTaskDependencies" \
-    "env -u NO_COLOR yarn nx run twenty-front:start --excludeTaskDependencies"
+    "env -u NO_COLOR ${server_env_prefix}CHOKIDAR_USEPOLLING=$watch_polling CHOKIDAR_INTERVAL=$watch_interval yarn nx run twenty-server:start --excludeTaskDependencies" \
+    "env -u NO_COLOR ${frontend_env_prefix}yarn nx run twenty-front:start --excludeTaskDependencies"
 }
 
 run_reseed() {
@@ -317,6 +451,7 @@ run_test_map_view() {
 
 run_check() {
   check_required_tools
+  check_twenty_geo_host
 
   log "Checking shell scripts"
   bash -n deploy.sh

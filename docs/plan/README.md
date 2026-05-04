@@ -18,6 +18,7 @@ The intended progression is deliberately incremental:
 - [Epic 04: PostGIS Filtering and Search](./epic-04-postgis-filtering-search.md)
 - [Epic 05: Reference Geospatial Layer Registry](./epic-05-reference-geospatial-layer-registry.md)
 - [Epic 06: PR Positioning](./epic-06-pr-positioning.md)
+- [PR File Manifest](./pr-file-manifest.md)
 
 ## Current Branch Map
 
@@ -35,6 +36,8 @@ As of the Epic 05 branch setup, the local branch roles are:
 
 Private branches may track `docs/plan/**`, `AGENTS.md`, `deploy.sh`, and
 `scripts/local/**`. Upstream PR branches must omit those files entirely.
+Use [PR File Manifest](./pr-file-manifest.md) as the current source of truth for
+which paths are local-only, upstream candidates, or require explicit review.
 
 ## Guiding Principles
 
@@ -71,31 +74,91 @@ Use this path when working on private epic branches such as
 First-time setup or after resetting local containers:
 
 ```bash
-./scripts/local/bootstrap-twenty-map-dev.sh
+./deploy.sh local
 ```
+
+This starts local services, installs dependencies, verifies the local database
+schema, and exits. It does not start the app and it does not require any
+`/etc/hosts` changes.
 
 Start the full app:
 
 ```bash
-./scripts/local/start-twenty-dev.sh
+./deploy.sh start
 ```
 
 Use this when you need the frontend, backend, and worker together. It delegates
-to the repository's existing root `yarn start` command.
+to the repository's existing Nx targets with local environment defaults.
 
 For normal frontend/backend development, use the lighter hot-reload path:
 
 ```bash
-./scripts/local/watch-twenty-dev.sh
+./deploy.sh watch
 ```
+
+By default, the local wrappers use the standard Twenty localhost URLs:
+
+```text
+Frontend: http://localhost:3001
+Server:   http://localhost:3000
+```
+
+The frontend dev server is bound through `VITE_HOST=::` by default so local
+browser clients that resolve `localhost` as either `::1` or `127.0.0.1` can
+reach the same Vite process. Override this with `TWENTY_LOCAL_FRONTEND_BIND_HOST`
+only when debugging host binding behavior.
+
+If `http://localhost:3001` serves the Vite HTML but the browser stays blank,
+try `http://127.0.0.1:3001` as a diagnostic only. If that works, the server is
+healthy and the failure is host-scoped browser state under `localhost` from
+another local Twenty app, such as old auth storage, cookies, cache, or a service
+worker. Do not use `127.0.0.1` as the final isolation strategy with the default
+wrapper, because the frontend still talks to `http://localhost:3000` for API
+auth and can still send stale `localhost` tokens. Clear site data for
+`localhost` once, or use isolated browser-cookie mode below for this repo.
+
+If you are running more than one local Twenty app in the same browser, opt into
+isolated browser-cookie mode:
+
+```bash
+TWENTY_GEO_ISOLATED_HOST=1 ./deploy.sh watch
+```
+
+This mode requires this `/etc/hosts` entry:
+
+```text
+127.0.0.2 twenty-geo.localhost
+```
+
+Isolated mode serves Twenty Geo at `http://twenty-geo.localhost:3001` and binds
+the frontend to `127.0.0.2`, so `http://localhost:3001` cannot reach it. This is
+local-only because Twenty auth uses cookies, and cookies are scoped by hostname,
+not port.
+
+To use isolated mode without leaving a permanent hosts entry, run it from a
+temporary shell wrapper:
+
+```bash
+sudo -v
+sudo sh -c "printf '\n# twenty-geo temporary host\n127.0.0.2 twenty-geo.localhost\n' >> /etc/hosts"
+trap 'sudo sed -i.bak "/# twenty-geo temporary host/d;/127.0.0.2 twenty-geo.localhost/d" /etc/hosts' EXIT INT TERM
+TWENTY_GEO_ISOLATED_HOST=1 ./deploy.sh watch
+```
+
+The trap removes the temporary entry when the shell exits normally or receives
+`INT`/`TERM`. Cleanup is best-effort: if the terminal is force-killed or the
+machine shuts down unexpectedly, remove the marked hosts entry manually.
 
 This starts:
 
 ```bash
 env -u NO_COLOR CHOKIDAR_USEPOLLING=1 CHOKIDAR_INTERVAL=1000 \
+  FRONTEND_URL=http://localhost:3001 SERVER_URL=http://localhost:3000 \
   yarn nx run twenty-server:start --excludeTaskDependencies
 
-env -u NO_COLOR yarn nx run twenty-front:start --excludeTaskDependencies
+env -u NO_COLOR VITE_HOST=:: \
+  REACT_APP_SERVER_BASE_URL=http://localhost:3000 \
+  yarn nx run twenty-front:start --excludeTaskDependencies
 ```
 
 The backend target runs Nest in `--watch` mode and the frontend target runs the

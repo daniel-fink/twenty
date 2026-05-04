@@ -7,6 +7,7 @@ import { SidePanelAskAiPage } from '@/side-panel/pages/ask-ai/components/SidePan
 import { SidePanelCalendarEventPage } from '@/side-panel/pages/calendar-event/components/SidePanelCalendarEventPage';
 import { SidePanelComposeEmailPage } from '@/side-panel/pages/compose-email/components/SidePanelComposeEmailPage';
 import { SidePanelFrontComponentPage } from '@/side-panel/pages/front-component/components/SidePanelFrontComponentPage';
+import { SidePanelMapReferenceFeaturePage } from '@/side-panel/pages/map-reference-feature/components/SidePanelMapReferenceFeaturePage';
 import { SidePanelDashboardChartSettings } from '@/side-panel/pages/page-layout/components/dashboard/SidePanelDashboardChartSettings';
 import { SidePanelDashboardIframeSettings } from '@/side-panel/pages/page-layout/components/dashboard/SidePanelDashboardIframeSettings';
 import { SidePanelDashboardRecordTableSettings } from '@/side-panel/pages/page-layout/components/dashboard/SidePanelDashboardRecordTableSettings';
@@ -35,6 +36,10 @@ export const SIDE_PANEL_PAGES_CONFIG = new Map<SidePanelPages, React.ReactNode>(
       <SidePanelCommandMenuItemDisplayPage />,
     ],
     [SidePanelPages.ViewRecord, <SidePanelRecordPage />],
+    [
+      SidePanelPages.ViewMapReferenceFeature,
+      <SidePanelMapReferenceFeaturePage />,
+    ],
     [SidePanelPages.MergeRecords, <SidePanelMergeRecordPage />],
     [SidePanelPages.UpdateRecords, <SidePanelUpdateMultipleRecords />],
     [SidePanelPages.ViewCalendarEvent, <SidePanelCalendarEventPage />],
