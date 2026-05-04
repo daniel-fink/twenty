@@ -8,7 +8,9 @@ The intended progression is deliberately incremental:
 2. Ship a low-risk map view MVP using existing address latitude and longitude subfields.
 3. Add native PostGIS-backed geometry field support.
 4. Add spatial filtering and search parity with Twenty's existing non-geometry view capabilities.
-5. Add a non-object reference geospatial layer registry for large pipeline-owned spatial datasets.
+5. Extract non-object reference geospatial layer work into a private Twenty v2
+   app instead of bundling it into the upstream native map PR.
+6. Close the upstream PR set with a feature-complete native object map view.
 
 ## Epics
 
@@ -17,7 +19,7 @@ The intended progression is deliberately incremental:
 - [Epic 03: Native PostGIS Geometry Fields](./epic-03-postgis-geometry.md)
 - [Epic 04: PostGIS Filtering and Search](./epic-04-postgis-filtering-search.md)
 - [Epic 05: Reference Geospatial Layer Registry](./epic-05-reference-geospatial-layer-registry.md)
-- [Epic 06: PR Positioning](./epic-06-pr-positioning.md)
+- [Epic 06: PR Positioning And App Split](./epic-06-pr-positioning.md)
 - [PR File Manifest](./pr-file-manifest.md)
 
 ## Current Branch Map
@@ -29,6 +31,8 @@ As of the Epic 05 branch setup, the local branch roles are:
 - `feature/native-map-view-epic-03`: private geometry foundation implementation.
 - `feature/native-map-view-epic-04`: private tile rendering and spatial filter implementation.
 - `feature/native-map-view-epic-05`: private reference layer registry planning and implementation branch.
+- `feature/native-map-view-epic-05-presplit`: preservation branch for extracting Epic 5 work into the app workspace.
+- `feature/native-map-view-upstream-minimal`: planned upstream cleanup branch based on PR04 hardening, with only native record-opening completion work added.
 - `feature/native-map-view-private-tooling`: historical source for local-only dev tooling.
 - `upstream/native-map-view-pr-02-map-mvp`: clean upstream Map MVP branch.
 - `upstream/native-map-view-pr-03-geometry-foundation`: clean upstream geometry foundation branch.
@@ -38,6 +42,17 @@ Private branches may track `docs/plan/**`, `AGENTS.md`, `deploy.sh`, and
 `scripts/local/**`. Upstream PR branches must omit those files entirely.
 Use [PR File Manifest](./pr-file-manifest.md) as the current source of truth for
 which paths are local-only, upstream candidates, or require explicit review.
+
+Epic 05 reference-layer work is no longer planned as the next upstream PR. Use
+[Epic 06](./epic-06-pr-positioning.md) for the split procedure:
+
+- Epic 04 absorbs only native object-map completion, especially clicking mapped
+  records to open them and resolving readable record titles in vector tiles.
+- The `twenty-geo-layers` Twenty v2 app moves to the Whirlwind monorepo under
+  `apps/twenty-geo-layers`.
+- Reference-layer catalogs, sync, validation, feature-detail UX, and app-owned
+  configuration stay out of the upstream native map PR unless a future product
+  decision requests a small generic app-contributed layer hook.
 
 ## Guiding Principles
 
@@ -382,16 +397,21 @@ the matching `upstream/native-map-view-pr-*` branch.
 
 The intended flow is to do the epic work locally first, then curate it into
 separate upstream branches that can be submitted one-by-one. The current clean
-upstream branch sequence is:
+upstream branch sequence now stops at native map completion:
 
 - `upstream/native-map-view-pr-02-map-mvp`
 - `upstream/native-map-view-pr-03-geometry-foundation`
 - `upstream/native-map-view-pr-04-hardening`
-- `upstream/native-map-view-pr-05-reference-layers` (planned)
+- `feature/native-map-view-upstream-minimal` as the cleanup/completion branch
+  based on PR04 hardening
 
 Each upstream PR branch should have a single coherent review scope. Later PR
 branches may be based on an earlier upstream PR branch when they truly depend on
 it, but rebase them onto `upstream/main` as earlier PRs merge.
+
+Do not prepare an upstream reference-layer PR from the current Epic 05 work.
+Reference-layer registry and overlay behavior move to the private
+`twenty-geo-layers` app workspace.
 
 ### Start Or Refresh A Clean PR Branch
 

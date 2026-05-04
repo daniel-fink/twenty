@@ -2,7 +2,23 @@
 
 ## Status
 
-Partially implemented; hardening and documentation alignment remaining.
+Implemented for the v1 PostGIS reference-layer registry; now extraction source
+material for the private `twenty-geo-layers` Twenty v2 app rather than the
+next upstream PR.
+
+Implementation note: commit `0f2c0c02e9` (`Harden geo reference vector tile
+handling`) completed the previous in-core Epic 05 interpretation with reference
+tile hardening, sample tile validation, expanded tests, and private loading
+examples. Keep that completed state intact on the Epic 05 preservation branch
+and use it as the reference implementation when extracting the app.
+
+See [Epic 06](./epic-06-pr-positioning.md) for the current split plan. The
+upstream native map PR should close with Epic 04 completion work only:
+object-backed map rendering, native geometry/address selection, readable record
+titles in tiles, and record opening behavior equivalent to list/table views.
+Reference-layer registry, catalog, sync, validation, feature-detail, and
+overlay work should move to the app track unless a future product decision
+introduces a small generic app-contributed map-layer hook in core.
 
 Epic 05 should assume the Epic 04 baseline exists: object-backed geometry map
 views, authenticated MVT tiles, TileJSON, map tile policy handling, and spatial
@@ -839,7 +855,6 @@ Add a validation command:
 
 ```bash
 npx nx command twenty-server -- workspace:validate:geo-reference-layer-catalog \
-  --workspace-id <workspace-id> \
   --catalog-path <catalog-path>
 ```
 
@@ -869,7 +884,7 @@ Use explicit budgets:
 - Use min/max zoom to avoid pathological low-zoom requests.
 - Keep tile properties allowlisted and small.
 - Add cache headers where layer security permits.
-- Log tile generation time, feature count, and tile byte size.
+- Log tile generation time and tile byte size.
 
 For heavy layers, graduate deliberately:
 
@@ -901,7 +916,8 @@ Implemented:
 - Validation-only command exists for catalog checks without materializing
   registry rows.
 - Registry validation checks table existence, required columns, sampled SRID,
-  geometry type compatibility, selected-feature uniqueness, and GiST indexes.
+  geometry type compatibility, selected-feature uniqueness, GiST indexes, and
+  sample tile generation.
 - Sync persists validation status, validation error, last validation time, row
   count, bounds, attribution, explicit security policy, tile provider, and
   operational metadata.
@@ -909,16 +925,17 @@ Implemented:
   TileJSON, MVT tiles, bounds, and feature details.
 - Disabled and invalid layers are materialized but are not served by reference
   layer metadata, TileJSON, tile, bounds, or feature endpoints.
+- Reference tile requests use a private cache header and emit debug timing/byte
+  logs.
 - Reference MVT SQL builder exists and supports non-`4326` source SRIDs.
 - Initial schema and SQL-safety unit tests exist.
 
-Remaining implementation:
+Deferred/future:
 
-- Add sample tile generation checks to validation if v1 wants to catch
-  tile-time SQL issues before sync completes.
-- Add cache header strategy and tile metrics logging for reference tile requests.
-- Add integration tests for validation, sync, auth boundaries, invalid/disabled/
-  archived layers, feature detail, MVT bytes, and SRID `7856`.
+- DB-backed integration tests with a real PostGIS fixture can be added when the
+  test environment owns a stable spatial fixture. Current coverage is targeted
+  unit/service/component coverage for validation, serving gates, cache headers,
+  tile SQL, and UI behavior.
 
 ## Frontend Tasks
 
@@ -935,30 +952,22 @@ Implemented:
 - Reference-layer attribution is passed through to MapLibre vector sources.
 - Reference feature clicks open the side-panel insight page.
 - Object feature click behavior from Epic 4 is preserved.
-- Basic reference map rendering, attribution, and feature picker tests exist.
-
-Remaining implementation:
-
-- Add broader behavior tests for visibility toggles, reference feature
-  side-panel navigation, and object-click preservation.
+- Reference-only rendering, attribution, side-panel navigation, object-click
+  preservation, and feature picker tests exist.
 
 ## Local Pipeline and Tooling Tasks
 
 Implemented:
 
 - Private `geofs` example catalog exists for parcels and transactions.
-
-Remaining implementation:
-
-- Add command examples for syncing and validating that catalog.
-- Add optional sample pipeline script for loading a new reference dataset into a
-  `geo_*` schema in the primary database.
-- Add a validation script that can be run after local pipeline loads or external
-  catalog changes.
-- Keep generated datasets and reports under `.local/geo-reference-layers/`.
-- Do not commit large generated spatial files.
-- Do not commit live database credentials or host-specific private catalogs to
-  upstream PR branches.
+- Private example README includes validate and sync command examples for local
+  and storage-backed catalogs.
+- Local-only sample pipeline script exists for loading a new reference dataset
+  into a PostGIS schema and creating the required GiST index.
+- Generated datasets and reports should stay under
+  `.local/geo-reference-layers/`.
+- Large generated spatial files, live database credentials, and host-specific
+  private catalogs should not be committed to upstream PR branches.
 
 ## Benchmark Data Strategy
 
@@ -1041,9 +1050,9 @@ For each benchmark, validate:
 
 - [x] **Done**: A JSON catalog can define a pipeline-owned PostGIS table as a
       reference geospatial layer without creating a Twenty object.
-- [ ] **Partial**: The catalog lives under the owning server package or an
-      explicit `--catalog-path`; configured storage-path loading is implemented,
-      but local pipeline docs still need command examples.
+- [x] **Done**: The catalog lives under the owning server package, an explicit
+      `--catalog-path`, or configured storage-path loading; local command
+      examples exist.
 - [x] **Done**: Connection strings are resolved from env/config variables and
       are not stored in committed catalogs.
 - [x] **Done**: Catalog sync materializes rows into `core.geoReferenceLayer` and
@@ -1054,9 +1063,10 @@ For each benchmark, validate:
       column, geometry type, zoom range, style, sidebar contract, attribution,
       explicit security policy, validation state, bounds, row count, and operational
       metadata.
-- [ ] **Partial**: Registry validation rejects unsafe identifiers, missing
+- [x] **Done**: Registry validation rejects unsafe identifiers, missing
       tables, missing columns, SRID mismatches, geometry type mismatches, duplicate
-      selected feature values, and missing GiST indexes; sample tile checks remain.
+      selected feature values, missing GiST indexes, and sample tile generation
+      failures.
 - [x] **Done**: A map view can attach one or more reference layers.
 - [x] **Done**: The frontend renders attached reference layers together with an
       Epic 4 object layer or as a reference-only map view.
@@ -1073,8 +1083,8 @@ For each benchmark, validate:
 - [x] **Done**: Large reference datasets can be loaded outside normal seed data.
 - [x] **Done**: Source SRIDs other than `4326`, including the `geofs` SRID
       `7856`, render through MVT tile SQL.
-- [ ] **Partial**: The design keeps a future path to Martin, pg_tileserv,
-      PMTiles, or MBTiles; only live Twenty PostGIS serving is implemented.
+- [x] **Done**: The design keeps a future path to Martin, pg_tileserv, PMTiles,
+      or MBTiles; only live Twenty PostGIS serving is implemented for v1.
 
 ## Risks
 
@@ -1090,13 +1100,13 @@ For each benchmark, validate:
 - Multiple tile providers can fragment behavior if the provider abstraction is
   not kept narrow.
 
-## Suggested PR Breakdown
+## Implemented PR Breakdown
 
 1. Validation hardening:
    - reusable validation service
    - GiST, geometry type, bounds, row count, and sample tile checks
    - validation-only command
-   - backend unit and integration tests
+   - backend unit/service tests
 2. Catalog loading and metadata hardening:
    - storage-path catalog loading
    - explicit security policy, attribution, validation, and operational metadata

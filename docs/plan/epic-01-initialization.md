@@ -69,7 +69,7 @@ Current upstream-ready branches use narrower PR-specific names:
 - `upstream/native-map-view-pr-02-map-mvp`
 - `upstream/native-map-view-pr-03-geometry-foundation`
 - `upstream/native-map-view-pr-04-hardening`
-- `upstream/native-map-view-pr-05-reference-layers` (planned)
+- `feature/native-map-view-upstream-minimal` (planned upstream completion branch)
 
 ## Runtime Setup
 
