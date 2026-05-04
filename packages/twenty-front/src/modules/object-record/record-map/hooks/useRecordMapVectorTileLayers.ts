@@ -2,17 +2,18 @@ import { REACT_APP_SERVER_BASE_URL } from '~/config';
 
 import { ensureTokenPairIsFresh } from '@/apollo/utils/ensureTokenPairIsFresh';
 import { RECORD_MAP_LAYER_COLORS } from '@/object-record/record-map/constants/record-map-layer-style.constants';
+import { RECORD_MAP_VECTOR_TILE_LAYER } from '@/object-record/record-map/constants/record-map-vector-tile-layer.constants';
 import { type RecordMapTileJsonResponse } from '@/object-record/record-map/hooks/useMapTileMetadata';
-import { useEffect } from 'react';
+import {
+  type RecordMapRecordFeaturePickerItem,
+  type RecordMapRecordFeaturePickerState,
+} from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
+import { getRecordMapRecordFeaturePickerItems } from '@/object-record/record-map/utils/getRecordMapRecordFeaturePickerItems';
+import { useCallback, useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
 import type maplibregl from 'maplibre-gl';
 
-const RECORD_TILE_SOURCE_ID = 'record-map-vector-tiles';
-const RECORD_TILE_SOURCE_LAYER = 'records';
-const RECORD_TILE_FILL_LAYER_ID = 'record-map-polygons-fill';
-const RECORD_TILE_LINE_LAYER_ID = 'record-map-polygons-line';
-const RECORD_TILE_POINT_LAYER_ID = 'record-map-points';
 const RECORD_TILE_POLYGON_FILTER: maplibregl.FilterSpecification = [
   '==',
   ['geometry-type'],
@@ -47,21 +48,40 @@ const hasSource = (map: maplibregl.Map, sourceId: string) => {
 
 export const useRecordMapVectorTileLayers = ({
   map,
+  objectNameSingular,
   onFeatureClick,
   tileJson,
   tileSourceFilter,
   tileSourceViewId,
 }: {
   map: maplibregl.Map | null;
+  objectNameSingular?: string;
   onFeatureClick: (recordId: string) => void;
   tileJson: RecordMapTileJsonResponse | null;
   tileSourceFilter: string;
   tileSourceViewId?: string;
 }) => {
+  const [featurePicker, setFeaturePicker] =
+    useState<RecordMapRecordFeaturePickerState | null>(null);
+
+  const closeFeaturePicker = useCallback(() => {
+    setFeaturePicker(null);
+  }, []);
+
+  const openRecordFeature = useCallback(
+    (item: RecordMapRecordFeaturePickerItem) => {
+      setFeaturePicker(null);
+      onFeatureClick(item.recordId);
+    },
+    [onFeatureClick],
+  );
+
   useEffect(() => {
     if (!isDefined(map) || !isDefined(tileSourceViewId) || tileJson === null) {
       return;
     }
+
+    setFeaturePicker(null);
 
     const loadedTileJson = tileJson;
     const tileFilterQuery =
@@ -69,17 +89,47 @@ export const useRecordMapVectorTileLayers = ({
         ? ''
         : `?filter=${encodeURIComponent(tileSourceFilter)}`;
     const tileUrl = `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${tileSourceViewId}/tiles/{z}/{x}/{y}.mvt${tileFilterQuery}`;
-    const layerIds = [
-      RECORD_TILE_FILL_LAYER_ID,
-      RECORD_TILE_LINE_LAYER_ID,
-      RECORD_TILE_POINT_LAYER_ID,
-    ];
-    const handleFeatureClick = (event: maplibregl.MapLayerMouseEvent) => {
-      const recordId = event.features?.[0]?.properties?.id;
+    const handleMapClick = (event: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(
+        [
+          [event.point.x - 8, event.point.y - 8],
+          [event.point.x + 8, event.point.y + 8],
+        ],
+        {
+          layers: [...RECORD_MAP_VECTOR_TILE_LAYER.layerIds],
+        },
+      );
+      const pickerItems = getRecordMapRecordFeaturePickerItems({
+        features,
+        objectNameSingular,
+      });
 
-      if (typeof recordId === 'string') {
-        onFeatureClick(recordId);
+      if (pickerItems.length === 0) {
+        setFeaturePicker(null);
+
+        return;
       }
+
+      if (pickerItems.length === 1) {
+        const firstPickerItem = pickerItems[0];
+
+        if (!isDefined(firstPickerItem)) {
+          return;
+        }
+
+        setFeaturePicker(null);
+        onFeatureClick(firstPickerItem.recordId);
+
+        return;
+      }
+
+      setFeaturePicker({
+        items: pickerItems,
+        position: {
+          x: event.point.x,
+          y: event.point.y,
+        },
+      });
     };
     const setPointerCursor = () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -89,11 +139,11 @@ export const useRecordMapVectorTileLayers = ({
     };
 
     const addTileLayers = () => {
-      if (isDefined(map.getSource(RECORD_TILE_SOURCE_ID))) {
+      if (isDefined(map.getSource(RECORD_MAP_VECTOR_TILE_LAYER.sourceId))) {
         return;
       }
 
-      map.addSource(RECORD_TILE_SOURCE_ID, {
+      map.addSource(RECORD_MAP_VECTOR_TILE_LAYER.sourceId, {
         type: 'vector',
         tiles: [tileUrl],
         minzoom: loadedTileJson.minzoom,
@@ -101,10 +151,10 @@ export const useRecordMapVectorTileLayers = ({
       });
 
       map.addLayer({
-        id: RECORD_TILE_FILL_LAYER_ID,
+        id: RECORD_MAP_VECTOR_TILE_LAYER.fillLayerId,
         type: 'fill',
-        source: RECORD_TILE_SOURCE_ID,
-        'source-layer': RECORD_TILE_SOURCE_LAYER,
+        source: RECORD_MAP_VECTOR_TILE_LAYER.sourceId,
+        'source-layer': RECORD_MAP_VECTOR_TILE_LAYER.sourceLayer,
         filter: RECORD_TILE_POLYGON_FILTER,
         paint: {
           'fill-color': RECORD_MAP_LAYER_COLORS.blue,
@@ -113,10 +163,10 @@ export const useRecordMapVectorTileLayers = ({
       });
 
       map.addLayer({
-        id: RECORD_TILE_LINE_LAYER_ID,
+        id: RECORD_MAP_VECTOR_TILE_LAYER.lineLayerId,
         type: 'line',
-        source: RECORD_TILE_SOURCE_ID,
-        'source-layer': RECORD_TILE_SOURCE_LAYER,
+        source: RECORD_MAP_VECTOR_TILE_LAYER.sourceId,
+        'source-layer': RECORD_MAP_VECTOR_TILE_LAYER.sourceLayer,
         filter: RECORD_TILE_LINE_FILTER,
         paint: {
           'line-color': RECORD_MAP_LAYER_COLORS.blue,
@@ -125,10 +175,10 @@ export const useRecordMapVectorTileLayers = ({
       });
 
       map.addLayer({
-        id: RECORD_TILE_POINT_LAYER_ID,
+        id: RECORD_MAP_VECTOR_TILE_LAYER.pointLayerId,
         type: 'circle',
-        source: RECORD_TILE_SOURCE_ID,
-        'source-layer': RECORD_TILE_SOURCE_LAYER,
+        source: RECORD_MAP_VECTOR_TILE_LAYER.sourceId,
+        'source-layer': RECORD_MAP_VECTOR_TILE_LAYER.sourceLayer,
         filter: RECORD_TILE_POINT_FILTER,
         paint: {
           'circle-color': RECORD_MAP_LAYER_COLORS.blue,
@@ -138,11 +188,11 @@ export const useRecordMapVectorTileLayers = ({
         },
       });
 
-      layerIds.forEach((layerId) => {
-        map.on('click', layerId, handleFeatureClick);
+      RECORD_MAP_VECTOR_TILE_LAYER.layerIds.forEach((layerId) => {
         map.on('mouseenter', layerId, setPointerCursor);
         map.on('mouseleave', layerId, resetPointerCursor);
       });
+      map.on('click', handleMapClick);
     };
     const addTileLayersWithFreshToken = () => {
       void ensureTokenPairIsFresh().finally(addTileLayers);
@@ -154,21 +204,45 @@ export const useRecordMapVectorTileLayers = ({
       map.once('load', addTileLayersWithFreshToken);
     }
 
+    const closePickerOnMapChange = () => {
+      setFeaturePicker(null);
+    };
+
+    map.on('dragstart', closePickerOnMapChange);
+    map.on('movestart', closePickerOnMapChange);
+    map.on('zoomstart', closePickerOnMapChange);
+
     return () => {
       map.off('load', addTileLayersWithFreshToken);
+      map.off('click', handleMapClick);
+      map.off('dragstart', closePickerOnMapChange);
+      map.off('movestart', closePickerOnMapChange);
+      map.off('zoomstart', closePickerOnMapChange);
 
-      layerIds.forEach((layerId) => {
+      RECORD_MAP_VECTOR_TILE_LAYER.layerIds.forEach((layerId) => {
         if (hasLayer(map, layerId)) {
-          map.off('click', layerId, handleFeatureClick);
           map.off('mouseenter', layerId, setPointerCursor);
           map.off('mouseleave', layerId, resetPointerCursor);
           map.removeLayer(layerId);
         }
       });
 
-      if (hasSource(map, RECORD_TILE_SOURCE_ID)) {
-        map.removeSource(RECORD_TILE_SOURCE_ID);
+      if (hasSource(map, RECORD_MAP_VECTOR_TILE_LAYER.sourceId)) {
+        map.removeSource(RECORD_MAP_VECTOR_TILE_LAYER.sourceId);
       }
     };
-  }, [map, onFeatureClick, tileJson, tileSourceFilter, tileSourceViewId]);
+  }, [
+    map,
+    objectNameSingular,
+    onFeatureClick,
+    tileJson,
+    tileSourceFilter,
+    tileSourceViewId,
+  ]);
+
+  return {
+    closeFeaturePicker,
+    featurePicker,
+    openRecordFeature,
+  };
 };

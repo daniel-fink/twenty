@@ -55,6 +55,7 @@ const createTileContextMaps = ({
 } = {}) => {
   const objectMetadataId = 'object-id';
   const fieldMetadataId = 'field-id';
+  const labelFieldMetadataId = 'label-field-id';
   const viewId = 'view-id';
 
   return {
@@ -70,13 +71,24 @@ const createTileContextMaps = ({
     ]),
     flatObjectMetadataMaps: createFlatEntityMaps([
       {
-        fieldIds: [fieldMetadataId],
+        fieldIds: [fieldMetadataId, labelFieldMetadataId],
         id: objectMetadataId,
         isActive: true,
+        labelIdentifierFieldMetadataId: labelFieldMetadataId,
         nameSingular: 'geoBenchmarkPoint',
       },
     ]),
     flatFieldMetadataMaps: createFlatEntityMaps([
+      {
+        id: labelFieldMetadataId,
+        isActive: true,
+        label: 'Name',
+        name: 'name',
+        objectMetadataId,
+        options: null,
+        settings: null,
+        type: FieldMetadataType.TEXT,
+      },
       {
         id: fieldMetadataId,
         isActive: true,
@@ -208,7 +220,15 @@ describe('GeoMapTileService', () => {
     expect(tileJson).toMatchObject({
       maxzoom: 22,
       minzoom: 11,
-      vector_layers: [{ id: 'records' }],
+      vector_layers: [
+        {
+          fields: {
+            id: 'String',
+            title: 'String',
+          },
+          id: 'records',
+        },
+      ],
     });
   });
 
@@ -229,6 +249,10 @@ describe('GeoMapTileService', () => {
     expect(queryBuilder.addSelect).toHaveBeenCalledWith(
       '"geoBenchmarkPoint"."geometry"::geometry',
       'geometry',
+    );
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      '"geoBenchmarkPoint"."name"::text',
+      'title',
     );
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('ST_AsMVTGeom'),

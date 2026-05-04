@@ -1,6 +1,7 @@
 import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
+import { RecordMapRecordFeaturePicker } from '@/object-record/record-map/components/RecordMapRecordFeaturePicker';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
 import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
@@ -30,8 +31,7 @@ const StyledContainer = styled.div`
   position: relative;
   width: 100%;
 
-  .maplibregl-ctrl-bottom-left,
-  .maplibregl-ctrl-bottom-right {
+  .maplibregl-ctrl-logo {
     display: none;
   }
 `;
@@ -54,11 +54,13 @@ const StyledEmptyState = styled.div`
 
 export const RecordMap = ({
   loading,
+  objectNameSingular,
   recordMapPoints,
   tileSource,
   onSearchThisArea,
 }: {
   loading: boolean;
+  objectNameSingular?: string;
   recordMapPoints: RecordMapPoint[];
   tileSource?: RecordMapTileSource;
   onSearchThisArea?: (bounds: RecordMapBounds) => void;
@@ -149,13 +151,15 @@ export const RecordMap = ({
     tileSource,
   });
 
-  useRecordMapVectorTileLayers({
-    map,
-    onFeatureClick: handleRecordClick,
-    tileJson,
-    tileSourceFilter,
-    tileSourceViewId,
-  });
+  const { closeFeaturePicker, featurePicker, openRecordFeature } =
+    useRecordMapVectorTileLayers({
+      map,
+      objectNameSingular,
+      onFeatureClick: handleRecordClick,
+      tileJson,
+      tileSourceFilter,
+      tileSourceViewId,
+    });
 
   useEffect(() => {
     if (
@@ -202,6 +206,13 @@ export const RecordMap = ({
           onSearchThisArea={onSearchThisArea}
         />
       )}
+      <RecordMapRecordFeaturePicker
+        containerElement={mapContainerElement}
+        featurePicker={featurePicker}
+        objectNameSingular={objectNameSingular}
+        onClose={closeFeaturePicker}
+        onSelectFeature={openRecordFeature}
+      />
     </StyledContainer>
   );
 };
