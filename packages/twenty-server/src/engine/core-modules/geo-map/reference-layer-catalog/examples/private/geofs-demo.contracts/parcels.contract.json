@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "tabId": "attributes",
+  "title": "Attributes",
+  "dataset": "parcels",
+  "query": {
+    "type": "single",
+    "selectedFeatureField": "property_SHAPEUUID",
+    "targetField": "property_SHAPEUUID",
+    "selectionTitle": {
+      "fields": ["address_ADDRESS", "property_PROPID"],
+      "fallback": "selectedFeatureValue"
+    },
+    "sort": [
+      {
+        "column": "address_ADDRESS",
+        "direction": "asc"
+      }
+    ]
+  },
+  "sections": [
+    {
+      "id": "info",
+      "title": "Info",
+      "fields": [
+        {
+          "column": "property_GURASID",
+          "label": "GURAS ID",
+          "type": "text",
+          "description": "A unique identifier of an addressing feature in the NSW Address Database."
+        },
+        {
+          "column": "property_PROPID",
+          "label": "Property ID",
+          "type": "text",
+          "description": "A unique identifier of a Property feature as provided by the Valuer General."
+        },
+        {
+          "column": "property_SUPERLOT",
+          "label": "Super Lot",
+          "type": "text",
+          "description": "Flag for a super lot associated with the property, if present."
+        },
+        {
+          "column": "property_ADDRESSSTRINGOID",
+          "label": "Address String Object ID",
+          "type": "text",
+          "description": "The object ID of an AddressString, referenced by another feature or object class."
+        },
+        {
+          "column": "address_COUNCIL",
+          "label": "Local Government Area",
+          "type": "text",
+          "description": "The name of the LGA in which an AddressPoint is spatially located."
+        },
+        {
+          "column": "address_SPPROPID",
+          "label": "Strata Property ID",
+          "type": "text",
+          "description": "Unique identifier for a child property in a strata scheme as provided by the Valuer General."
+        },
+        {
+          "column": "zoning_LGA_NAME",
+          "label": "LGA",
+          "type": "text",
+          "description": "Local Government Area"
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "title": "Address",
+      "fields": [
+        {
+          "column": "address_POSTCODE",
+          "label": "Postcode",
+          "type": "text"
+        },
+        {
+          "column": "address_ADDRESSCONFIDENCE",
+          "label": "Address Confidence",
+          "type": "integer",
+          "description": "Quality rank from GNAF where 0 means no matching source, 1 means one match, and 2 means two matches."
+        },
+        {
+          "column": "address_ADDRESS",
+          "label": "Address",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "zoning",
+      "title": "Zoning",
+      "fields": [
+        {
+          "column": "zoning_AMENDMENT",
+          "label": "Zoning Amendment",
+          "type": "text",
+          "description": "Environmental Planning and Assessment Legislation Amendments"
+        },
+        {
+          "column": "zoning_LAY_CLASS",
+          "label": "Zone Class",
+          "type": "text"
+        },
+        {
+          "column": "zoning_LABEL",
+          "label": "Zone Name",
+          "type": "text"
+        },
+        {
+          "column": "zoning_SYM_CODE",
+          "label": "Zone Code",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "ABS",
+      "fields": [
+        {
+          "column": "abs_MB_CODE_2021",
+          "label": "Mesh Block Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Mesh Block Code"
+        },
+        {
+          "column": "abs_MB_CATEGORY_2021",
+          "label": "Mesh Block Category",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Mesh Block Category"
+        },
+        {
+          "column": "abs_SA1_CODE_2021",
+          "label": "SA1 Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 1 Code"
+        },
+        {
+          "column": "abs_SA2_CODE_2021",
+          "label": "SA2 Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 2 Code"
+        },
+        {
+          "column": "abs_SA2_NAME_2021",
+          "label": "SA2 Name",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 2 Code"
+        },
+        {
+          "column": "abs_SA3_CODE_2021",
+          "label": "SA3 Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 3 Code"
+        },
+        {
+          "column": "abs_SA3_NAME_2021",
+          "label": "SA3 Name",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 3 Code"
+        },
+        {
+          "column": "abs_SA4_CODE_2021",
+          "label": "SA4 Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 4 Code"
+        },
+        {
+          "column": "abs_SA4_NAME_2021",
+          "label": "SA4 Name",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Statistical Area 4 Code"
+        },
+        {
+          "column": "abs_GCCSA_CODE_2021",
+          "label": "Greater Capital City Statistical Area Code",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Greater Capital City Statistical Area Code"
+        },
+        {
+          "column": "abs_GCCSA_NAME_2021",
+          "label": "Greater Capital City Statistical Area Name",
+          "type": "text",
+          "description": "Australian Bureau of Statistics (ABS) Greater Capital City Statistical Area Name"
+        }
+      ]
+    },
+    {
+      "id": "heritage",
+      "title": "Heritage",
+      "fields": [
+        {
+          "column": "heritage_AMENDMENT",
+          "label": "Heritage Amendment",
+          "type": "text",
+          "description": "Environmental Planning and Assessment Legislation Amendments"
+        },
+        {
+          "column": "heritage_LAY_CLASS",
+          "label": "Heritage Class",
+          "type": "text"
+        },
+        {
+          "column": "heritage_H_NAME",
+          "label": "Heritage Item Name",
+          "type": "text",
+          "description": "Name of a particular Heritage item in the EPI"
+        },
+        {
+          "column": "heritage_SIG",
+          "label": "Heritage Significance",
+          "type": "text",
+          "description": "Local or State recognition of heritage for a particular Heritage item"
+        },
+        {
+          "column": "heritage_LEGIS_REF_CLAUSE",
+          "label": "Heritage Legislation Clause Reference",
+          "type": "text",
+          "description": "Reference to a related clause impacting a particular feature"
+        }
+      ]
+    },
+    {
+      "id": "floor-space-ratio",
+      "title": "Floor Space Ratio",
+      "fields": [
+        {
+          "column": "fsr_AMENDMENT",
+          "label": "FSR Amendment",
+          "type": "text",
+          "description": "Environmental Planning and Assessment Legislation Amendments"
+        },
+        {
+          "column": "fsr_LAY_CLASS",
+          "label": "Floor Space Ratio Class",
+          "type": "text",
+          "description": "Floor-space-ratio class for the parcel."
+        },
+        {
+          "column": "fsr_FSR",
+          "label": "Floor Space Ratio",
+          "type": "text",
+          "description": "FSR Value"
+        },
+        {
+          "column": "fsr_LEGIS_REF_AREA",
+          "label": "FSR Legislation Reference",
+          "type": "text",
+          "description": "Environmental Planning and Assessment Legislation References"
+        },
+        {
+          "column": "fsr_LEGIS_REF_CLAUSE",
+          "label": "FSR Legislation Clause References",
+          "type": "text",
+          "description": "Clause reference for the floor-space-ratio legislation."
+        }
+      ]
+    },
+    {
+      "id": "maximum-building-height",
+      "title": "Maximum Building Height",
+      "fields": [
+        {
+          "column": "hob_AMENDMENT",
+          "label": "Heritage Amendments",
+          "type": "text",
+          "description": "Environmental Planning and Assessment Legislation Amendments"
+        },
+        {
+          "column": "hob_LEGIS_REF_CLAUSE",
+          "label": "Maximum Building Height Legislation Clause Reference",
+          "type": "text",
+          "description": "Reference to a related legislative clause impacting a particular feature"
+        },
+        {
+          "column": "hob_MAX_B_H_M",
+          "label": "Maximum Building Height",
+          "type": "text",
+          "description": "Maximum Building Height from ground"
+        },
+        {
+          "column": "hob_MAX_B_H_RL",
+          "label": "Relative Maximum Building Height",
+          "type": "text",
+          "description": "Relative Maximum Building Height to the Australian Height Datum (AHD)"
+        }
+      ]
+    }
+  ]
+}

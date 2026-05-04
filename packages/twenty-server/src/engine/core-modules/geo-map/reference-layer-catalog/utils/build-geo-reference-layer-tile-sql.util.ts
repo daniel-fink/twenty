@@ -18,6 +18,34 @@ type BuildGeoReferenceLayerBoundsSqlArgs = {
 
 const escapeMvtLayerName = (layerName: string) => layerName.replace(/'/g, "''");
 
+const buildCoalescedTextExpression = ({
+  fallbackColumn,
+  fields,
+}: {
+  fallbackColumn: string;
+  fields: string[];
+}) => {
+  const fieldSelects = fields.map((field) => {
+    const column = quoteGeoReferenceSqlIdentifier(field);
+
+    return `NULLIF("source".${column}::text, '')`;
+  });
+
+  return fieldSelects.length > 0
+    ? `COALESCE(${fieldSelects.join(', ')}, "source".${fallbackColumn}::text)`
+    : `"source".${fallbackColumn}::text`;
+};
+
+const buildSortSelects = (layer: GeoReferenceLayerEntity) =>
+  layer.sidebarContract.query.sort.map((sort, index) => {
+    const column = quoteGeoReferenceSqlIdentifier(sort.column);
+
+    return `"source".${column}::text AS "sort_${index}"`;
+  });
+
+const buildSortColumnSelects = (layer: GeoReferenceLayerEntity) =>
+  layer.sidebarContract.query.sort.map((_, index) => `"source"."sort_${index}"`);
+
 export const assertGeoReferenceTileCoordinates = ({
   z,
   x,
@@ -53,15 +81,16 @@ export const buildGeoReferenceLayerTileSql = ({
   const {
     schemaName,
     tableName,
-    idColumnName,
     geometryColumnName,
     geometrySrid,
   } = layer.source;
+  const { selectedFeatureField, selectionTitle } =
+    layer.sidebarContract.query;
   const sourceTable = quoteGeoReferenceSqlQualifiedName({
     schemaName,
     tableName,
   });
-  const idColumn = quoteGeoReferenceSqlIdentifier(idColumnName);
+  const idColumn = quoteGeoReferenceSqlIdentifier(selectedFeatureField);
   const geometryColumn = quoteGeoReferenceSqlIdentifier(geometryColumnName);
   const tileBounds3857 = `ST_TileEnvelope(${z}, ${x}, ${y})`;
   const tileBoundsSource = `ST_Transform(${tileBounds3857}, ${geometrySrid})`;
@@ -78,22 +107,30 @@ export const buildGeoReferenceLayerTileSql = ({
       ? `LIMIT ${layer.tile.maxFeatureCount}`
       : '';
   const mvtLayerName = escapeMvtLayerName(layer.key);
-  const titleSelects = layer.title.fields.map((field) => {
-    const column = quoteGeoReferenceSqlIdentifier(field);
-
-    return `"source".${column}::text`;
+  const titleExpression = buildCoalescedTextExpression({
+    fallbackColumn: idColumn,
+    fields: selectionTitle.fields,
   });
-  const titleExpression =
-    titleSelects.length > 0
-      ? `COALESCE(${titleSelects.join(', ')}, "source".${idColumn}::text)`
-      : `"source".${idColumn}::text`;
+  const sortSelects = buildSortSelects(layer);
+  const sortColumnSelects = buildSortColumnSelects(layer);
+  const sourceRowPropertySelects = [
+    `"source".${idColumn}::text AS "id"`,
+    `"source".${idColumn}::text AS "selectedFeatureValue"`,
+    `${titleExpression} AS "title"`,
+    ...sortSelects,
+  ];
+  const tileRowPropertySelects = [
+    `"source"."id"`,
+    `"source"."selectedFeatureValue"`,
+    `"source"."title"`,
+    ...sortColumnSelects,
+  ];
 
   if (layer.style.type === 'fill') {
     return `
       WITH source_rows AS (
         SELECT
-          "source".${idColumn}::text AS "id",
-          ${titleExpression} AS "title",
+          ${sourceRowPropertySelects.join(',\n          ')},
           "source".${geometryColumn}::geometry AS "${geometryColumnName}"
         FROM ${sourceTable} "source"
         WHERE "source".${geometryColumn} IS NOT NULL
@@ -103,8 +140,7 @@ export const buildGeoReferenceLayerTileSql = ({
       ),
       fill_tile_rows AS (
         SELECT
-          "source"."id",
-          "source"."title",
+          ${tileRowPropertySelects.join(',\n          ')},
           ST_AsMVTGeom(
             ST_Transform(${clippedGeometry4326}, 3857),
             ${tileBounds3857},
@@ -116,8 +152,7 @@ export const buildGeoReferenceLayerTileSql = ({
       ),
       outline_tile_rows AS (
         SELECT
-          "source"."id",
-          "source"."title",
+          ${tileRowPropertySelects.join(',\n          ')},
           ST_AsMVTGeom(
             ST_Transform(ST_Boundary(${sourceGeometry4326}), 3857),
             ${tileBounds3857},
@@ -154,8 +189,7 @@ export const buildGeoReferenceLayerTileSql = ({
   return `
     WITH source_rows AS (
       SELECT
-        "source".${idColumn}::text AS "id",
-        ${titleExpression} AS "title",
+        ${sourceRowPropertySelects.join(',\n        ')},
         "source".${geometryColumn}::geometry AS "${geometryColumnName}"
       FROM ${sourceTable} "source"
       WHERE "source".${geometryColumn} IS NOT NULL
@@ -165,8 +199,7 @@ export const buildGeoReferenceLayerTileSql = ({
     ),
     tile_rows AS (
       SELECT
-        "source"."id",
-        "source"."title",
+        ${tileRowPropertySelects.join(',\n        ')},
         ST_AsMVTGeom(
           ST_Transform(${clippedGeometry4326}, 3857),
           ${tileBounds3857},

@@ -16,7 +16,9 @@ type RenderedReferenceFeatureHit = {
   };
   properties?: {
     id?: string | number;
+    selectedFeatureValue?: string | number;
     title?: unknown;
+    [key: string]: unknown;
   } | null;
 };
 
@@ -57,6 +59,8 @@ export const getRecordMapReferenceFeaturePickerItems = ({
     RecordMapReferenceFeaturePickerItem & {
       geometryPriority: number;
       renderedFeatureIndex: number;
+      layer: RecordMapReferenceLayer;
+      sortValues: unknown[];
     }
   >();
 
@@ -66,30 +70,35 @@ export const getRecordMapReferenceFeaturePickerItems = ({
       referenceLayers,
     });
 
-    const featureId = feature.properties?.id ?? feature.id;
+    const selectedFeatureValue =
+      feature.properties?.selectedFeatureValue ?? feature.properties?.id;
 
-    if (!isDefined(layer) || !isDefined(featureId)) {
+    if (!isDefined(layer) || !isDefined(selectedFeatureValue)) {
       continue;
     }
 
-    const normalizedFeatureId = String(featureId);
+    const normalizedSelectedFeatureValue = String(selectedFeatureValue);
 
-    if (normalizedFeatureId === '') {
+    if (normalizedSelectedFeatureValue === '') {
       continue;
     }
 
-    const dedupeKey = `${layer.id}:${normalizedFeatureId}`;
+    const dedupeKey = `${layer.id}:${normalizedSelectedFeatureValue}`;
 
     if (dedupedItems.has(dedupeKey)) {
       continue;
     }
 
     dedupedItems.set(dedupeKey, {
-      featureId: normalizedFeatureId,
       geometryPriority: getLayerGeometryPriority(layer),
+      layer,
       layerId: layer.id,
       layerName: layer.name,
       renderedFeatureIndex,
+      selectedFeatureValue: normalizedSelectedFeatureValue,
+      sortValues: layer.query.sort.map(
+        (_sort, index) => feature.properties?.[`sort_${index}`],
+      ),
       swatchColor: getRecordMapReferenceLayerSwatchColor(layer.style),
       title:
         typeof feature.properties?.title === 'string' &&
@@ -108,12 +117,30 @@ export const getRecordMapReferenceFeaturePickerItems = ({
         return priorityComparison;
       }
 
+      if (firstItem.layerId === secondItem.layerId) {
+        for (const [index, sort] of firstItem.layer.query.sort.entries()) {
+          const firstValue = firstItem.sortValues[index];
+          const secondValue = secondItem.sortValues[index];
+          const comparison = String(firstValue ?? '').localeCompare(
+            String(secondValue ?? ''),
+            undefined,
+            { numeric: true },
+          );
+
+          if (comparison !== 0) {
+            return sort.direction === 'desc' ? -comparison : comparison;
+          }
+        }
+      }
+
       return firstItem.renderedFeatureIndex - secondItem.renderedFeatureIndex;
     })
     .map(
       ({
         geometryPriority: _geometryPriority,
+        layer: _layer,
         renderedFeatureIndex: _renderedFeatureIndex,
+        sortValues: _sortValues,
         ...item
       }) => item,
     );

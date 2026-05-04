@@ -6,14 +6,6 @@ export type GeoReferenceLayerGeometryType =
   | 'POLYGON'
   | 'MULTIPOLYGON';
 
-export type GeoReferenceLayerPropertyType =
-  | 'TEXT'
-  | 'NUMBER'
-  | 'INTEGER'
-  | 'BOOLEAN'
-  | 'DATE'
-  | 'JSON';
-
 export type GeoReferenceLayerStyle =
   | {
       type: 'fill';
@@ -38,33 +30,63 @@ export type GeoReferenceLayerStyle =
       circleStrokeWidth?: number;
     };
 
-export type GeoReferenceLayerProperty = {
+export type GeoReferenceLayerContractFieldType =
+  | 'text'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'date'
+  | 'json'
+  | 'url';
+
+export type GeoReferenceLayerContractFieldFormat =
+  | 'area'
+  | 'currency'
+  | 'date'
+  | 'multilineText'
+  | 'number'
+  | 'text'
+  | 'url';
+
+export type GeoReferenceLayerContractSort = {
   column: string;
-  label: string;
-  type: GeoReferenceLayerPropertyType;
-  tab?: string | null;
-  group?: string | null;
-  role?: string | null;
-  description?: string | null;
-  nullable?: boolean | null;
-  isExposed?: boolean;
-  source?: Record<string, unknown> | null;
+  direction: 'asc' | 'desc';
 };
 
-export type GeoReferenceLayerPropertyManifest = {
+export type GeoReferenceLayerContractSelectionTitle = {
+  fields: string[];
+  fallback: 'selectedFeatureValue';
+  format?: GeoReferenceLayerContractFieldFormat;
+};
+
+export type GeoReferenceLayerContractField = {
+  column: string;
+  label: string;
+  type: GeoReferenceLayerContractFieldType;
+  description?: string | null;
+  format?: GeoReferenceLayerContractFieldFormat;
+  formatOptions?: Record<string, unknown>;
+};
+
+export type GeoReferenceLayerContractSection = {
+  id: string;
+  title: string;
+  fields: GeoReferenceLayerContractField[];
+};
+
+export type GeoReferenceLayerSidebarContract = {
   version: 1;
-  kind?: 'geo-reference-layer-property-manifest';
-  layerKey: string;
-  exposure: {
-    mode: 'EXPLICIT_ALLOWLIST';
-    notes?: string | null;
+  tabId: string;
+  title: string;
+  dataset: string;
+  query: {
+    type: 'single';
+    selectedFeatureField: string;
+    targetField: string;
+    selectionTitle: GeoReferenceLayerContractSelectionTitle;
+    sort: GeoReferenceLayerContractSort[];
   };
-  title?: {
-    fields: string[];
-    fallback: 'featureId';
-  };
-  sourceMetadata?: Record<string, unknown> | null;
-  properties: GeoReferenceLayerProperty[];
+  sections: GeoReferenceLayerContractSection[];
 };
 
 export type GeoReferenceLayerCatalogConnection = {
@@ -86,12 +108,8 @@ export type GeoReferenceLayerCatalogLayer = {
     geometrySrid: number;
     geometryType: GeoReferenceLayerGeometryType;
   };
-  propertyManifestPath?: string | null;
-  exposedProperties?: GeoReferenceLayerProperty[];
-  title: {
-    fields: string[];
-    fallback: 'featureId';
-  };
+  sidebarContractPath: string;
+  sidebarContract?: GeoReferenceLayerSidebarContract;
   tile: {
     minZoom: number;
     maxZoom: number;

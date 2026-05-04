@@ -12,7 +12,7 @@ import {
 
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import {
-  type GeoReferenceLayerProperty,
+  type GeoReferenceLayerSidebarContract,
   type GeoReferenceLayerStyle,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/geo-reference-layer-catalog.types';
 
@@ -37,11 +37,6 @@ export type GeoReferenceLayerTile = {
   minZoom: number;
   maxZoom: number;
   maxFeatureCount?: number | null;
-};
-
-export type GeoReferenceLayerTitle = {
-  fields: string[];
-  fallback: 'featureId';
 };
 
 @Entity({ name: 'geoReferenceLayer', schema: 'core' })
@@ -90,13 +85,10 @@ export class GeoReferenceLayerEntity {
   style: GeoReferenceLayerStyle;
 
   @Column('jsonb', { nullable: false })
-  title: GeoReferenceLayerTitle;
-
-  @Column('jsonb', { nullable: false, default: [] })
-  exposedProperties: GeoReferenceLayerProperty[];
+  sidebarContract: GeoReferenceLayerSidebarContract;
 
   @Column({ nullable: true, type: 'text' })
-  propertyManifestPath: string | null;
+  sidebarContractPath: string | null;
 
   @Column({ nullable: false, type: 'int', default: 1 })
   catalogVersion: number;

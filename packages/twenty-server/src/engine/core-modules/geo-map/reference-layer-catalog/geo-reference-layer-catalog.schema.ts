@@ -3,45 +3,91 @@ import { z } from 'zod';
 const sqlIdentifierSchema = z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/);
 const colorSchema = z.string().min(1);
 
-const geoReferenceLayerPropertyTypeSchema = z.enum([
-  'TEXT',
-  'NUMBER',
-  'INTEGER',
-  'BOOLEAN',
-  'DATE',
-  'JSON',
+const geoReferenceLayerContractFieldTypeSchema = z.enum([
+  'text',
+  'number',
+  'integer',
+  'boolean',
+  'date',
+  'json',
+  'url',
 ]);
 
-export const geoReferenceLayerPropertySchema = z.object({
-  column: sqlIdentifierSchema,
-  label: z.string().min(1),
-  type: geoReferenceLayerPropertyTypeSchema,
-  tab: z.string().nullable().optional(),
-  group: z.string().nullable().optional(),
-  role: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  nullable: z.boolean().nullable().optional(),
-  isExposed: z.boolean().optional(),
-  source: z.record(z.string(), z.unknown()).nullable().optional(),
-});
+const geoReferenceLayerContractFieldFormatSchema = z.enum([
+  'area',
+  'currency',
+  'date',
+  'multilineText',
+  'number',
+  'text',
+  'url',
+]);
 
-export const geoReferenceLayerPropertyManifestSchema = z.object({
-  version: z.literal(1),
-  kind: z.literal('geo-reference-layer-property-manifest').optional(),
-  layerKey: z.string().min(1),
-  exposure: z.object({
-    mode: z.literal('EXPLICIT_ALLOWLIST'),
-    notes: z.string().nullable().optional(),
-  }),
-  title: z
-    .object({
-      fields: z.array(sqlIdentifierSchema).min(1),
-      fallback: z.literal('featureId'),
-    })
-    .optional(),
-  sourceMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
-  properties: z.array(geoReferenceLayerPropertySchema),
-});
+export const geoReferenceLayerContractSortSchema = z
+  .object({
+    column: sqlIdentifierSchema,
+    direction: z.enum(['asc', 'desc']).default('asc'),
+  })
+  .strict();
+
+export const geoReferenceLayerContractSelectionTitleSchema = z
+  .object({
+    fields: z.array(sqlIdentifierSchema).min(1),
+    fallback: z.literal('selectedFeatureValue'),
+    format: geoReferenceLayerContractFieldFormatSchema.optional(),
+  })
+  .strict();
+
+export const geoReferenceLayerContractFieldSchema = z
+  .object({
+    column: sqlIdentifierSchema,
+    label: z.string().min(1),
+    type: geoReferenceLayerContractFieldTypeSchema,
+    description: z.string().nullable().optional(),
+    format: geoReferenceLayerContractFieldFormatSchema.optional(),
+    formatOptions: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict()
+  .superRefine((field, context) => {
+    if (
+      field.format === 'currency' &&
+      (typeof field.formatOptions?.currencyCode !== 'string' ||
+        field.formatOptions.currencyCode.length === 0)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['formatOptions', 'currencyCode'],
+        message: 'currency format requires formatOptions.currencyCode',
+      });
+    }
+  });
+
+export const geoReferenceLayerContractSectionSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    fields: z.array(geoReferenceLayerContractFieldSchema),
+  })
+  .strict();
+
+export const geoReferenceLayerSidebarContractSchema = z
+  .object({
+    version: z.literal(1),
+    tabId: z.string().min(1),
+    title: z.string().min(1),
+    dataset: z.string().min(1),
+    query: z
+      .object({
+        type: z.literal('single'),
+        selectedFeatureField: sqlIdentifierSchema,
+        targetField: sqlIdentifierSchema,
+        selectionTitle: geoReferenceLayerContractSelectionTitleSchema,
+        sort: z.array(geoReferenceLayerContractSortSchema).default([]),
+      })
+      .strict(),
+    sections: z.array(geoReferenceLayerContractSectionSchema),
+  })
+  .strict();
 
 const styleSchema = z.discriminatedUnion('type', [
   z.object({
@@ -82,47 +128,57 @@ export const geoReferenceLayerCatalogSchema = z
       }),
     ),
     layers: z.array(
-      z.object({
-        key: z.string().min(1),
-        name: z.string().min(1),
-        description: z.string().nullable().optional(),
-        source: z.object({
-          provider: z.enum(['TWENTY_WORKSPACE_POSTGIS', 'EXTERNAL_POSTGIS']),
-          connectionKey: z.string().nullable().optional(),
-          schemaName: sqlIdentifierSchema,
-          tableName: sqlIdentifierSchema,
-          idColumnName: sqlIdentifierSchema,
-          geometryColumnName: sqlIdentifierSchema,
-          geometrySrid: z.number().int().positive(),
-          geometryType: z.enum([
-            'POINT',
-            'MULTIPOINT',
-            'LINESTRING',
-            'MULTILINESTRING',
-            'POLYGON',
-            'MULTIPOLYGON',
-          ]),
-        }),
-        propertyManifestPath: z.string().nullable().optional(),
-        exposedProperties: z.array(geoReferenceLayerPropertySchema).optional(),
-        title: z.object({
-          fields: z.array(sqlIdentifierSchema).min(1),
-          fallback: z.literal('featureId'),
-        }),
-        tile: z.object({
-          minZoom: z.number().int().min(0).max(22),
-          maxZoom: z.number().int().min(0).max(22),
-          maxFeatureCount: z.number().int().positive().nullable().optional(),
-        }),
-        style: styleSchema,
-        defaultAttachment: z
-          .object({
-            isVisible: z.boolean(),
-            position: z.number(),
-          })
-          .nullable()
-          .optional(),
-      }),
+      z
+        .object({
+          key: z.string().min(1),
+          name: z.string().min(1),
+          description: z.string().nullable().optional(),
+          source: z
+            .object({
+              provider: z.enum([
+                'TWENTY_WORKSPACE_POSTGIS',
+                'EXTERNAL_POSTGIS',
+              ]),
+              connectionKey: z.string().nullable().optional(),
+              schemaName: sqlIdentifierSchema,
+              tableName: sqlIdentifierSchema,
+              idColumnName: sqlIdentifierSchema,
+              geometryColumnName: sqlIdentifierSchema,
+              geometrySrid: z.number().int().positive(),
+              geometryType: z.enum([
+                'POINT',
+                'MULTIPOINT',
+                'LINESTRING',
+                'MULTILINESTRING',
+                'POLYGON',
+                'MULTIPOLYGON',
+              ]),
+            })
+            .strict(),
+          sidebarContractPath: z.string().min(1),
+          tile: z
+            .object({
+              minZoom: z.number().int().min(0).max(22),
+              maxZoom: z.number().int().min(0).max(22),
+              maxFeatureCount: z
+                .number()
+                .int()
+                .positive()
+                .nullable()
+                .optional(),
+            })
+            .strict(),
+          style: styleSchema,
+          defaultAttachment: z
+            .object({
+              isVisible: z.boolean(),
+              position: z.number(),
+            })
+            .strict()
+            .nullable()
+            .optional(),
+        })
+        .strict(),
     ),
     defaultViewAttachments: z
       .array(

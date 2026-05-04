@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "tabId": "attributes",
+  "title": "Attributes",
+  "dataset": "transactions",
+  "query": {
+    "type": "single",
+    "selectedFeatureField": "psi_ID",
+    "targetField": "psi_ID",
+    "selectionTitle": {
+      "fields": ["model_psi_date", "psi_CONTRACT_DATE"],
+      "format": "date",
+      "fallback": "selectedFeatureValue"
+    },
+    "sort": [
+      {
+        "column": "model_psi_date",
+        "direction": "desc"
+      }
+    ]
+  },
+  "sections": [
+    {
+      "id": "property-info",
+      "title": "Property Info",
+      "fields": [
+        {
+          "column": "address_ADDRESS",
+          "label": "Address",
+          "type": "text"
+        },
+        {
+          "column": "property_PROPID",
+          "label": "Property ID",
+          "type": "text",
+          "description": "NSW Valuer General Property ID"
+        },
+        {
+          "column": "property_CLASSIFICATION",
+          "label": "Property Classification",
+          "type": "text"
+        },
+        {
+          "column": "psi_PRIMARY_PURPOSE",
+          "label": "Primary Purpose",
+          "type": "text",
+          "description": "NSW Valuer General Property Use"
+        },
+        {
+          "column": "model_bedrooms",
+          "label": "Bedrooms",
+          "type": "number",
+          "format": "number"
+        },
+        {
+          "column": "model_bathrooms",
+          "label": "Bathrooms",
+          "type": "number",
+          "format": "number"
+        },
+        {
+          "column": "model_parking",
+          "label": "Parking",
+          "type": "number",
+          "format": "number"
+        },
+        {
+          "column": "model_floor_area",
+          "label": "Floor Area (m2)",
+          "type": "number",
+          "format": "area",
+          "formatOptions": {
+            "unit": "m2"
+          }
+        },
+        {
+          "column": "property_AREA",
+          "label": "Parcel Area",
+          "type": "number",
+          "description": "Parcel polygon area in square metres.",
+          "format": "area",
+          "formatOptions": {
+            "unit": "m2"
+          }
+        },
+        {
+          "column": "property_HAS_STRATA",
+          "label": "Strata",
+          "type": "boolean"
+        },
+        {
+          "column": "listing_HOUSE_TYPE",
+          "label": "Listing House Type",
+          "type": "text"
+        },
+        {
+          "column": "listing_PROPERTY_TYPE",
+          "label": "Listing Property Type",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "transaction-details",
+      "title": "Transaction Details",
+      "fields": [
+        {
+          "column": "psi_ID",
+          "label": "PSI ID",
+          "type": "text",
+          "description": "NSW Valuer General Property Sales Info Transaction ID"
+        },
+        {
+          "column": "model_psi_price",
+          "label": "Transaction Price",
+          "type": "number",
+          "description": "NSW Valuer General Transaction Price",
+          "format": "currency",
+          "formatOptions": {
+            "currencyCode": "AUD"
+          }
+        },
+        {
+          "column": "model_psi_date",
+          "label": "Transaction Date",
+          "type": "date",
+          "description": "NSW Valuer General Transaction Date (Contract, or otherwise Settlement)",
+          "format": "date"
+        },
+        {
+          "column": "transaction_DESCRIPTION",
+          "label": "Listing Description",
+          "type": "text",
+          "format": "multilineText",
+          "formatOptions": {
+            "maxLines": 12
+          }
+        },
+        {
+          "column": "transaction_URL",
+          "label": "Listing URL",
+          "type": "url",
+          "format": "url"
+        }
+      ]
+    }
+  ]
+}

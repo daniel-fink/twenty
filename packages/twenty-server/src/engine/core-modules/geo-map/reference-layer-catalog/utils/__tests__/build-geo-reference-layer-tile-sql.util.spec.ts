@@ -36,12 +36,29 @@ const layer = {
     fillColor: '#2563eb',
     fillOpacity: 0.2,
   },
-  title: {
-    fields: ['address_ADDRESS'],
-    fallback: 'featureId',
+  sidebarContract: {
+    version: 1,
+    tabId: 'attributes',
+    title: 'Attributes',
+    dataset: 'parcels',
+    query: {
+      type: 'single',
+      selectedFeatureField: 'property_PROPID',
+      targetField: 'property_PROPID',
+      selectionTitle: {
+        fields: ['address_ADDRESS'],
+        fallback: 'selectedFeatureValue',
+      },
+      sort: [
+        {
+          column: 'address_ADDRESS',
+          direction: 'asc',
+        },
+      ],
+    },
+    sections: [],
   },
-  exposedProperties: [],
-  propertyManifestPath: null,
+  sidebarContractPath: './demo-parcels.contract.json',
   catalogVersion: 1,
   lastSyncAt: new Date(),
   createdAt: new Date(),
@@ -66,31 +83,27 @@ describe('buildGeoReferenceLayerTileSql', () => {
     );
     expect(sql).toContain('"source"."property_PROPID"::text AS "id"');
     expect(sql).toContain(
-      'COALESCE("source"."address_ADDRESS"::text, "source"."property_PROPID"::text) AS "title"',
+      'COALESCE(NULLIF("source"."address_ADDRESS"::text, \'\'), "source"."property_PROPID"::text) AS "title"',
     );
+    expect(sql).toContain(
+      '"source"."property_PROPID"::text AS "selectedFeatureValue"',
+    );
+    expect(sql).toContain('"source"."address_ADDRESS"::text AS "sort_0"');
     expect(sql).toContain('LIMIT 25000');
     expect(sql).toContain("'demo-parcels'");
     expect(sql).toContain("'demo-parcels-outline'");
   });
 
-  it('emits only id and computed title properties for vector tiles', () => {
+  it('emits only id, selected identity, title, and sort properties for vector tiles', () => {
     const sql = buildGeoReferenceLayerTileSql({
-      layer: {
-        ...layer,
-        exposedProperties: [
-          {
-            column: 'owner_NAME',
-            label: 'Owner',
-            type: 'TEXT',
-          },
-        ],
-      },
+      layer,
       z: 12,
       x: 2048,
       y: 1365,
     });
 
     expect(sql).toContain('"source"."id",');
+    expect(sql).toContain('"source"."selectedFeatureValue",');
     expect(sql).toContain('"source"."title",');
     expect(sql).not.toContain('owner_NAME');
   });

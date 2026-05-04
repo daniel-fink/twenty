@@ -35,6 +35,13 @@ export type RecordMapReferenceLayer = {
     maxZoom: number;
   };
   style: RecordMapReferenceLayerStyle;
+  query: {
+    selectedFeatureField: string;
+    sort: {
+      column: string;
+      direction: 'asc' | 'desc';
+    }[];
+  };
   attachment: {
     position: number;
     defaultIsVisible: boolean;
@@ -46,23 +53,41 @@ export type RecordMapReferenceLayerFeature = {
   layerId: string;
   layerKey: string;
   layerName: string;
-  featureId: string;
+  selectedFeatureValue: string;
   title: string;
   bounds: [number, number, number, number] | null;
-  properties: {
-    column: string;
-    label: string;
-    type: string;
-    tab?: string | null;
-    group?: string | null;
-    role?: string | null;
-    description?: string | null;
-    value: unknown;
+  tab: {
+    id: string;
+    title: string;
+  };
+  sections: {
+    id: string;
+    title: string;
+    fields: {
+      column: string;
+      label: string;
+      type: 'text' | 'number' | 'integer' | 'boolean' | 'date' | 'json' | 'url';
+      format?:
+        | 'area'
+        | 'currency'
+        | 'date'
+        | 'multilineText'
+        | 'number'
+        | 'text'
+        | 'url'
+        | null;
+      formatOptions?: Record<string, unknown> | null;
+      description?: string | null;
+      value: unknown;
+    }[];
   }[];
 };
 
+export type RecordMapReferenceLayerFeatureField =
+  RecordMapReferenceLayerFeature['sections'][number]['fields'][number];
+
 export type RecordMapReferenceFeaturePickerItem = {
-  featureId: string;
+  selectedFeatureValue: string;
   layerId: string;
   layerName: string;
   swatchColor: string;

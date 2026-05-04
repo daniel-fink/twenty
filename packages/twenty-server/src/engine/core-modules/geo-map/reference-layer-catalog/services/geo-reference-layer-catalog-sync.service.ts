@@ -8,13 +8,13 @@ import { type DataSource } from 'typeorm';
 import { GeoReferenceLayerConnectionService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-connection.service';
 import {
   type LoadedGeoReferenceLayerCatalog,
+  type LoadedGeoReferenceLayerCatalogLayer,
   loadGeoReferenceLayerCatalogFromFile,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/load-geo-reference-layer-catalog.util';
 import {
   quoteGeoReferenceSqlIdentifier,
   quoteGeoReferenceSqlQualifiedName,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/geo-reference-sql.util';
-import { type GeoReferenceLayerCatalogLayer } from 'src/engine/core-modules/geo-map/reference-layer-catalog/geo-reference-layer-catalog.types';
 import { GeoReferenceLayerStatus } from 'src/engine/core-modules/geo-map/entities/geo-reference-layer.entity';
 
 type SyncGeoReferenceLayerCatalogArgs = {
@@ -64,10 +64,6 @@ export class GeoReferenceLayerCatalogSyncService {
           ...layer.source,
           connectionUriEnv: connection?.uriEnv ?? null,
         };
-        const exposedProperties =
-          layer.exposedPropertiesManifest?.properties ??
-          layer.exposedProperties ??
-          [];
         const [row] = await manager.query(
           `
             INSERT INTO "core"."geoReferenceLayer" (
@@ -80,13 +76,12 @@ export class GeoReferenceLayerCatalogSyncService {
               "source",
               "tile",
               "style",
-              "title",
-              "exposedProperties",
-              "propertyManifestPath",
+              "sidebarContract",
+              "sidebarContractPath",
               "catalogVersion",
               "lastSyncAt"
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
             ON CONFLICT ("workspaceId", "key")
             DO UPDATE SET
               "catalogKey" = EXCLUDED."catalogKey",
@@ -96,9 +91,8 @@ export class GeoReferenceLayerCatalogSyncService {
               "source" = EXCLUDED."source",
               "tile" = EXCLUDED."tile",
               "style" = EXCLUDED."style",
-              "title" = EXCLUDED."title",
-              "exposedProperties" = EXCLUDED."exposedProperties",
-              "propertyManifestPath" = EXCLUDED."propertyManifestPath",
+              "sidebarContract" = EXCLUDED."sidebarContract",
+              "sidebarContractPath" = EXCLUDED."sidebarContractPath",
               "catalogVersion" = EXCLUDED."catalogVersion",
               "lastSyncAt" = EXCLUDED."lastSyncAt",
               "updatedAt" = now()
@@ -114,9 +108,8 @@ export class GeoReferenceLayerCatalogSyncService {
             JSON.stringify(source),
             JSON.stringify(layer.tile),
             JSON.stringify(layer.style),
-            JSON.stringify(layer.title),
-            JSON.stringify(exposedProperties),
-            layer.propertyManifestPath ?? null,
+            JSON.stringify(layer.sidebarContract),
+            layer.sidebarContractPath,
             catalog.version,
             now,
           ],
@@ -245,7 +238,7 @@ export class GeoReferenceLayerCatalogSyncService {
     layer,
   }: {
     catalog: LoadedGeoReferenceLayerCatalog;
-    layer: GeoReferenceLayerCatalogLayer;
+    layer: LoadedGeoReferenceLayerCatalogLayer;
   }) {
     const connection = layer.source.connectionKey
       ? catalog.connections[layer.source.connectionKey]
@@ -259,18 +252,24 @@ export class GeoReferenceLayerCatalogSyncService {
     try {
       const sourceTable = quoteGeoReferenceSqlQualifiedName(layer.source);
       const idColumn = quoteGeoReferenceSqlIdentifier(
-        layer.source.idColumnName,
+        layer.sidebarContract.query.selectedFeatureField,
       );
       const geometryColumn = quoteGeoReferenceSqlIdentifier(
         layer.source.geometryColumnName,
       );
-      const properties = layer.exposedProperties ?? [];
-      const propertyColumns = properties.map((property) => property.column);
+      const contract = layer.sidebarContract;
+      const fieldColumns = contract.sections.flatMap((section) =>
+        section.fields.map((field) => field.column),
+      );
+      const sortColumns = contract.query.sort.map((sort) => sort.column);
       const requiredColumns = [
         layer.source.idColumnName,
         layer.source.geometryColumnName,
-        ...layer.title.fields,
-        ...propertyColumns,
+        contract.query.selectedFeatureField,
+        contract.query.targetField,
+        ...contract.query.selectionTitle.fields,
+        ...sortColumns,
+        ...fieldColumns,
       ];
       const columnRows = await client.query<{ column_name: string }>(
         `
@@ -323,12 +322,14 @@ export class GeoReferenceLayerCatalogSyncService {
       );
 
       if (Number(idRows.rows[0]?.null_ids ?? 0) > 0) {
-        throw new Error(`Layer ${layer.key} id column contains null values`);
+        throw new Error(
+          `Layer ${layer.key} selected feature field contains null values`,
+        );
       }
 
       if (Number(idRows.rows[0]?.duplicate_ids ?? 0) > 0) {
         throw new Error(
-          `Layer ${layer.key} id column contains duplicate values`,
+          `Layer ${layer.key} selected feature field contains duplicate values`,
         );
       }
     } finally {

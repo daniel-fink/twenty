@@ -1,6 +1,7 @@
 import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
+import { RecordMapRecordFeaturePicker } from '@/object-record/record-map/components/RecordMapRecordFeaturePicker';
 import { RecordMapReferenceFeaturePicker } from '@/object-record/record-map/components/RecordMapReferenceFeaturePicker';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
@@ -58,11 +59,13 @@ const StyledEmptyState = styled.div`
 
 export const RecordMap = ({
   loading,
+  objectNameSingular,
   recordMapPoints,
   tileSource,
   onSearchThisArea,
 }: {
   loading: boolean;
+  objectNameSingular?: string;
   recordMapPoints: RecordMapPoint[];
   tileSource?: RecordMapTileSource;
   onSearchThisArea?: (bounds: RecordMapBounds) => void;
@@ -168,8 +171,13 @@ export const RecordMap = ({
       viewId: tileSourceViewId,
     });
 
-  useRecordMapVectorTileLayers({
+  const {
+    closeFeaturePicker: closeRecordFeaturePicker,
+    featurePicker: recordFeaturePicker,
+    openRecordFeature,
+  } = useRecordMapVectorTileLayers({
     map,
+    objectNameSingular,
     onFeatureClick: handleRecordClick,
     tileJson,
     tileSourceFilter,
@@ -246,6 +254,13 @@ export const RecordMap = ({
         featurePicker={featurePicker}
         onClose={closeFeaturePicker}
         onSelectFeature={openReferenceFeature}
+      />
+      <RecordMapRecordFeaturePicker
+        containerElement={mapContainerElement}
+        featurePicker={recordFeaturePicker}
+        objectNameSingular={objectNameSingular}
+        onClose={closeRecordFeaturePicker}
+        onSelectFeature={openRecordFeature}
       />
     </StyledContainer>
   );

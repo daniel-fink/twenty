@@ -15,11 +15,13 @@ const transactionsColor = themeCssVariables.accent.accent6;
 const createLayer = ({
   id,
   name,
+  sort,
   style,
 }: {
   id: string;
   name: string;
   style: RecordMapReferenceLayerStyle;
+  sort?: RecordMapReferenceLayer['query']['sort'];
 }): RecordMapReferenceLayer => ({
   attachment: {
     defaultIsVisible: true,
@@ -29,6 +31,10 @@ const createLayer = ({
   id,
   key: id,
   name,
+  query: {
+    selectedFeatureField: 'id',
+    sort: sort ?? [],
+  },
   source: {
     geometryType: 'Geometry',
   },
@@ -68,6 +74,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             layer: { id: getRecordMapReferencePrimaryLayerId(parcelsLayer) },
             properties: {
               id: 'parcel-1',
+              selectedFeatureValue: 'parcel-1',
               title: '1 Main Street',
             },
           },
@@ -76,9 +83,9 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
       }),
     ).toEqual([
       {
-        featureId: 'parcel-1',
         layerId: 'parcels',
         layerName: 'Parcels',
+        selectedFeatureValue: 'parcel-1',
         swatchColor: parcelsColor,
         title: '1 Main Street',
       },
@@ -93,6 +100,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             layer: { id: getRecordMapReferenceOutlineLayerId(parcelsLayer) },
             properties: {
               id: 'parcel-1',
+              selectedFeatureValue: 'parcel-1',
               title: '1 Main Street',
             },
           },
@@ -100,6 +108,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             layer: { id: getRecordMapReferencePrimaryLayerId(parcelsLayer) },
             properties: {
               id: 'parcel-1',
+              selectedFeatureValue: 'parcel-1',
               title: '1 Main Street',
             },
           },
@@ -117,6 +126,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             layer: { id: 'unrelated-layer' },
             properties: {
               id: 'unrelated',
+              selectedFeatureValue: 'unrelated',
               title: 'Unrelated',
             },
           },
@@ -140,6 +150,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             layer: { id: getRecordMapReferencePrimaryLayerId(parcelsLayer) },
             properties: {
               id: 'parcel-1',
+              selectedFeatureValue: 'parcel-1',
               title: '1 Main Street',
             },
           },
@@ -149,6 +160,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             },
             properties: {
               id: 'transaction-1',
+              selectedFeatureValue: 'transaction-1',
               title: 'Transaction',
             },
           },
@@ -163,9 +175,10 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
       getRecordMapReferenceFeaturePickerItems({
         features: [
           {
-            id: 'parcel-1',
             layer: { id: getRecordMapReferencePrimaryLayerId(parcelsLayer) },
-            properties: {},
+            properties: {
+              selectedFeatureValue: 'parcel-1',
+            },
           },
         ],
         referenceLayers: [parcelsLayer],

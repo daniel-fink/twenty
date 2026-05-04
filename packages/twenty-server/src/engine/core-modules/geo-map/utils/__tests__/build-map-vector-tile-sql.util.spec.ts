@@ -50,6 +50,24 @@ describe('buildMapVectorTileSql', () => {
     expect(sql).not.toContain('SELECT "areaGeometry", "geom"');
   });
 
+  it('should include title as an MVT property when a title column is provided', () => {
+    const sql = buildMapVectorTileSql({
+      sourceQuery:
+        'SELECT "record"."id" AS "id", "record"."name" AS "title", "record"."geometry" AS "geometry" FROM "record"',
+      geometryColumnName: 'geometry',
+      titleColumnName: 'title',
+      z: 6,
+      x: 32,
+      y: 21,
+    });
+
+    expect(sql).toContain('tile_source."title" AS "title"');
+    expect(sql).toContain('SELECT "id", "title", "geom" FROM tile_fill_rows');
+    expect(sql).toContain(
+      'SELECT "id", "title", "geom" FROM tile_boundary_rows',
+    );
+  });
+
   it('should add a feature limit when configured', () => {
     const sql = buildMapVectorTileSql({
       sourceQuery:
@@ -198,6 +216,20 @@ describe('buildMapVectorTileSql', () => {
         }),
       ).toThrow('Invalid SQL identifier');
     }
+  });
+
+  it('should reject unsafe title column identifiers', () => {
+    expect(() =>
+      buildMapVectorTileSql({
+        sourceQuery:
+          'SELECT "record"."id" AS "id", "record"."name" AS "title", "record"."geometry" AS "geometry" FROM "record"',
+        geometryColumnName: 'geometry',
+        titleColumnName: 'title"; DROP TABLE record; --',
+        z: 0,
+        x: 0,
+        y: 0,
+      }),
+    ).toThrow('Invalid SQL identifier');
   });
 
   it('should build a bounds query from the same parameterized source query', () => {

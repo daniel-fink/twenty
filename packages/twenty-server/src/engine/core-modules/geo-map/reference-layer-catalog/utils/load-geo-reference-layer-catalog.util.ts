@@ -3,17 +3,17 @@ import { dirname, resolve } from 'node:path';
 
 import {
   geoReferenceLayerCatalogSchema,
-  geoReferenceLayerPropertyManifestSchema,
+  geoReferenceLayerSidebarContractSchema,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/geo-reference-layer-catalog.schema';
 import {
   type GeoReferenceLayerCatalog,
   type GeoReferenceLayerCatalogLayer,
-  type GeoReferenceLayerPropertyManifest,
+  type GeoReferenceLayerSidebarContract,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/geo-reference-layer-catalog.types';
 
 export type LoadedGeoReferenceLayerCatalogLayer =
   GeoReferenceLayerCatalogLayer & {
-    exposedPropertiesManifest?: GeoReferenceLayerPropertyManifest;
+    sidebarContract: GeoReferenceLayerSidebarContract;
   };
 
 export type LoadedGeoReferenceLayerCatalog = GeoReferenceLayerCatalog & {
@@ -42,30 +42,17 @@ export const loadGeoReferenceLayerCatalogFromFile = (
     catalogDirectory,
     catalogKey,
     layers: catalog.layers.map((layer) => {
-      if (!layer.propertyManifestPath) {
-        return layer;
-      }
-
-      const manifestPath = resolve(
+      const sidebarContractPath = resolve(
         catalogDirectory,
-        layer.propertyManifestPath,
+        layer.sidebarContractPath,
       );
-      const manifest = geoReferenceLayerPropertyManifestSchema.parse(
-        readJsonFile(manifestPath),
+      const sidebarContract = geoReferenceLayerSidebarContractSchema.parse(
+        readJsonFile(sidebarContractPath),
       );
-
-      if (manifest.layerKey !== layer.key) {
-        throw new Error(
-          `Property manifest ${manifestPath} belongs to ${manifest.layerKey}, expected ${layer.key}`,
-        );
-      }
 
       return {
         ...layer,
-        exposedProperties: manifest.properties.filter(
-          (property) => property.isExposed !== false,
-        ),
-        exposedPropertiesManifest: manifest,
+        sidebarContract,
       };
     }),
   };

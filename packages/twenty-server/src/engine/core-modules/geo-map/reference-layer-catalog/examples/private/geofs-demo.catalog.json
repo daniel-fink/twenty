@@ -19,19 +19,12 @@
         "connectionKey": "geofs-demo",
         "schemaName": "model",
         "tableName": "parcels",
-        "idColumnName": "property_PROPID",
+        "idColumnName": "property_SHAPEUUID",
         "geometryColumnName": "geometry",
         "geometrySrid": 7856,
         "geometryType": "MULTIPOLYGON"
       },
-      "propertyManifestPath": "./geofs-demo.properties/parcels.properties.json",
-      "title": {
-        "fields": [
-          "address_ADDRESS",
-          "property_PROPID"
-        ],
-        "fallback": "featureId"
-      },
+      "sidebarContractPath": "./geofs-demo.contracts/parcels.contract.json",
       "tile": {
         "minZoom": 12,
         "maxZoom": 18
@@ -63,14 +56,7 @@
         "geometrySrid": 7856,
         "geometryType": "POINT"
       },
-      "propertyManifestPath": "./geofs-demo.properties/transactions.properties.json",
-      "title": {
-        "fields": [
-          "address_ADDRESS",
-          "psi_ID"
-        ],
-        "fallback": "featureId"
-      },
+      "sidebarContractPath": "./geofs-demo.contracts/transactions.contract.json",
       "tile": {
         "minZoom": 11,
         "maxZoom": 18

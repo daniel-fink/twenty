@@ -119,6 +119,14 @@ export class GeoReferenceLayerService {
           id: layer.key,
           fields: {
             id: 'String',
+            selectedFeatureValue: 'String',
+            title: 'String',
+            ...Object.fromEntries(
+              layer.sidebarContract.query.sort.map((_, index) => [
+                `sort_${index}`,
+                'String',
+              ]),
+            ),
           },
         },
       ],
@@ -217,33 +225,40 @@ export class GeoReferenceLayerService {
       layerId,
     });
     const client = await this.connectionService.connect(layer.source);
-    const properties = layer.exposedProperties;
+    const contract = layer.sidebarContract;
+    const contractFields = contract.sections.flatMap(
+      (section) => section.fields,
+    );
     const sourceTable = quoteGeoReferenceSqlQualifiedName(layer.source);
-    const idColumn = quoteGeoReferenceSqlIdentifier(layer.source.idColumnName);
+    const selectedFeatureColumn = quoteGeoReferenceSqlIdentifier(
+      contract.query.selectedFeatureField,
+    );
+    const targetColumn = quoteGeoReferenceSqlIdentifier(
+      contract.query.targetField,
+    );
     const geometryColumn = quoteGeoReferenceSqlIdentifier(
       layer.source.geometryColumnName,
     );
-    const propertySelects = properties.map((property) => {
-      const column = quoteGeoReferenceSqlIdentifier(property.column);
+    const fieldSelects = contractFields.map((field) => {
+      const column = quoteGeoReferenceSqlIdentifier(field.column);
 
-      return `"source".${column} AS "${property.column}"`;
+      return `"source".${column} AS "${field.column}"`;
     });
-    const titleSelects = layer.title.fields.map((field) => {
+    const titleSelects = contract.query.selectionTitle.fields.map((field) => {
       const column = quoteGeoReferenceSqlIdentifier(field);
 
-      return `"source".${column}::text`;
+      return `NULLIF("source".${column}::text, '')`;
     });
     const titleExpression =
       titleSelects.length > 0
-        ? `COALESCE(${titleSelects.join(', ')}, "source".${idColumn}::text)`
-        : `"source".${idColumn}::text`;
+        ? `COALESCE(${titleSelects.join(', ')}, "source".${selectedFeatureColumn}::text)`
+        : `"source".${selectedFeatureColumn}::text`;
     const groupByColumns = new Set([
-      `"source".${idColumn}`,
-      ...properties.map(
-        (property) =>
-          `"source".${quoteGeoReferenceSqlIdentifier(property.column)}`,
+      `"source".${selectedFeatureColumn}`,
+      ...contractFields.map(
+        (field) => `"source".${quoteGeoReferenceSqlIdentifier(field.column)}`,
       ),
-      ...layer.title.fields.map(
+      ...contract.query.selectionTitle.fields.map(
         (field) => `"source".${quoteGeoReferenceSqlIdentifier(field)}`,
       ),
     ]);
@@ -256,7 +271,7 @@ export class GeoReferenceLayerService {
       const result = await client.query<Record<string, unknown>>(
         `
           SELECT
-            "source".${idColumn}::text AS "featureId",
+            "source".${selectedFeatureColumn}::text AS "selectedFeatureValue",
             ${titleExpression} AS "title",
             json_build_array(
               ST_XMin(ST_Extent(${geometry4326}))::float8,
@@ -264,9 +279,9 @@ export class GeoReferenceLayerService {
               ST_XMax(ST_Extent(${geometry4326}))::float8,
               ST_YMax(ST_Extent(${geometry4326}))::float8
             ) AS "bounds"
-            ${propertySelects.length > 0 ? `, ${propertySelects.join(', ')}` : ''}
+            ${fieldSelects.length > 0 ? `, ${fieldSelects.join(', ')}` : ''}
           FROM ${sourceTable} "source"
-          WHERE "source".${idColumn}::text = $1
+          WHERE "source".${targetColumn}::text = $1
           GROUP BY ${[...groupByColumns].join(', ')}
           LIMIT 1
         `,
@@ -282,18 +297,25 @@ export class GeoReferenceLayerService {
         layerId: layer.id,
         layerKey: layer.key,
         layerName: layer.name,
-        featureId: row.featureId,
-        title: row.title ?? row.featureId,
+        selectedFeatureValue: row.selectedFeatureValue,
+        title: row.title ?? row.selectedFeatureValue,
         bounds: row.bounds,
-        properties: properties.map((property) => ({
-          column: property.column,
-          label: property.label,
-          type: property.type,
-          tab: property.tab ?? null,
-          group: property.group ?? null,
-          role: property.role ?? null,
-          description: property.description ?? null,
-          value: row[property.column] ?? null,
+        tab: {
+          id: contract.tabId,
+          title: contract.title,
+        },
+        sections: contract.sections.map((section) => ({
+          id: section.id,
+          title: section.title,
+          fields: section.fields.map((field) => ({
+            column: field.column,
+            label: field.label,
+            type: field.type,
+            description: field.description ?? null,
+            format: field.format ?? null,
+            formatOptions: field.formatOptions ?? null,
+            value: row[field.column] ?? null,
+          })),
         })),
       };
     } finally {
@@ -440,14 +462,10 @@ export class GeoReferenceLayerService {
       },
       tile: layer.tile,
       style: layer.style,
-      title: layer.title,
-      exposedProperties: layer.exposedProperties.map((property) => ({
-        column: property.column,
-        label: property.label,
-        type: property.type,
-        tab: property.tab ?? null,
-        group: property.group ?? null,
-      })),
+      query: {
+        selectedFeatureField: layer.sidebarContract.query.selectedFeatureField,
+        sort: layer.sidebarContract.query.sort,
+      },
       attachment: {
         position: attachment.position,
         defaultIsVisible: attachment.isVisible,
@@ -468,11 +486,9 @@ export class GeoReferenceLayerService {
       source: row.source as GeoReferenceLayerSource,
       tile: row.tile as GeoReferenceLayerEntity['tile'],
       style: row.style as GeoReferenceLayerEntity['style'],
-      title: row.title as GeoReferenceLayerEntity['title'],
-      exposedProperties:
-        (row.exposedProperties as GeoReferenceLayerEntity['exposedProperties']) ??
-        [],
-      propertyManifestPath: (row.propertyManifestPath as string | null) ?? null,
+      sidebarContract:
+        row.sidebarContract as GeoReferenceLayerEntity['sidebarContract'],
+      sidebarContractPath: (row.sidebarContractPath as string | null) ?? null,
       catalogVersion: row.catalogVersion as number,
       lastSyncAt: row.lastSyncAt as Date,
       createdAt: row.createdAt as Date,

@@ -7,6 +7,7 @@ import {
 type BuildMapVectorTileSqlArgs = {
   sourceQuery: string;
   geometryColumnName: string;
+  titleColumnName?: string;
   z: number;
   x: number;
   y: number;
@@ -72,6 +73,7 @@ export const computeMapVectorTileSimplificationToleranceForZoom = (
 export const buildMapVectorTileSql = ({
   sourceQuery,
   geometryColumnName,
+  titleColumnName,
   z,
   x,
   y,
@@ -86,6 +88,14 @@ export const buildMapVectorTileSql = ({
   const tileBounds3857 = `ST_TileEnvelope(${z}, ${x}, ${y})`;
   const tileBounds4326 = `ST_Transform(${tileBounds3857}, 4326)`;
   const sourceGeometryColumnReference = `tile_source.${quoteSqlIdentifier(geometryColumnName)}`;
+  const sourceTitleColumnReference =
+    titleColumnName === undefined
+      ? null
+      : `tile_source.${quoteSqlIdentifier(titleColumnName)}`;
+  const tileRowColumns =
+    sourceTitleColumnReference === null
+      ? '"id", "geom"'
+      : '"id", "title", "geom"';
   const tileGeometryColumnReference = `tile_source."geometry"`;
   const clippedGeometry4326 = `ST_Intersection(${tileGeometryColumnReference}, ${tileBounds4326})`;
   const clippedBoundary4326 = `ST_Intersection(ST_Boundary(${tileGeometryColumnReference}), ${tileBounds4326})`;
@@ -115,6 +125,11 @@ export const buildMapVectorTileSql = ({
     WITH source_rows AS (
       SELECT
         tile_source."id" AS "id",
+        ${
+          sourceTitleColumnReference === null
+            ? ''
+            : `${sourceTitleColumnReference} AS "title",`
+        }
         ${sourceGeometryColumnReference} AS "geometry"
       FROM (${sourceQuery}) tile_source
       ${featureLimitClause}
@@ -122,6 +137,7 @@ export const buildMapVectorTileSql = ({
     tile_fill_rows AS (
       SELECT
         tile_source."id" AS "id",
+        ${sourceTitleColumnReference === null ? '' : 'tile_source."title",'}
         ST_AsMVTGeom(
           ${tileGeometryExpression},
           ${tileBounds3857},
@@ -134,6 +150,7 @@ export const buildMapVectorTileSql = ({
     tile_boundary_rows AS (
       SELECT
         tile_source."id" AS "id",
+        ${sourceTitleColumnReference === null ? '' : 'tile_source."title",'}
         ST_AsMVTGeom(
           ${tileBoundaryExpression},
           ${tileBounds3857},
@@ -145,9 +162,9 @@ export const buildMapVectorTileSql = ({
       WHERE ST_Dimension(${tileGeometryColumnReference}) = 2
     ),
     tile_rows AS (
-      SELECT "id", "geom" FROM tile_fill_rows
+      SELECT ${tileRowColumns} FROM tile_fill_rows
       UNION ALL
-      SELECT "id", "geom" FROM tile_boundary_rows
+      SELECT ${tileRowColumns} FROM tile_boundary_rows
     )
     SELECT ST_AsMVT(
       tile_rows,

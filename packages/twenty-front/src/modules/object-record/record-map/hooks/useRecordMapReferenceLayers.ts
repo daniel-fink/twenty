@@ -161,7 +161,7 @@ export const useRecordMapReferenceLayers = ({
         pageIcon: IconMap,
         pageId: encodeURIComponent(
           JSON.stringify({
-            featureId: feature.featureId,
+            selectedFeatureValue: feature.selectedFeatureValue,
             layerId: feature.layerId,
             viewId,
           }),

@@ -112,6 +112,7 @@ export class GeoMapTileService {
     });
     const { flatObjectMetadata } = tileContext;
     const tilePolicy = this.resolveTilePolicy(tileContext);
+    const tileTitleColumnName = this.resolveTileTitleColumnName(tileContext);
 
     return {
       tilejson: '3.0.0',
@@ -124,6 +125,7 @@ export class GeoMapTileService {
           id: MAP_VECTOR_TILE_LAYER_NAME,
           fields: {
             id: 'String',
+            ...(isDefined(tileTitleColumnName) ? { title: 'String' } : {}),
           },
         },
       ],
@@ -182,7 +184,6 @@ export class GeoMapTileService {
         const recordAlias = flatObjectMetadata.nameSingular;
         const geometryColumnName = computeColumnName(flatFieldMetadata.name);
         const geometryFieldReference = `"${recordAlias}"."${geometryColumnName}"`;
-
         const queryBuilder = repository
           .createQueryBuilder(recordAlias)
           .select(`${recordAlias}.id`, 'id')
@@ -311,11 +312,27 @@ export class GeoMapTileService {
         const geometryFieldReference = `"${recordAlias}"."${geometryColumnName}"`;
         const tileBounds3857 = `ST_TileEnvelope(${z}, ${x}, ${y})`;
         const tileBounds4326 = `ST_Transform(${tileBounds3857}, 4326)`;
+        const tileTitleColumnName = this.resolveTileTitleColumnName({
+          flatView,
+          flatObjectMetadata,
+          flatObjectMetadataMaps,
+          flatFieldMetadata,
+          flatFieldMetadataMaps,
+          flatViewFilterMaps,
+          flatViewFilterGroupMaps,
+        });
 
         const queryBuilder = repository
           .createQueryBuilder(recordAlias)
           .select(`${recordAlias}.id`, 'id')
           .addSelect(`${geometryFieldReference}::geometry`, geometryColumnName);
+
+        if (isDefined(tileTitleColumnName)) {
+          queryBuilder.addSelect(
+            `"${recordAlias}"."${tileTitleColumnName}"::text`,
+            'title',
+          );
+        }
 
         const graphqlQueryParser = new GraphqlQueryParser(
           flatObjectMetadata,
@@ -347,6 +364,7 @@ export class GeoMapTileService {
         const tileQuery = buildMapVectorTileSql({
           sourceQuery,
           geometryColumnName,
+          titleColumnName: isDefined(tileTitleColumnName) ? 'title' : undefined,
           z,
           x,
           y,
@@ -449,6 +467,30 @@ export class GeoMapTileService {
           : 'Invalid map view filter',
       );
     }
+  }
+
+  private resolveTileTitleColumnName({
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+  }: TileContext) {
+    if (!isDefined(flatObjectMetadata.labelIdentifierFieldMetadataId)) {
+      return undefined;
+    }
+
+    const labelIdentifierFieldMetadata = findFlatEntityByIdInFlatEntityMaps({
+      flatEntityId: flatObjectMetadata.labelIdentifierFieldMetadataId,
+      flatEntityMaps: flatFieldMetadataMaps,
+    });
+
+    if (
+      !isDefined(labelIdentifierFieldMetadata) ||
+      labelIdentifierFieldMetadata.isActive !== true ||
+      labelIdentifierFieldMetadata.objectMetadataId !== flatObjectMetadata.id
+    ) {
+      return undefined;
+    }
+
+    return computeColumnName(labelIdentifierFieldMetadata.name);
   }
 
   private async getTileContext({

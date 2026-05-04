@@ -3,9 +3,9 @@ import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/Drop
 import { OverlayContainer } from '@/ui/layout/overlay/components/OverlayContainer';
 import { createVirtualElementFromContainerOffset } from '@/page-layout/widgets/graph/utils/createVirtualElementFromContainerOffset';
 import {
-  type RecordMapReferenceFeaturePickerItem,
-  type RecordMapReferenceFeaturePickerState,
-} from '@/object-record/record-map/types/RecordMapReferenceLayer';
+  type RecordMapRecordFeaturePickerItem,
+  type RecordMapRecordFeaturePickerState,
+} from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { styled } from '@linaria/react';
 import {
   autoUpdate,
@@ -20,17 +20,17 @@ import { Key } from 'ts-key-enum';
 import { MenuItem } from 'twenty-ui/navigation';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_WIDTH = 280;
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_MAX_ITEMS = 12;
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_ITEM_HEIGHT = 32;
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_ITEM_GAP = 2;
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_VERTICAL_PADDING = 8;
-const RECORD_MAP_REFERENCE_FEATURE_PICKER_MAX_HEIGHT =
-  RECORD_MAP_REFERENCE_FEATURE_PICKER_MAX_ITEMS *
-    RECORD_MAP_REFERENCE_FEATURE_PICKER_ITEM_HEIGHT +
-  (RECORD_MAP_REFERENCE_FEATURE_PICKER_MAX_ITEMS - 1) *
-    RECORD_MAP_REFERENCE_FEATURE_PICKER_ITEM_GAP +
-  RECORD_MAP_REFERENCE_FEATURE_PICKER_VERTICAL_PADDING;
+const RECORD_MAP_RECORD_FEATURE_PICKER_WIDTH = 280;
+const RECORD_MAP_RECORD_FEATURE_PICKER_MAX_ITEMS = 12;
+const RECORD_MAP_RECORD_FEATURE_PICKER_ITEM_HEIGHT = 32;
+const RECORD_MAP_RECORD_FEATURE_PICKER_ITEM_GAP = 2;
+const RECORD_MAP_RECORD_FEATURE_PICKER_VERTICAL_PADDING = 8;
+const RECORD_MAP_RECORD_FEATURE_PICKER_MAX_HEIGHT =
+  RECORD_MAP_RECORD_FEATURE_PICKER_MAX_ITEMS *
+    RECORD_MAP_RECORD_FEATURE_PICKER_ITEM_HEIGHT +
+  (RECORD_MAP_RECORD_FEATURE_PICKER_MAX_ITEMS - 1) *
+    RECORD_MAP_RECORD_FEATURE_PICKER_ITEM_GAP +
+  RECORD_MAP_RECORD_FEATURE_PICKER_VERTICAL_PADDING;
 
 const StyledSwatch = styled.div<{ color: string }>`
   background: ${({ color }) => color};
@@ -40,28 +40,21 @@ const StyledSwatch = styled.div<{ color: string }>`
   width: 12px;
 `;
 
-const StyledPickerItemsScrollContainer = styled.div`
-  max-height: ${RECORD_MAP_REFERENCE_FEATURE_PICKER_MAX_HEIGHT}px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-color: ${themeCssVariables.border.color.medium} transparent;
-  scrollbar-width: 4px;
-  width: 100%;
-`;
-
-type RecordMapReferenceFeaturePickerProps = {
+type RecordMapRecordFeaturePickerProps = {
   containerElement: HTMLElement | null;
-  featurePicker: RecordMapReferenceFeaturePickerState | null;
+  featurePicker: RecordMapRecordFeaturePickerState | null;
+  objectNameSingular?: string;
   onClose: () => void;
-  onSelectFeature: (item: RecordMapReferenceFeaturePickerItem) => void;
+  onSelectFeature: (item: RecordMapRecordFeaturePickerItem) => void;
 };
 
-export const RecordMapReferenceFeaturePicker = ({
+export const RecordMapRecordFeaturePicker = ({
   containerElement,
   featurePicker,
+  objectNameSingular,
   onClose,
   onSelectFeature,
-}: RecordMapReferenceFeaturePickerProps) => {
+}: RecordMapRecordFeaturePickerProps) => {
   const [floatingElement, setFloatingElementNode] =
     useState<HTMLDivElement | null>(null);
   const referenceElement = useMemo(() => {
@@ -134,22 +127,20 @@ export const RecordMapReferenceFeaturePicker = ({
   return (
     <FloatingPortal>
       <OverlayContainer ref={setFloatingElement} style={floatingStyles}>
-        <DropdownContent
-          widthInPixels={RECORD_MAP_REFERENCE_FEATURE_PICKER_WIDTH}
-        >
-          <StyledPickerItemsScrollContainer>
-            <DropdownMenuItemsContainer scrollable={false}>
-              {featurePicker.items.map((item) => (
-                <MenuItem
-                  key={`${item.layerId}-${item.selectedFeatureValue}`}
-                  LeftComponent={<StyledSwatch color={item.swatchColor} />}
-                  contextualText={item.layerName}
-                  onClick={() => onSelectFeature(item)}
-                  text={item.title}
-                />
-              ))}
-            </DropdownMenuItemsContainer>
-          </StyledPickerItemsScrollContainer>
+        <DropdownContent widthInPixels={RECORD_MAP_RECORD_FEATURE_PICKER_WIDTH}>
+          <DropdownMenuItemsContainer
+            maxHeight={RECORD_MAP_RECORD_FEATURE_PICKER_MAX_HEIGHT}
+          >
+            {featurePicker.items.map((item) => (
+              <MenuItem
+                key={item.recordId}
+                LeftComponent={<StyledSwatch color={item.swatchColor} />}
+                contextualText={objectNameSingular}
+                onClick={() => onSelectFeature(item)}
+                text={item.title}
+              />
+            ))}
+          </DropdownMenuItemsContainer>
         </DropdownContent>
       </OverlayContainer>
     </FloatingPortal>

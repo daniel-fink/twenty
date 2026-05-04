@@ -1,13 +1,22 @@
 import { REACT_APP_SERVER_BASE_URL } from '~/config';
 
 import { fetchWithFreshToken } from '@/object-record/record-map/hooks/useMapTileMetadata';
-import { type RecordMapReferenceLayerFeature } from '@/object-record/record-map/types/RecordMapReferenceLayer';
+import {
+  type RecordMapReferenceLayerFeature,
+  type RecordMapReferenceLayerFeatureField,
+} from '@/object-record/record-map/types/RecordMapReferenceLayer';
 import { PageLayoutComponentInstanceContext } from '@/page-layout/states/contexts/PageLayoutComponentInstanceContext';
 import { FieldsWidgetGroupContainer } from '@/page-layout/widgets/fields/components/FieldsWidgetGroupContainer';
 import { WidgetCardContent } from '@/page-layout/widgets/widget-card/components/WidgetCardContent';
 import { WidgetCardHeader } from '@/page-layout/widgets/widget-card/components/WidgetCardHeader';
 import { useUpdateSidePanelPageInfo } from '@/side-panel/hooks/useUpdateSidePanelPageInfo';
 import { sidePanelPageInfoState } from '@/side-panel/states/sidePanelPageInfoState';
+import { BooleanDisplay } from '@/ui/field/display/components/BooleanDisplay';
+import { DateDisplay } from '@/ui/field/display/components/DateDisplay';
+import { JsonDisplay } from '@/ui/field/display/components/JsonDisplay';
+import { NumberDisplay } from '@/ui/field/display/components/NumberDisplay';
+import { TextDisplay } from '@/ui/field/display/components/TextDisplay';
+import { URLDisplay } from '@/ui/field/display/components/URLDisplay';
 import { TabList } from '@/ui/layout/tab-list/components/TabList';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { styled } from '@linaria/react';
@@ -125,22 +134,10 @@ const StyledStatus = styled.div`
 type ReferenceFeaturePageId = {
   viewId: string;
   layerId: string;
-  featureId: string;
-};
-
-type ReferenceFeatureProperty =
-  RecordMapReferenceLayerFeature['properties'][number];
-
-type GroupedReferenceFeatureTab = {
-  tabName: string;
-  groups: {
-    groupName: string;
-    properties: ReferenceFeatureProperty[];
-  }[];
+  selectedFeatureValue: string;
 };
 
 const DEFAULT_REFERENCE_FEATURE_TAB_NAME = 'Attributes';
-const DEFAULT_REFERENCE_FEATURE_GROUP_NAME = 'Properties';
 
 const parseReferenceFeaturePageId = (
   pageId: string,
@@ -151,7 +148,7 @@ const parseReferenceFeaturePageId = (
     if (
       typeof parsed?.viewId !== 'string' ||
       typeof parsed?.layerId !== 'string' ||
-      typeof parsed?.featureId !== 'string'
+      typeof parsed?.selectedFeatureValue !== 'string'
     ) {
       return null;
     }
@@ -190,9 +187,16 @@ const parseStringifiedFeatureList = (value: string) => {
   }
 };
 
+const getFeatureListValue = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return typeof value === 'string' ? parseStringifiedFeatureList(value) : null;
+};
+
 const formatFeatureValueLines = (value: unknown) => {
-  const listValue =
-    typeof value === 'string' ? parseStringifiedFeatureList(value) : value;
+  const listValue = getFeatureListValue(value);
 
   if (Array.isArray(listValue)) {
     const definedListItems = listValue.filter((item) => isDefined(item));
@@ -212,69 +216,166 @@ const formatFeatureValueLines = (value: unknown) => {
   return [formatFeatureScalarValue(value)];
 };
 
-const groupReferenceFeatureProperties = (
-  properties: ReferenceFeatureProperty[],
-): GroupedReferenceFeatureTab[] => {
-  if (properties.length === 0) {
-    return [
-      {
-        tabName: DEFAULT_REFERENCE_FEATURE_TAB_NAME,
-        groups: [],
-      },
-    ];
+const getNumberValue = (value: unknown) => {
+  if (typeof value === 'number') {
+    return value;
   }
 
-  const tabs = new Map<string, Map<string, ReferenceFeatureProperty[]>>();
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsedValue = Number(value);
 
-  for (const property of properties) {
-    const tabName = DEFAULT_REFERENCE_FEATURE_TAB_NAME;
-    const groupName = property.group ?? DEFAULT_REFERENCE_FEATURE_GROUP_NAME;
-    const tabGroups = tabs.get(tabName) ?? new Map();
-    const groupProperties = tabGroups.get(groupName) ?? [];
-
-    tabGroups.set(groupName, [...groupProperties, property]);
-    tabs.set(tabName, tabGroups);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
   }
 
-  return [...tabs.entries()].map(([tabName, groups]) => ({
-    tabName,
-    groups: [...groups.entries()].map(([groupName, groupProperties]) => ({
-      groupName,
-      properties: groupProperties,
-    })),
-  }));
+  return null;
+};
+
+const formatNumberValue = (
+  value: unknown,
+  options?: Intl.NumberFormatOptions,
+) => {
+  const numberValue = getNumberValue(value);
+
+  return isDefined(numberValue)
+    ? new Intl.NumberFormat(undefined, options).format(numberValue)
+    : formatFeatureScalarValue(value);
+};
+
+const getCurrencyCode = (field: RecordMapReferenceLayerFeatureField) =>
+  typeof field.formatOptions?.currencyCode === 'string'
+    ? field.formatOptions.currencyCode
+    : 'USD';
+
+const getAreaUnit = (field: RecordMapReferenceLayerFeatureField) =>
+  typeof field.formatOptions?.unit === 'string'
+    ? field.formatOptions.unit
+    : 'sqm';
+
+const getDisplayedMaxRows = (field: RecordMapReferenceLayerFeatureField) => {
+  if (field.format !== 'multilineText') {
+    return 1;
+  }
+
+  return typeof field.formatOptions?.maxLines === 'number' &&
+    field.formatOptions.maxLines > 0
+    ? field.formatOptions.maxLines
+    : 12;
+};
+
+const getBooleanValue = (value: unknown) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (normalizedValue === 'true') {
+      return true;
+    }
+
+    if (normalizedValue === 'false') {
+      return false;
+    }
+  }
+
+  return null;
+};
+
+const ContractFieldValueDisplay = ({
+  field,
+}: {
+  field: RecordMapReferenceLayerFeatureField;
+}) => {
+  if (!isDefined(field.value)) {
+    return <TextDisplay text="" />;
+  }
+
+  if (field.format === 'currency') {
+    return (
+      <NumberDisplay
+        value={formatNumberValue(field.value, {
+          currency: getCurrencyCode(field),
+          style: 'currency',
+        })}
+      />
+    );
+  }
+
+  if (field.format === 'area') {
+    return (
+      <NumberDisplay
+        value={`${formatNumberValue(field.value)} ${getAreaUnit(field)}`}
+      />
+    );
+  }
+
+  if (field.type === 'boolean') {
+    return <BooleanDisplay value={getBooleanValue(field.value)} />;
+  }
+
+  if (field.type === 'date' || field.format === 'date') {
+    return <DateDisplay value={formatFeatureScalarValue(field.value)} />;
+  }
+
+  if (field.type === 'json') {
+    return <JsonDisplay text={formatFeatureScalarValue(field.value)} />;
+  }
+
+  if (field.type === 'number' || field.type === 'integer') {
+    return <NumberDisplay value={formatNumberValue(field.value)} />;
+  }
+
+  if (field.type === 'url' || field.format === 'url') {
+    return <URLDisplay value={formatFeatureScalarValue(field.value)} />;
+  }
+
+  return (
+    <TextDisplay
+      text={formatFeatureScalarValue(field.value)}
+      displayedMaxRows={getDisplayedMaxRows(field)}
+    />
+  );
 };
 
 const ReferenceFeaturePropertyGroup = ({
   groupName,
-  properties,
+  fields,
 }: {
   groupName: string;
-  properties: ReferenceFeatureProperty[];
+  fields: RecordMapReferenceLayerFeatureField[];
 }) => {
   return (
     <StyledGroupWrapper>
       <FieldsWidgetGroupContainer title={groupName}>
         <StyledPropertyBox>
-          {properties.map((property) => {
-            const valueLines = formatFeatureValueLines(property.value);
-            const isMultilineValue = valueLines.length > 1;
+          {fields.map((field) => {
+            const valueLines = formatFeatureValueLines(field.value);
+            const shouldRenderValueLines = isDefined(
+              getFeatureListValue(field.value),
+            );
+            const isMultilineValue =
+              field.format === 'multilineText' || valueLines.length > 1;
 
             return (
-              <StyledPropertyRow key={property.column}>
+              <StyledPropertyRow key={field.column}>
                 <StyledLabelContainer>
                   <StyledPropertyLabel>
-                    <OverflowingTextWithTooltip text={property.label} />
+                    <OverflowingTextWithTooltip text={field.label} />
                   </StyledPropertyLabel>
                 </StyledLabelContainer>
                 <StyledValueContainer>
                   <StyledValueOuterContainer isMultiline={isMultilineValue}>
                     <StyledValueInnerContainer isMultiline={isMultilineValue}>
-                      {valueLines.map((valueLine, index) => (
-                        <StyledValueLine key={`${property.column}-${index}`}>
-                          {valueLine}
-                        </StyledValueLine>
-                      ))}
+                      {isMultilineValue || shouldRenderValueLines ? (
+                        valueLines.map((valueLine, index) => (
+                          <StyledValueLine key={`${field.column}-${index}`}>
+                            {valueLine}
+                          </StyledValueLine>
+                        ))
+                      ) : (
+                        <ContractFieldValueDisplay field={field} />
+                      )}
                     </StyledValueInnerContainer>
                   </StyledValueOuterContainer>
                 </StyledValueContainer>
@@ -301,15 +402,17 @@ export const SidePanelMapReferenceFeaturePage = () => {
   const [activeTabName, setActiveTabName] = useState(
     DEFAULT_REFERENCE_FEATURE_TAB_NAME,
   );
-  const groupedTabs = useMemo(
+  const tabs = useMemo(
     () =>
       isDefined(feature)
-        ? groupReferenceFeatureProperties(feature.properties)
+        ? [
+            {
+              id: feature.tab.id,
+              title: feature.tab.title,
+            },
+          ]
         : [],
     [feature],
-  );
-  const activeTab = groupedTabs.find(
-    (groupedTab) => groupedTab.tabName === activeTabName,
   );
 
   useEffect(() => {
@@ -321,7 +424,7 @@ export const SidePanelMapReferenceFeaturePage = () => {
     }
 
     const abortController = new AbortController();
-    const url = `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${featureRequest.viewId}/reference-layers/${featureRequest.layerId}/features/${encodeURIComponent(featureRequest.featureId)}`;
+    const url = `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${featureRequest.viewId}/reference-layers/${featureRequest.layerId}/features/${encodeURIComponent(featureRequest.selectedFeatureValue)}`;
 
     void fetchWithFreshToken({ abortController, url })
       .then((response) =>
@@ -359,15 +462,15 @@ export const SidePanelMapReferenceFeaturePage = () => {
   }, [featureRequest]);
 
   useEffect(() => {
-    const firstTabName = groupedTabs[0]?.tabName;
+    const firstTabName = tabs[0]?.title;
 
     if (
       isDefined(firstTabName) &&
-      !groupedTabs.some((groupedTab) => groupedTab.tabName === activeTabName)
+      !tabs.some((tab) => tab.title === activeTabName)
     ) {
       setActiveTabName(firstTabName);
     }
-  }, [activeTabName, groupedTabs]);
+  }, [activeTabName, tabs]);
 
   useEffect(() => {
     if (
@@ -392,10 +495,7 @@ export const SidePanelMapReferenceFeaturePage = () => {
   return (
     <StyledContainer>
       <StyledTabList
-        tabs={groupedTabs.map((groupedTab) => ({
-          id: groupedTab.tabName,
-          title: groupedTab.tabName,
-        }))}
+        tabs={tabs}
         behaveAsLinks={false}
         componentInstanceId="map-reference-feature-tabs"
         isInSidePanel
@@ -422,11 +522,11 @@ export const SidePanelMapReferenceFeaturePage = () => {
             isInVerticalListTab={false}
             isMobile={false}
           >
-            {activeTab?.groups.map((group) => (
+            {feature.sections.map((section) => (
               <ReferenceFeaturePropertyGroup
-                key={group.groupName}
-                groupName={group.groupName}
-                properties={group.properties}
+                key={section.id}
+                groupName={section.title}
+                fields={section.fields}
               />
             ))}
           </WidgetCardContent>
