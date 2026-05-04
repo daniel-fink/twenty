@@ -9,7 +9,7 @@ import { StyledHeaderDropdownButton } from '@/ui/layout/dropdown/components/Styl
 import { GenericDropdownContentWidth } from '@/ui/layout/dropdown/constants/GenericDropdownContentWidth';
 import { RECORD_MAP_REFERENCE_LAYERS_CHANGED } from '@/object-record/record-map/constants/record-map-reference-layer.constants';
 import { useMapReferenceLayers } from '@/object-record/record-map/hooks/useMapReferenceLayers';
-import { type RecordMapReferenceLayerStyle } from '@/object-record/record-map/types/RecordMapReferenceLayer';
+import { getRecordMapReferenceLayerSwatchColor } from '@/object-record/record-map/utils/getRecordMapReferenceLayerSwatchColor';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
 import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDropdownOpenComponentState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
@@ -81,18 +81,6 @@ const StyledLayerStateText = styled.div`
   color: ${themeCssVariables.font.color.tertiary};
   font-size: ${themeCssVariables.font.size.xs};
 `;
-
-const getReferenceLayerSwatchColor = (style: RecordMapReferenceLayerStyle) => {
-  if (style.type === 'fill') {
-    return style.fillColor;
-  }
-
-  if (style.type === 'line') {
-    return style.lineColor;
-  }
-
-  return style.circleColor;
-};
 
 export const RecordMapLayersDropdownButton = () => {
   const { t } = useLingui();
@@ -178,7 +166,7 @@ export const RecordMapLayersDropdownButton = () => {
             {referenceLayers.map((layer) => (
               <StyledLayerRow key={layer.id}>
                 <StyledLayerSwatch
-                  color={getReferenceLayerSwatchColor(layer.style)}
+                  color={getRecordMapReferenceLayerSwatchColor(layer.style)}
                 />
                 <StyledLayerText>{layer.name}</StyledLayerText>
                 <Toggle

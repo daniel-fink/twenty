@@ -60,3 +60,19 @@ export type RecordMapReferenceLayerFeature = {
     value: unknown;
   }[];
 };
+
+export type RecordMapReferenceFeaturePickerItem = {
+  featureId: string;
+  layerId: string;
+  layerName: string;
+  swatchColor: string;
+  title: string;
+};
+
+export type RecordMapReferenceFeaturePickerState = {
+  items: RecordMapReferenceFeaturePickerItem[];
+  position: {
+    x: number;
+    y: number;
+  };
+};

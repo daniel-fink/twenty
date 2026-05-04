@@ -1,6 +1,7 @@
 import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
+import { RecordMapReferenceFeaturePicker } from '@/object-record/record-map/components/RecordMapReferenceFeaturePicker';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
 import { useMapReferenceLayerBounds } from '@/object-record/record-map/hooks/useMapReferenceLayerBounds';
@@ -160,11 +161,12 @@ export const RecordMap = ({
     tileSource,
   });
 
-  useRecordMapReferenceLayers({
-    map,
-    referenceLayers,
-    viewId: tileSourceViewId,
-  });
+  const { closeFeaturePicker, featurePicker, openReferenceFeature } =
+    useRecordMapReferenceLayers({
+      map,
+      referenceLayers,
+      viewId: tileSourceViewId,
+    });
 
   useRecordMapVectorTileLayers({
     map,
@@ -239,6 +241,12 @@ export const RecordMap = ({
           onSearchThisArea={onSearchThisArea}
         />
       )}
+      <RecordMapReferenceFeaturePicker
+        containerElement={mapContainerElement}
+        featurePicker={featurePicker}
+        onClose={closeFeaturePicker}
+        onSelectFeature={openReferenceFeature}
+      />
     </StyledContainer>
   );
 };
