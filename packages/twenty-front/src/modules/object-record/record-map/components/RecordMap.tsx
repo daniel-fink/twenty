@@ -35,8 +35,7 @@ const StyledContainer = styled.div`
   position: relative;
   width: 100%;
 
-  .maplibregl-ctrl-bottom-left,
-  .maplibregl-ctrl-bottom-right {
+  .maplibregl-ctrl-logo {
     display: none;
   }
 `;
@@ -57,17 +56,33 @@ const StyledEmptyState = styled.div`
   text-align: center;
 `;
 
+const StyledMapStatusOverlay = styled.div`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.secondary};
+  font-size: ${themeCssVariables.font.size.sm};
+  left: ${themeCssVariables.spacing[2]};
+  max-width: min(320px, calc(100% - ${themeCssVariables.spacing[4]}));
+  padding: ${themeCssVariables.spacing[2]} ${themeCssVariables.spacing[3]};
+  position: absolute;
+  top: ${themeCssVariables.spacing[2]};
+  z-index: 1;
+`;
+
 export const RecordMap = ({
   loading,
   objectNameSingular,
   recordMapPoints,
   tileSource,
+  viewId,
   onSearchThisArea,
 }: {
   loading: boolean;
   objectNameSingular?: string;
   recordMapPoints: RecordMapPoint[];
   tileSource?: RecordMapTileSource;
+  viewId?: string;
   onSearchThisArea?: (bounds: RecordMapBounds) => void;
 }) => {
   const [mapContainerElement, setMapContainerElement] =
@@ -79,25 +94,32 @@ export const RecordMap = ({
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
-  const shouldRenderMap =
-    hasMapStyle &&
-    (isDefined(tileSource) || loading || recordMapPoints.length > 0);
   const tileSourceViewId = tileSource?.viewId;
+  const mapViewId = tileSourceViewId ?? viewId;
   const tileSourceFilter = JSON.stringify(tileSource?.filter ?? {});
-  const { map } = useMapLibreMap({
-    mapContainerElement,
-    shouldRenderMap,
-  });
   const { tileBounds, tileJson } = useMapTileMetadata({
     tileSourceFilter,
     tileSourceViewId,
   });
-  const { referenceLayers } = useMapReferenceLayers({
-    viewId: tileSourceViewId,
+  const { isLoadingReferenceLayers, referenceLayers, referenceLayersError } =
+    useMapReferenceLayers({
+      viewId: mapViewId,
+    });
+  const shouldRenderMap =
+    hasMapStyle &&
+    (isDefined(tileSource) ||
+      loading ||
+      recordMapPoints.length > 0 ||
+      isLoadingReferenceLayers ||
+      referenceLayers.length > 0 ||
+      isDefined(referenceLayersError));
+  const { map } = useMapLibreMap({
+    mapContainerElement,
+    shouldRenderMap,
   });
   const { referenceLayerBounds } = useMapReferenceLayerBounds({
     referenceLayers,
-    viewId: tileSourceViewId,
+    viewId: mapViewId,
   });
 
   const handleRecordClick = useCallback(
@@ -135,14 +157,14 @@ export const RecordMap = ({
     setHasAutoFitTileBounds(false);
     setHasAutoFitReferenceLayerBounds(false);
     setHasUserMovedTileMap(false);
-  }, [tileSourceViewId]);
+  }, [mapViewId]);
 
   useEffect(() => {
     setHasAutoFitTileBounds(false);
   }, [tileSourceFilter]);
 
   useEffect(() => {
-    if (!isDefined(map) || !isDefined(tileSourceViewId)) {
+    if (!isDefined(map) || !isDefined(mapViewId)) {
       return;
     }
 
@@ -155,7 +177,7 @@ export const RecordMap = ({
     return () => {
       map.off('dragstart', markUserMovedMap);
     };
-  }, [map, tileSourceViewId]);
+  }, [map, mapViewId]);
 
   useRecordMapAddressMarkers({
     map,
@@ -168,7 +190,7 @@ export const RecordMap = ({
     useRecordMapReferenceLayers({
       map,
       referenceLayers,
-      viewId: tileSourceViewId,
+      viewId: mapViewId,
     });
 
   const {
@@ -248,6 +270,16 @@ export const RecordMap = ({
           onFitToTileBounds={fitMapToTileBounds}
           onSearchThisArea={onSearchThisArea}
         />
+      )}
+      {isLoadingReferenceLayers && (
+        <StyledMapStatusOverlay>
+          Loading reference layers...
+        </StyledMapStatusOverlay>
+      )}
+      {isDefined(referenceLayersError) && (
+        <StyledMapStatusOverlay>
+          Reference layers could not be loaded.
+        </StyledMapStatusOverlay>
       )}
       <RecordMapReferenceFeaturePicker
         containerElement={mapContainerElement}

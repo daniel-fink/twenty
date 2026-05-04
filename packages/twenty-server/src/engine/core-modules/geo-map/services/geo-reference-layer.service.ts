@@ -12,6 +12,7 @@ import { type DataSource } from 'typeorm';
 import {
   GeoReferenceLayerEntity,
   GeoReferenceLayerStatus,
+  GeoReferenceLayerValidationStatus,
   type GeoReferenceLayerSource,
 } from 'src/engine/core-modules/geo-map/entities/geo-reference-layer.entity';
 import { type ViewGeoReferenceLayerEntity } from 'src/engine/core-modules/geo-map/entities/view-geo-reference-layer.entity';
@@ -65,9 +66,15 @@ export class GeoReferenceLayerService {
         WHERE "viewGeoReferenceLayer"."workspaceId" = $1
           AND "viewGeoReferenceLayer"."viewId" = $2
           AND "geoReferenceLayer"."status" = $3
+          AND "geoReferenceLayer"."validationStatus" = $4
         ORDER BY "viewGeoReferenceLayer"."position" ASC
       `,
-      [authContext.workspace.id, viewId, GeoReferenceLayerStatus.ACTIVE],
+      [
+        authContext.workspace.id,
+        viewId,
+        GeoReferenceLayerStatus.ACTIVE,
+        GeoReferenceLayerValidationStatus.VALID,
+      ],
     );
 
     const preferences =
@@ -114,6 +121,7 @@ export class GeoReferenceLayerService {
       ],
       minzoom: layer.tile.minZoom,
       maxzoom: layer.tile.maxZoom,
+      attribution: layer.attribution,
       vector_layers: [
         {
           id: layer.key,
@@ -400,12 +408,14 @@ export class GeoReferenceLayerService {
           AND "viewGeoReferenceLayer"."viewId" = $2
           AND "geoReferenceLayer"."id" = $3
           AND "geoReferenceLayer"."status" = $4
+          AND "geoReferenceLayer"."validationStatus" = $5
       `,
       [
         authContext.workspace.id,
         viewId,
         layerId,
         GeoReferenceLayerStatus.ACTIVE,
+        GeoReferenceLayerValidationStatus.VALID,
       ],
     );
 
@@ -461,6 +471,7 @@ export class GeoReferenceLayerService {
         geometryType: layer.source.geometryType,
       },
       tile: layer.tile,
+      attribution: layer.attribution,
       style: layer.style,
       query: {
         selectedFeatureField: layer.sidebarContract.query.selectedFeatureField,
@@ -483,11 +494,23 @@ export class GeoReferenceLayerService {
       name: row.name as string,
       description: (row.description as string | null) ?? null,
       status: row.status as GeoReferenceLayerStatus,
+      tileProvider: row.tileProvider as GeoReferenceLayerEntity['tileProvider'],
       source: row.source as GeoReferenceLayerSource,
       tile: row.tile as GeoReferenceLayerEntity['tile'],
       style: row.style as GeoReferenceLayerEntity['style'],
       sidebarContract:
         row.sidebarContract as GeoReferenceLayerEntity['sidebarContract'],
+      securityPolicy:
+        row.securityPolicy as GeoReferenceLayerEntity['securityPolicy'],
+      attribution: (row.attribution as string | null) ?? null,
+      validationStatus:
+        (row.validationStatus as GeoReferenceLayerValidationStatus) ??
+        GeoReferenceLayerValidationStatus.NOT_VALIDATED,
+      validationError: (row.validationError as string | null) ?? null,
+      lastValidatedAt: (row.lastValidatedAt as Date | null) ?? null,
+      rowCount: (row.rowCount as number | null) ?? null,
+      bounds: row.bounds as GeoReferenceLayerEntity['bounds'],
+      metadata: (row.metadata as Record<string, unknown>) ?? {},
       sidebarContractPath: (row.sidebarContractPath as string | null) ?? null,
       catalogVersion: row.catalogVersion as number,
       lastSyncAt: row.lastSyncAt as Date,

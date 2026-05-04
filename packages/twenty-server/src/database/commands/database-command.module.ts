@@ -32,6 +32,7 @@ import { EventLogCleanupModule } from 'src/engine/core-modules/event-logs/cleanu
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
 import { FileModule } from 'src/engine/core-modules/file/file.module';
 import { PublicDomainModule } from 'src/engine/core-modules/public-domain/public-domain.module';
+import { GeoReferenceLayerCatalogValidateCommand } from 'src/engine/core-modules/geo-map/commands/geo-reference-layer-catalog-validate.command';
 import { GeoReferenceLayerCatalogSyncCommand } from 'src/engine/core-modules/geo-map/commands/geo-reference-layer-catalog-sync.command';
 import { GeoMapModule } from 'src/engine/core-modules/geo-map/geo-map-module';
 import { TwentyConfigModule } from 'src/engine/core-modules/twenty-config/twenty-config.module';
@@ -101,6 +102,7 @@ import { AutomatedTriggerModule } from 'src/modules/workflow/workflow-trigger/au
     GeoMapBenchmarkSeedCommand,
     GeoMapRealBenchmarkImportCommand,
     GeoMapTileBenchmarkCommand,
+    GeoReferenceLayerCatalogValidateCommand,
     GeoReferenceLayerCatalogSyncCommand,
     ConfirmationQuestion,
     CronRegisterAllCommand,

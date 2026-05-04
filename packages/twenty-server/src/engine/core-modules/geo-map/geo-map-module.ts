@@ -3,7 +3,9 @@ import { Module } from '@nestjs/common';
 import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
 import { GeoMapTileController } from 'src/engine/core-modules/geo-map/controllers/geo-map-tile.controller';
 import { GeoMapResolver } from 'src/engine/core-modules/geo-map/resolver/geo-map.resolver';
+import { GeoReferenceLayerCatalogLoaderService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-catalog-loader.service';
 import { GeoReferenceLayerCatalogSyncService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-catalog-sync.service';
+import { GeoReferenceLayerCatalogValidationService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-catalog-validation.service';
 import { GeoReferenceLayerConnectionService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-connection.service';
 import { GeoReferenceLayerService } from 'src/engine/core-modules/geo-map/services/geo-reference-layer.service';
 import { GeoReferenceLayerVisibilityPreferenceService } from 'src/engine/core-modules/geo-map/services/geo-reference-layer-visibility-preference.service';
@@ -29,11 +31,17 @@ import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/
     GeoMapService,
     GeoMapResolver,
     GeoMapTileService,
+    GeoReferenceLayerCatalogLoaderService,
     GeoReferenceLayerCatalogSyncService,
+    GeoReferenceLayerCatalogValidationService,
     GeoReferenceLayerConnectionService,
     GeoReferenceLayerService,
     GeoReferenceLayerVisibilityPreferenceService,
   ],
-  exports: [GeoReferenceLayerCatalogSyncService],
+  exports: [
+    GeoReferenceLayerCatalogLoaderService,
+    GeoReferenceLayerCatalogSyncService,
+    GeoReferenceLayerCatalogValidationService,
+  ],
 })
 export class GeoMapModule {}

@@ -2,6 +2,14 @@ import { z } from 'zod';
 
 const sqlIdentifierSchema = z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/);
 const colorSchema = z.string().min(1);
+const tileProviderSchema = z.literal('TWENTY_POSTGIS');
+
+const securityPolicySchema = z
+  .object({
+    kind: z.literal('AUTHENTICATED_WORKSPACE'),
+    propertyPolicy: z.literal('ALLOWLIST_ONLY'),
+  })
+  .strict();
 
 const geoReferenceLayerContractFieldTypeSchema = z.enum([
   'text',
@@ -133,6 +141,14 @@ export const geoReferenceLayerCatalogSchema = z
           key: z.string().min(1),
           name: z.string().min(1),
           description: z.string().nullable().optional(),
+          status: z.enum(['ACTIVE', 'DISABLED']).default('ACTIVE'),
+          tileProvider: tileProviderSchema.default('TWENTY_POSTGIS'),
+          securityPolicy: securityPolicySchema.default({
+            kind: 'AUTHENTICATED_WORKSPACE',
+            propertyPolicy: 'ALLOWLIST_ONLY',
+          }),
+          attribution: z.string().min(1).nullable().optional(),
+          metadata: z.record(z.string(), z.unknown()).default({}),
           source: z
             .object({
               provider: z.enum([

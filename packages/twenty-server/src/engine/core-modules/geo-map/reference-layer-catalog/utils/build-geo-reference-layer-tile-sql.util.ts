@@ -44,7 +44,9 @@ const buildSortSelects = (layer: GeoReferenceLayerEntity) =>
   });
 
 const buildSortColumnSelects = (layer: GeoReferenceLayerEntity) =>
-  layer.sidebarContract.query.sort.map((_, index) => `"source"."sort_${index}"`);
+  layer.sidebarContract.query.sort.map(
+    (_, index) => `"source"."sort_${index}"`,
+  );
 
 export const assertGeoReferenceTileCoordinates = ({
   z,
@@ -78,14 +80,9 @@ export const buildGeoReferenceLayerTileSql = ({
 }: BuildGeoReferenceLayerTileSqlArgs) => {
   assertGeoReferenceTileCoordinates({ z, x, y });
 
-  const {
-    schemaName,
-    tableName,
-    geometryColumnName,
-    geometrySrid,
-  } = layer.source;
-  const { selectedFeatureField, selectionTitle } =
-    layer.sidebarContract.query;
+  const { schemaName, tableName, geometryColumnName, geometrySrid } =
+    layer.source;
+  const { selectedFeatureField, selectionTitle } = layer.sidebarContract.query;
   const sourceTable = quoteGeoReferenceSqlQualifiedName({
     schemaName,
     tableName,

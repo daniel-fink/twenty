@@ -45,7 +45,8 @@ export class GeoReferenceLayerCatalogSyncCommand extends CommandRunner {
 
   @Option({
     flags: '--catalog-path <catalogPath>',
-    description: 'Path to the geo reference layer catalog JSON file.',
+    description:
+      'Optional local path to the geo reference layer catalog JSON file. Falls back to configured storage/default catalog.',
   })
   parseCatalogPath(catalogPath: string): string {
     return catalogPath;
@@ -63,10 +64,6 @@ export class GeoReferenceLayerCatalogSyncCommand extends CommandRunner {
       throw new Error('--view-id is required');
     }
 
-    if (!isDefined(options.catalogPath) || options.catalogPath === '') {
-      throw new Error('--catalog-path is required');
-    }
-
     const result = await this.catalogSyncService.syncCatalog({
       workspaceId: options.workspaceId,
       viewId: options.viewId,
@@ -74,7 +71,13 @@ export class GeoReferenceLayerCatalogSyncCommand extends CommandRunner {
     });
 
     this.logger.log(
-      `Synced ${result.layerCount} geo reference layers, ${result.attachmentCount} view attachments, archived ${result.archivedLayerCount} stale layers.`,
+      `Synced ${result.layerCount} geo reference layers, ${result.attachmentCount} view attachments, archived ${result.archivedLayerCount} stale layers, found ${result.invalidLayerCount} invalid layers.`,
     );
+
+    if (result.invalidLayerCount > 0) {
+      throw new Error(
+        'Geo reference layer catalog sync completed with invalid layers',
+      );
+    }
   }
 }

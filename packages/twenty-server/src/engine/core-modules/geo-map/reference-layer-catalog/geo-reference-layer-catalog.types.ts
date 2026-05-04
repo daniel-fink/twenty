@@ -6,6 +6,15 @@ export type GeoReferenceLayerGeometryType =
   | 'POLYGON'
   | 'MULTIPOLYGON';
 
+export type GeoReferenceLayerCatalogStatus = 'ACTIVE' | 'DISABLED';
+
+export type GeoReferenceLayerTileProvider = 'TWENTY_POSTGIS';
+
+export type GeoReferenceLayerSecurityPolicy = {
+  kind: 'AUTHENTICATED_WORKSPACE';
+  propertyPolicy: 'ALLOWLIST_ONLY';
+};
+
 export type GeoReferenceLayerStyle =
   | {
       type: 'fill';
@@ -98,6 +107,11 @@ export type GeoReferenceLayerCatalogLayer = {
   key: string;
   name: string;
   description?: string | null;
+  status: GeoReferenceLayerCatalogStatus;
+  tileProvider: GeoReferenceLayerTileProvider;
+  securityPolicy: GeoReferenceLayerSecurityPolicy;
+  attribution?: string | null;
+  metadata: Record<string, unknown>;
   source: {
     provider: 'TWENTY_WORKSPACE_POSTGIS' | 'EXTERNAL_POSTGIS';
     connectionKey?: string | null;

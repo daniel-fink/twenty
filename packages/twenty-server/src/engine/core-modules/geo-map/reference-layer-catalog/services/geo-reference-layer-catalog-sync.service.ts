@@ -5,28 +5,25 @@ import { ViewType } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { type DataSource } from 'typeorm';
 
-import { GeoReferenceLayerConnectionService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-connection.service';
+import { type LoadedGeoReferenceLayerCatalog } from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/load-geo-reference-layer-catalog.util';
 import {
-  type LoadedGeoReferenceLayerCatalog,
-  type LoadedGeoReferenceLayerCatalogLayer,
-  loadGeoReferenceLayerCatalogFromFile,
-} from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/load-geo-reference-layer-catalog.util';
-import {
-  quoteGeoReferenceSqlIdentifier,
-  quoteGeoReferenceSqlQualifiedName,
-} from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/geo-reference-sql.util';
-import { GeoReferenceLayerStatus } from 'src/engine/core-modules/geo-map/entities/geo-reference-layer.entity';
+  GeoReferenceLayerStatus,
+  GeoReferenceLayerValidationStatus,
+} from 'src/engine/core-modules/geo-map/entities/geo-reference-layer.entity';
+import { GeoReferenceLayerCatalogLoaderService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-catalog-loader.service';
+import { GeoReferenceLayerCatalogValidationService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-catalog-validation.service';
 
 type SyncGeoReferenceLayerCatalogArgs = {
   workspaceId: string;
   viewId: string;
-  catalogPath: string;
+  catalogPath?: string;
 };
 
 export type SyncGeoReferenceLayerCatalogResult = {
   layerCount: number;
   attachmentCount: number;
   archivedLayerCount: number;
+  invalidLayerCount: number;
 };
 
 @Injectable()
@@ -38,7 +35,8 @@ export class GeoReferenceLayerCatalogSyncService {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
-    private readonly connectionService: GeoReferenceLayerConnectionService,
+    private readonly catalogLoaderService: GeoReferenceLayerCatalogLoaderService,
+    private readonly catalogValidationService: GeoReferenceLayerCatalogValidationService,
   ) {}
 
   async syncCatalog({
@@ -46,15 +44,24 @@ export class GeoReferenceLayerCatalogSyncService {
     viewId,
     catalogPath,
   }: SyncGeoReferenceLayerCatalogArgs): Promise<SyncGeoReferenceLayerCatalogResult> {
-    const catalog = loadGeoReferenceLayerCatalogFromFile(catalogPath);
+    const catalog = await this.catalogLoaderService.loadCatalog({
+      catalogPath,
+    });
+    const validationResult =
+      await this.catalogValidationService.validateCatalog({ catalog });
+    const invalidLayers = validationResult.layers.filter(
+      (layer) => layer.status === GeoReferenceLayerValidationStatus.INVALID,
+    );
 
     await this.assertMapView({ workspaceId, viewId });
-    await this.validateCatalogSources({ catalog });
 
     return this.dataSource.transaction(async (manager) => {
       const now = new Date();
       const layerIdsByKey = new Map<string, string>();
       const incomingKeys = catalog.layers.map((layer) => layer.key);
+      const validationResultsByKey = Object.fromEntries(
+        validationResult.layers.map((layer) => [layer.layerKey, layer]),
+      );
 
       for (const layer of catalog.layers) {
         const connection = layer.source.connectionKey
@@ -64,6 +71,11 @@ export class GeoReferenceLayerCatalogSyncService {
           ...layer.source,
           connectionUriEnv: connection?.uriEnv ?? null,
         };
+        const layerValidation = validationResultsByKey[layer.key];
+        const status =
+          layer.status === GeoReferenceLayerStatus.DISABLED
+            ? GeoReferenceLayerStatus.DISABLED
+            : GeoReferenceLayerStatus.ACTIVE;
         const [row] = await manager.query(
           `
             INSERT INTO "core"."geoReferenceLayer" (
@@ -73,25 +85,43 @@ export class GeoReferenceLayerCatalogSyncService {
               "name",
               "description",
               "status",
+              "tileProvider",
               "source",
               "tile",
               "style",
               "sidebarContract",
+              "securityPolicy",
+              "attribution",
+              "validationStatus",
+              "validationError",
+              "lastValidatedAt",
+              "rowCount",
+              "bounds",
+              "metadata",
               "sidebarContractPath",
               "catalogVersion",
               "lastSyncAt"
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18::jsonb, $19::jsonb, $20, $21, $22)
             ON CONFLICT ("workspaceId", "key")
             DO UPDATE SET
               "catalogKey" = EXCLUDED."catalogKey",
               "name" = EXCLUDED."name",
               "description" = EXCLUDED."description",
               "status" = EXCLUDED."status",
+              "tileProvider" = EXCLUDED."tileProvider",
               "source" = EXCLUDED."source",
               "tile" = EXCLUDED."tile",
               "style" = EXCLUDED."style",
               "sidebarContract" = EXCLUDED."sidebarContract",
+              "securityPolicy" = EXCLUDED."securityPolicy",
+              "attribution" = EXCLUDED."attribution",
+              "validationStatus" = EXCLUDED."validationStatus",
+              "validationError" = EXCLUDED."validationError",
+              "lastValidatedAt" = EXCLUDED."lastValidatedAt",
+              "rowCount" = EXCLUDED."rowCount",
+              "bounds" = EXCLUDED."bounds",
+              "metadata" = EXCLUDED."metadata",
               "sidebarContractPath" = EXCLUDED."sidebarContractPath",
               "catalogVersion" = EXCLUDED."catalogVersion",
               "lastSyncAt" = EXCLUDED."lastSyncAt",
@@ -104,11 +134,26 @@ export class GeoReferenceLayerCatalogSyncService {
             catalog.catalogKey,
             layer.name,
             layer.description ?? null,
-            GeoReferenceLayerStatus.ACTIVE,
+            status,
+            layer.tileProvider,
             JSON.stringify(source),
             JSON.stringify(layer.tile),
             JSON.stringify(layer.style),
             JSON.stringify(layer.sidebarContract),
+            JSON.stringify(layer.securityPolicy),
+            layer.attribution ?? null,
+            layerValidation?.status ??
+              GeoReferenceLayerValidationStatus.NOT_VALIDATED,
+            layerValidation?.error ?? null,
+            layerValidation?.status ===
+              GeoReferenceLayerValidationStatus.VALID ||
+            layerValidation?.status ===
+              GeoReferenceLayerValidationStatus.INVALID
+              ? now
+              : null,
+            layerValidation?.rowCount ?? null,
+            JSON.stringify(layerValidation?.bounds ?? null),
+            JSON.stringify(layer.metadata),
             layer.sidebarContractPath,
             catalog.version,
             now,
@@ -175,6 +220,7 @@ export class GeoReferenceLayerCatalogSyncService {
         layerCount: catalog.layers.length,
         attachmentCount: defaultAttachments.length,
         archivedLayerCount: archivedRows.length,
+        invalidLayerCount: invalidLayers.length,
       };
     });
   }
@@ -220,120 +266,6 @@ export class GeoReferenceLayerCatalogSyncService {
       throw new Error(
         `Map view ${viewId} was not found in workspace ${workspaceId}`,
       );
-    }
-  }
-
-  private async validateCatalogSources({
-    catalog,
-  }: {
-    catalog: LoadedGeoReferenceLayerCatalog;
-  }) {
-    for (const layer of catalog.layers) {
-      await this.validateLayerSource({ catalog, layer });
-    }
-  }
-
-  private async validateLayerSource({
-    catalog,
-    layer,
-  }: {
-    catalog: LoadedGeoReferenceLayerCatalog;
-    layer: LoadedGeoReferenceLayerCatalogLayer;
-  }) {
-    const connection = layer.source.connectionKey
-      ? catalog.connections[layer.source.connectionKey]
-      : undefined;
-    const source = {
-      ...layer.source,
-      connectionUriEnv: connection?.uriEnv ?? null,
-    };
-    const client = await this.connectionService.connect(source);
-
-    try {
-      const sourceTable = quoteGeoReferenceSqlQualifiedName(layer.source);
-      const idColumn = quoteGeoReferenceSqlIdentifier(
-        layer.sidebarContract.query.selectedFeatureField,
-      );
-      const geometryColumn = quoteGeoReferenceSqlIdentifier(
-        layer.source.geometryColumnName,
-      );
-      const contract = layer.sidebarContract;
-      const fieldColumns = contract.sections.flatMap((section) =>
-        section.fields.map((field) => field.column),
-      );
-      const sortColumns = contract.query.sort.map((sort) => sort.column);
-      const requiredColumns = [
-        layer.source.idColumnName,
-        layer.source.geometryColumnName,
-        contract.query.selectedFeatureField,
-        contract.query.targetField,
-        ...contract.query.selectionTitle.fields,
-        ...sortColumns,
-        ...fieldColumns,
-      ];
-      const columnRows = await client.query<{ column_name: string }>(
-        `
-          SELECT column_name
-          FROM information_schema.columns
-          WHERE table_schema = $1
-            AND table_name = $2
-        `,
-        [layer.source.schemaName, layer.source.tableName],
-      );
-      const existingColumns = new Set(
-        columnRows.rows.map((row) => row.column_name),
-      );
-      const missingColumns = requiredColumns.filter(
-        (column) => !existingColumns.has(column),
-      );
-
-      if (missingColumns.length > 0) {
-        throw new Error(
-          `Layer ${layer.key} source ${sourceTable} is missing columns: ${missingColumns.join(', ')}`,
-        );
-      }
-
-      const sridRows = await client.query<{ srid: number | null }>(
-        `
-          SELECT ST_SRID(${geometryColumn}::geometry)::integer AS srid
-          FROM ${sourceTable}
-          WHERE ${geometryColumn} IS NOT NULL
-          LIMIT 1
-        `,
-      );
-      const actualSrid = sridRows.rows[0]?.srid;
-
-      if (isDefined(actualSrid) && actualSrid !== layer.source.geometrySrid) {
-        throw new Error(
-          `Layer ${layer.key} declares SRID ${layer.source.geometrySrid}, source has ${actualSrid}`,
-        );
-      }
-
-      const idRows = await client.query<{
-        null_ids: string;
-        duplicate_ids: string;
-      }>(
-        `
-          SELECT
-            COUNT(*) FILTER (WHERE ${idColumn} IS NULL)::text AS null_ids,
-            (COUNT(*) - COUNT(DISTINCT ${idColumn}))::text AS duplicate_ids
-          FROM ${sourceTable}
-        `,
-      );
-
-      if (Number(idRows.rows[0]?.null_ids ?? 0) > 0) {
-        throw new Error(
-          `Layer ${layer.key} selected feature field contains null values`,
-        );
-      }
-
-      if (Number(idRows.rows[0]?.duplicate_ids ?? 0) > 0) {
-        throw new Error(
-          `Layer ${layer.key} selected feature field contains duplicate values`,
-        );
-      }
-    } finally {
-      await client.end();
     }
   }
 }

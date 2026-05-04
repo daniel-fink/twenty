@@ -255,6 +255,7 @@ export const useRecordMapReferenceLayers = ({
 
         if (!hasSource(map, sourceId)) {
           map.addSource(sourceId, {
+            attribution: layer.attribution ?? undefined,
             type: 'vector',
             tiles: [
               `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${viewId}/reference-layers/${layer.id}/tiles/{z}/{x}/{y}.mvt`,

@@ -16,7 +16,10 @@ export type LoadedGeoReferenceLayerCatalogLayer =
     sidebarContract: GeoReferenceLayerSidebarContract;
   };
 
-export type LoadedGeoReferenceLayerCatalog = GeoReferenceLayerCatalog & {
+export type LoadedGeoReferenceLayerCatalog = Omit<
+  GeoReferenceLayerCatalog,
+  'layers'
+> & {
   catalogPath: string;
   catalogDirectory: string;
   catalogKey: string;
@@ -26,6 +29,48 @@ export type LoadedGeoReferenceLayerCatalog = GeoReferenceLayerCatalog & {
 const readJsonFile = (filePath: string) =>
   JSON.parse(readFileSync(filePath, 'utf-8'));
 
+export const loadGeoReferenceLayerCatalog = async ({
+  catalogKey,
+  catalogDirectory,
+  catalogPath,
+  catalogJson,
+  readJson,
+  resolvePath,
+}: {
+  catalogKey?: string;
+  catalogDirectory: string;
+  catalogPath: string;
+  catalogJson: unknown;
+  readJson: (filePath: string) => Promise<unknown>;
+  resolvePath: (directory: string, filePath: string) => string;
+}): Promise<LoadedGeoReferenceLayerCatalog> => {
+  const catalog = geoReferenceLayerCatalogSchema.parse(catalogJson);
+  const resolvedCatalogKey = catalog.name ?? catalogKey ?? catalogPath;
+
+  return {
+    ...catalog,
+    catalogPath,
+    catalogDirectory,
+    catalogKey: resolvedCatalogKey,
+    layers: await Promise.all(
+      catalog.layers.map(async (layer) => {
+        const sidebarContractPath = resolvePath(
+          catalogDirectory,
+          layer.sidebarContractPath,
+        );
+        const sidebarContract = geoReferenceLayerSidebarContractSchema.parse(
+          await readJson(sidebarContractPath),
+        );
+
+        return {
+          ...layer,
+          sidebarContract,
+        };
+      }),
+    ),
+  };
+};
+
 export const loadGeoReferenceLayerCatalogFromFile = (
   catalogPath: string,
 ): LoadedGeoReferenceLayerCatalog => {
@@ -34,13 +79,12 @@ export const loadGeoReferenceLayerCatalogFromFile = (
   const catalog = geoReferenceLayerCatalogSchema.parse(
     readJsonFile(resolvedCatalogPath),
   );
-  const catalogKey = catalog.name ?? resolvedCatalogPath;
 
   return {
     ...catalog,
     catalogPath: resolvedCatalogPath,
     catalogDirectory,
-    catalogKey,
+    catalogKey: catalog.name ?? resolvedCatalogPath,
     layers: catalog.layers.map((layer) => {
       const sidebarContractPath = resolve(
         catalogDirectory,

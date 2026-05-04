@@ -18,8 +18,24 @@ import {
 
 export enum GeoReferenceLayerStatus {
   ACTIVE = 'ACTIVE',
+  DISABLED = 'DISABLED',
   ARCHIVED = 'ARCHIVED',
 }
+
+export enum GeoReferenceLayerValidationStatus {
+  NOT_VALIDATED = 'NOT_VALIDATED',
+  VALID = 'VALID',
+  INVALID = 'INVALID',
+}
+
+export type GeoReferenceLayerTileProvider = 'TWENTY_POSTGIS';
+
+export type GeoReferenceLayerSecurityPolicy = {
+  kind: 'AUTHENTICATED_WORKSPACE';
+  propertyPolicy: 'ALLOWLIST_ONLY';
+};
+
+export type GeoReferenceLayerBounds = [number, number, number, number];
 
 export type GeoReferenceLayerSource = {
   provider: 'TWENTY_WORKSPACE_POSTGIS' | 'EXTERNAL_POSTGIS';
@@ -75,6 +91,9 @@ export class GeoReferenceLayerEntity {
   })
   status: GeoReferenceLayerStatus;
 
+  @Column({ nullable: false, type: 'text', default: 'TWENTY_POSTGIS' })
+  tileProvider: GeoReferenceLayerTileProvider;
+
   @Column('jsonb', { nullable: false })
   source: GeoReferenceLayerSource;
 
@@ -86,6 +105,39 @@ export class GeoReferenceLayerEntity {
 
   @Column('jsonb', { nullable: false })
   sidebarContract: GeoReferenceLayerSidebarContract;
+
+  @Column('jsonb', {
+    nullable: false,
+    default: () =>
+      '\'{"kind":"AUTHENTICATED_WORKSPACE","propertyPolicy":"ALLOWLIST_ONLY"}\'::jsonb',
+  })
+  securityPolicy: GeoReferenceLayerSecurityPolicy;
+
+  @Column({ nullable: true, type: 'text' })
+  attribution: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: Object.values(GeoReferenceLayerValidationStatus),
+    nullable: false,
+    default: GeoReferenceLayerValidationStatus.NOT_VALIDATED,
+  })
+  validationStatus: GeoReferenceLayerValidationStatus;
+
+  @Column({ nullable: true, type: 'text' })
+  validationError: string | null;
+
+  @Column({ nullable: true, type: 'timestamptz' })
+  lastValidatedAt: Date | null;
+
+  @Column({ nullable: true, type: 'int' })
+  rowCount: number | null;
+
+  @Column('jsonb', { nullable: true })
+  bounds: GeoReferenceLayerBounds | null;
+
+  @Column('jsonb', { nullable: false, default: () => "'{}'::jsonb" })
+  metadata: Record<string, unknown>;
 
   @Column({ nullable: true, type: 'text' })
   sidebarContractPath: string | null;

@@ -27,6 +27,7 @@ export type RecordMapReferenceLayer = {
   key: string;
   name: string;
   description?: string | null;
+  attribution?: string | null;
   source: {
     geometryType: string;
   };

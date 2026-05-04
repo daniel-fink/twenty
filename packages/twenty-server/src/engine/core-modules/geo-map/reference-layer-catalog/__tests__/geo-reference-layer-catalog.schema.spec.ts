@@ -53,6 +53,36 @@ describe('geoReferenceLayerCatalogSchema', () => {
     ).not.toThrow();
   });
 
+  it('defaults v1 operational catalog fields', () => {
+    expect(
+      geoReferenceLayerCatalogSchema.parse(validCatalog).layers[0],
+    ).toMatchObject({
+      metadata: {},
+      securityPolicy: {
+        kind: 'AUTHENTICATED_WORKSPACE',
+        propertyPolicy: 'ALLOWLIST_ONLY',
+      },
+      status: 'ACTIVE',
+      tileProvider: 'TWENTY_POSTGIS',
+    });
+  });
+
+  it('accepts disabled layers with attribution and metadata', () => {
+    expect(() =>
+      geoReferenceLayerCatalogSchema.parse({
+        ...validCatalog,
+        layers: [
+          {
+            ...validCatalog.layers[0],
+            attribution: 'Demo source',
+            metadata: { sourceUpdatedAt: '2026-05-04' },
+            status: 'DISABLED',
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   it('requires external PostGIS layers to declare a connection key', () => {
     expect(() =>
       geoReferenceLayerCatalogSchema.parse({

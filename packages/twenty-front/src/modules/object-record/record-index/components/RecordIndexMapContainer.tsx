@@ -35,12 +35,26 @@ export const RecordIndexMapContainer = ({
       isValidMapFieldMetadataItem(field),
   );
 
-  if (!isDefined(currentView?.mapFieldMetadataId)) {
+  if (!isDefined(currentView)) {
     return null;
   }
 
-  if (!isDefined(mapFieldMetadataItem)) {
-    return null;
+  if (
+    !isDefined(currentView.mapFieldMetadataId) ||
+    !isDefined(mapFieldMetadataItem)
+  ) {
+    return (
+      <RecordComponentInstanceContextsWrapper
+        componentInstanceId={recordMapInstanceId}
+      >
+        <RecordMap
+          loading={false}
+          objectNameSingular={objectNameSingular}
+          recordMapPoints={[]}
+          viewId={currentView.id}
+        />
+      </RecordComponentInstanceContextsWrapper>
+    );
   }
 
   const mapFieldSource = {
@@ -83,6 +97,7 @@ const RecordIndexMapContent = ({
 
   return (
     <RecordIndexAddressMapContent
+      viewId={viewId}
       mapFieldSource={mapFieldSource}
       objectNameSingular={objectNameSingular}
     />
@@ -117,14 +132,17 @@ const RecordIndexGeometryMapContent = ({
       recordMapPoints={[]}
       onSearchThisArea={handleSearchThisArea}
       tileSource={{ viewId, filter }}
+      viewId={viewId}
     />
   );
 };
 
 const RecordIndexAddressMapContent = ({
+  viewId,
   mapFieldSource,
   objectNameSingular,
 }: {
+  viewId: string;
   mapFieldSource: MapFieldSource;
   objectNameSingular: string;
 }) => {
@@ -139,6 +157,7 @@ const RecordIndexAddressMapContent = ({
         loading={loading}
         objectNameSingular={objectNameSingular}
         recordMapPoints={recordMapPoints}
+        viewId={viewId}
       />
       <RecordMapSSESubscribeEffect />
       <RecordIndexMapDataLoaderEffect records={records} />

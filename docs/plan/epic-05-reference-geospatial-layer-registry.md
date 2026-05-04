@@ -2,14 +2,24 @@
 
 ## Status
 
-Active next-epic specification. Implementation should begin from
-`upstream/native-map-view-pr-04-hardening` on the private
-`feature/native-map-view-epic-05` branch. Epic 05 should assume the Epic 04
-baseline exists: object-backed geometry map views, authenticated MVT tiles,
-TileJSON, map tile policy handling, and spatial record filters.
+Partially implemented; hardening and documentation alignment remaining.
 
-The current code does not yet implement reference layers. This document is the
-decision record and implementation target for that work.
+Epic 05 should assume the Epic 04 baseline exists: object-backed geometry map
+views, authenticated MVT tiles, TileJSON, map tile policy handling, and spatial
+record filters. The current code now includes reference-layer registry tables,
+catalog loading from local files, a sync command, authenticated REST endpoints,
+MVT serving, frontend MapLibre rendering, layer toggles, and side-panel feature
+inspection.
+
+Status legend used below:
+
+- **Implemented differently**: code satisfies the product intent but not the
+  original written schema.
+- **Remaining implementation**: real gaps needed to complete Epic 05.
+- **Deferred/future**: explicitly not v1 completion work.
+
+This document remains the decision record and implementation target. Some older
+schema sketches are now historical context rather than current v1 instructions.
 
 ## Goal
 
@@ -138,7 +148,7 @@ there is a normal Twenty record page.
 - Allow a map view to include one or more registered reference layers.
 - Support basic layer visibility, ordering, min/max zoom, geometry type, style,
   and attribution metadata.
-- Support a curated list of exposed properties for tooltips and insight panels.
+- Support a curated sidebar contract for feature picking and insight panels.
 - Keep reference layer tables outside the Twenty object metadata system.
 - Keep Epic 4 object-layer rendering available on the same map.
 - Add catalog sync and validation commands.
@@ -237,8 +247,11 @@ Example catalog:
 ```json
 {
   "version": 1,
+  "kind": "geo-reference-layer-catalog",
+  "name": "Private geofs demo reference layer catalog",
   "connections": {
     "geofs-demo": {
+      "type": "POSTGIS",
       "uriEnv": "GEO_REFERENCE_CONNECTION_GEOFS_DEMO"
     }
   },
@@ -248,38 +261,51 @@ Example catalog:
       "name": "Parcels",
       "description": "Parcel boundaries from the geofs demo PostGIS database.",
       "source": {
+        "provider": "EXTERNAL_POSTGIS",
         "connectionKey": "geofs-demo",
         "schemaName": "model",
         "tableName": "parcels",
-        "idColumnName": "property_PROPID",
+        "idColumnName": "property_SHAPEUUID",
         "geometryColumnName": "geometry",
         "geometrySrid": 7856,
         "geometryType": "MULTIPOLYGON"
       },
+      "sidebarContractPath": "./geofs-demo.contracts/parcels.contract.json",
       "tile": {
-        "minZoom": 10,
-        "maxZoom": 16
+        "minZoom": 12,
+        "maxZoom": 18
       },
       "style": {
         "type": "fill",
-        "fillColor": "#22c55e",
-        "fillOpacity": 0.18,
-        "lineColor": "#15803d",
+        "fillColor": "#3B82F6",
+        "fillOpacity": 0.14,
+        "lineColor": "#1D4ED8",
+        "lineOpacity": 0.82,
         "lineWidth": 1
       },
-      "exposedProperties": [
-        { "column": "property_ADDRESS", "label": "Address", "type": "TEXT" },
-        { "column": "address_SUBURBNAME", "label": "Suburb", "type": "TEXT" },
-        { "column": "property_AREA", "label": "Area", "type": "NUMBER" }
-      ]
+      "defaultAttachment": {
+        "isVisible": true,
+        "position": 10
+      }
     }
   ],
-  "viewAttachments": []
+  "defaultViewAttachments": [
+    {
+      "layerKey": "geofs-parcels",
+      "isVisible": true,
+      "position": 10
+    }
+  ]
 }
 ```
 
 The built-in default catalog should be empty or contain only non-sensitive
 example entries that cannot leak private infrastructure.
+
+Current v1 catalogs use `sidebarContractPath` to point at a nearby JSON
+contract file. That contract is the allowlist for feature titles, sort keys, and
+side-panel insight fields. The older inline `exposedProperties` sketch is
+superseded for v1 and should not be used as the canonical catalog shape.
 
 ## App Manifest Boundary
 
@@ -369,7 +395,8 @@ should leave room for it.
 
 ## Registry Model
 
-Introduce two Twenty-controlled runtime metadata tables in the `core` schema:
+**Implemented differently.** Epic 05 uses two Twenty-controlled runtime
+metadata tables in the `core` schema:
 
 - `core.geoReferenceLayer`: one materialized, validated layer from a catalog.
 - `core.viewGeoReferenceLayer`: map-view attachment rows for registered
@@ -377,42 +404,51 @@ Introduce two Twenty-controlled runtime metadata tables in the `core` schema:
 
 The catalog remains the authoring source of truth. These tables exist so tile
 requests can use validated, indexed, workspace-scoped metadata without reading
-and parsing JSON on the hot path.
+catalog files on the hot path.
 
-Conceptual layer model:
+Current v1 layer model:
 
 ```ts
 type GeoReferenceLayer = {
   id: string;
   workspaceId: string;
   key: string;
+  catalogKey: string;
   name: string;
   description: string | null;
-  sourceType: 'TWENTY_WORKSPACE_POSTGIS' | 'EXTERNAL_POSTGIS';
-  sourceConnectionKey: string | null;
-  schemaName: string;
-  tableName: string;
-  idColumnName: string;
-  geometryColumnName: string;
-  geometrySrid: number;
-  geometryType: 'POINT' | 'LINESTRING' | 'POLYGON' | 'MULTIPOLYGON' | 'GEOMETRY';
-  minZoom: number;
-  maxZoom: number;
-  tileProvider: 'TWENTY_POSTGIS';
-  isEnabled: boolean;
-  isQueryable: boolean;
-  isVisibleByDefault: boolean;
-  attribution: string | null;
+  status: 'ACTIVE' | 'ARCHIVED';
+  source: {
+    provider: 'TWENTY_WORKSPACE_POSTGIS' | 'EXTERNAL_POSTGIS';
+    connectionKey?: string | null;
+    connectionUriEnv?: string | null;
+    schemaName: string;
+    tableName: string;
+    idColumnName: string;
+    geometryColumnName: string;
+    geometrySrid: number;
+    geometryType: string;
+  };
+  tile: {
+    minZoom: number;
+    maxZoom: number;
+    maxFeatureCount?: number | null;
+  };
   style: GeoReferenceLayerStyle;
-  exposedProperties: GeoReferenceLayerProperty[];
-  securityPolicy: GeoReferenceLayerSecurityPolicy;
-  metadata: Record<string, unknown>;
+  sidebarContract: GeoReferenceLayerSidebarContract;
+  sidebarContractPath: string | null;
+  catalogVersion: number;
+  lastSyncAt: Date;
 };
 ```
 
-`LINESTRING` is listed here for future reference-layer compatibility, not
-because Epic 03/04 object geometry fields currently expose line geometry as a
-supported object field type.
+`source`, `tile`, `style`, and `sidebarContract` are stored as validated JSON
+materialized from catalog files. This is the current v1 shape and should be
+preferred over the older flat-column sketch.
+
+The sidebar contract is the v1 allowlist and insight model. It defines the
+selected feature id, title fields, sort keys carried in MVT properties, and
+fields shown in the side-panel detail view. It supersedes the earlier
+`exposedProperties` model for v1.
 
 Layer keys must be stable, URL-safe, and unique per workspace:
 
@@ -423,61 +459,42 @@ sales-territories
 network-coverage-score
 ```
 
-Recommended table shape:
+Current v1 table shape:
 
 ```sql
 CREATE TABLE "core"."geoReferenceLayer" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "workspaceId" uuid NOT NULL,
   "key" text NOT NULL,
+  "catalogKey" text NOT NULL DEFAULT 'default',
   "name" text NOT NULL,
   "description" text,
-  "sourceType" text NOT NULL,
-  "sourceConnectionKey" text,
-  "schemaName" text NOT NULL,
-  "tableName" text NOT NULL,
-  "idColumnName" text NOT NULL,
-  "geometryColumnName" text NOT NULL,
-  "geometrySrid" integer NOT NULL,
-  "geometryType" text NOT NULL,
-  "minZoom" integer NOT NULL DEFAULT 0,
-  "maxZoom" integer NOT NULL DEFAULT 14,
-  "tileProvider" text NOT NULL DEFAULT 'TWENTY_POSTGIS',
-  "isEnabled" boolean NOT NULL DEFAULT true,
-  "isQueryable" boolean NOT NULL DEFAULT true,
-  "isVisibleByDefault" boolean NOT NULL DEFAULT true,
-  "attribution" text,
-  "style" jsonb NOT NULL DEFAULT '{}',
-  "exposedProperties" jsonb NOT NULL DEFAULT '[]',
-  "securityPolicy" jsonb NOT NULL DEFAULT '{}',
-  "metadata" jsonb NOT NULL DEFAULT '{}',
+  "status" "core"."geoReferenceLayer_status_enum" NOT NULL DEFAULT 'ACTIVE',
+  "source" jsonb NOT NULL,
+  "tile" jsonb NOT NULL,
+  "style" jsonb NOT NULL,
+  "sidebarContract" jsonb NOT NULL,
+  "sidebarContractPath" text,
+  "catalogVersion" integer NOT NULL DEFAULT 1,
+  "lastSyncAt" timestamptz NOT NULL,
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
-  "deletedAt" timestamptz,
   CONSTRAINT "PK_GEO_REFERENCE_LAYER" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "IDX_GEO_REFERENCE_LAYER_KEY_WORKSPACE_UNIQUE"
-ON "core"."geoReferenceLayer" ("workspaceId", "key")
-WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX "IDX_GEO_REFERENCE_LAYER_WORKSPACE_KEY"
+ON "core"."geoReferenceLayer" ("workspaceId", "key");
 
-CREATE INDEX "IDX_GEO_REFERENCE_LAYER_WORKSPACE"
-ON "core"."geoReferenceLayer" ("workspaceId")
-WHERE "deletedAt" IS NULL;
+CREATE INDEX "IDX_GEO_REFERENCE_LAYER_WORKSPACE_STATUS"
+ON "core"."geoReferenceLayer" ("workspaceId", "status");
 ```
 
-Expose properties through a catalog allowlist, not by returning arbitrary table
-columns:
-
-```ts
-type GeoReferenceLayerProperty = {
-  column: string;
-  label: string;
-  type: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE' | 'DATETIME' | 'JSON';
-  isVisibleInTooltip: boolean;
-  isVisibleInInsightPanel: boolean;
-};
-```
+Superseded design note: the earlier flat model with `sourceType`,
+`schemaName`, `geometrySrid`, `tileProvider`, `securityPolicy`, `metadata`, and
+inline `exposedProperties` is no longer the current v1 implementation target.
+Some of those concepts remain **remaining implementation** hardening candidates:
+`tileProvider`, explicit security policy metadata, attribution, validation
+status, operational metadata, and provider metadata.
 
 Style should be intentionally narrow and map to static MapLibre paint/layout
 properties:
@@ -513,7 +530,7 @@ data-driven MapLibre expressions.
 Reference layer registration defines what exists. Map view layer attachment
 defines what appears in a particular map view.
 
-Introduce a map-view layer attachment concept:
+Current v1 map-view layer attachment model:
 
 ```ts
 type MapViewReferenceLayer = {
@@ -523,13 +540,11 @@ type MapViewReferenceLayer = {
   geoReferenceLayerId: string;
   position: number;
   isVisible: boolean;
-  minZoomOverride: number | null;
-  maxZoomOverride: number | null;
   styleOverride: GeoReferenceLayerStyle | null;
 };
 ```
 
-Recommended table shape:
+Current v1 table shape:
 
 ```sql
 CREATE TABLE "core"."viewGeoReferenceLayer" (
@@ -539,12 +554,9 @@ CREATE TABLE "core"."viewGeoReferenceLayer" (
   "geoReferenceLayerId" uuid NOT NULL,
   "position" double precision NOT NULL DEFAULT 0,
   "isVisible" boolean NOT NULL DEFAULT true,
-  "minZoomOverride" integer,
-  "maxZoomOverride" integer,
   "styleOverride" jsonb,
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
-  "deletedAt" timestamptz,
   CONSTRAINT "PK_VIEW_GEO_REFERENCE_LAYER" PRIMARY KEY ("id"),
   CONSTRAINT "FK_VIEW_GEO_REFERENCE_LAYER_VIEW"
     FOREIGN KEY ("viewId") REFERENCES "core"."view"("id") ON DELETE CASCADE,
@@ -553,13 +565,11 @@ CREATE TABLE "core"."viewGeoReferenceLayer" (
     REFERENCES "core"."geoReferenceLayer"("id") ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_UNIQUE"
-ON "core"."viewGeoReferenceLayer" ("viewId", "geoReferenceLayerId")
-WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_VIEW_LAYER"
+ON "core"."viewGeoReferenceLayer" ("viewId", "geoReferenceLayerId");
 
-CREATE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_VIEW"
-ON "core"."viewGeoReferenceLayer" ("workspaceId", "viewId")
-WHERE "deletedAt" IS NULL;
+CREATE INDEX "IDX_VIEW_GEO_REFERENCE_LAYER_WORKSPACE_VIEW"
+ON "core"."viewGeoReferenceLayer" ("workspaceId", "viewId");
 ```
 
 This keeps layer availability separate from view composition.
@@ -574,6 +584,8 @@ Rules:
 - Reference layer visibility can be toggled in the map UI without mutating the
   underlying layer registry.
 - Persisted layer attachments should be workspace-scoped and view-scoped.
+- Zoom overrides and soft deletes were part of the earlier sketch but are not in
+  the current v1 implementation.
 
 ## Ingestion Contract
 
@@ -620,8 +632,8 @@ npx nx command twenty-server -- workspace:sync:geo-reference-layer-catalog \
 ```
 
 The command should validate catalog shape, connection key resolution, table
-existence, geometry type, SRID, spatial index, and exposed property names before
-enabling each layer. It should upsert `core.geoReferenceLayer` and
+existence, geometry type, SRID, spatial index, and sidebar contract columns
+before enabling each layer. It should upsert `core.geoReferenceLayer` and
 `core.viewGeoReferenceLayer` rows in one transaction per workspace.
 
 ## Tile Serving Architecture
@@ -645,7 +657,9 @@ Tile response:
 - Layer name: stable layer key or `features`.
 - Feature properties:
   - stable feature id.
-  - allowlisted exposed properties only.
+  - selected feature value.
+  - display title.
+  - contract-declared sort keys only.
 - No arbitrary table columns.
 - No hidden computed fields.
 
@@ -746,7 +760,8 @@ Frontend behavior:
 - Add one MapLibre vector source per reference layer.
 - Add style layers from registry style metadata.
 - Preserve the Epic 4 primary object click behavior.
-- For reference feature clicks, open a lightweight insight panel or popup.
+- For reference feature clicks, open the side-panel insight page backed by the
+  layer sidebar contract.
 - Do not attempt to navigate to a Twenty record unless the layer is explicitly
   linked to an object in a future version.
 - Refresh reference layer sources when view attachment or filter state changes.
@@ -757,10 +772,13 @@ layers do not share record-specific assumptions.
 
 ## Tooltip and Insight Model
 
-Reference features should support a small inspected-feature payload.
+**Implemented differently.** Reference features support a small inspected-feature
+payload through side-panel feature detail, not through the older inline
+`exposedProperties` catalog model.
 
-For v1, the tile may include only the properties required for tooltip display.
-If the insight panel needs more data, fetch it by layer id and feature id:
+For v1, the tile may include only the properties required for feature picking:
+stable feature id, selected feature value, title, and sort keys. The side panel
+fetches allowlisted detail fields by layer id and feature id:
 
 ```txt
 GET /rest/map/views/:viewId/reference-layers/:layerId/features/:featureId
@@ -769,10 +787,10 @@ GET /rest/map/views/:viewId/reference-layers/:layerId/features/:featureId
 Feature detail response should include:
 
 - layer id
-- feature id
+- selected feature value
 - display title
 - geometry summary or bounds
-- allowlisted properties
+- sidebar-contract sections and fields
 - attribution/source metadata
 
 Do not return full raw `properties` JSON unless the registry explicitly allows
@@ -833,7 +851,7 @@ Validation should check:
 - SRID matches registry
 - geometry type is compatible
 - geometry column has a GiST index
-- exposed properties resolve
+- sidebar contract fields, title fields, and sort fields resolve
 - row count and bounds can be computed
 - sample tiles can be generated for each enabled layer
 
@@ -866,56 +884,72 @@ does not need to implement every serving strategy.
 
 ## Backend Tasks
 
-- Add catalog types and validation:
-  - `geo-reference-layer-catalog.types.ts`
-  - `geo-reference-layer-catalog.schema.ts`
-  - built-in empty/default catalog JSON
-  - sanitized `geofs-demo.example.json`
-- Add config variables:
-  - `GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH`
-  - sensitive `GEO_REFERENCE_CONNECTION_*` resolution path
-- Add registry persistence:
-  - `core.geoReferenceLayer`
-  - `core.viewGeoReferenceLayer`
-  - migrations and indexes
-- Add registry validation:
-  - catalog schema validation
-  - connection key resolution
-  - identifier validation
-  - schema/table existence checks
-  - geometry column checks
-  - SRID checks
-  - geometry type compatibility checks
-  - GiST index checks
-  - exposed property checks
-- Add command for catalog sync into runtime registry rows.
-- Add command for catalog validation without materializing changes.
-- Add service for resolving visible reference layers for a map view.
-- Add authenticated tile endpoint for reference layers.
-- Add MVT SQL builder for reference layer tables.
-- Add feature detail endpoint for allowlisted properties.
-- Add bounds endpoint for reference layers if needed by frontend fitting.
-- Add cache headers and cache key strategy for reference tiles.
-- Add tile metrics logging for reference layer requests.
-- Add tests for registry validation and SQL safety.
+Implemented:
+
+- Catalog types and Zod schema exist for the current v1 catalog and sidebar
+  contract shape.
+- Built-in empty/default catalog JSON exists.
+- Private `geofs` demo catalog and contracts exist for parcels and transactions.
+- `GEO_REFERENCE_LAYER_CATALOG_STORAGE_PATH` config variable exists.
+- External connection `uriEnv` resolution checks registered config first and
+  then falls back to `process.env`.
+- Registry persistence exists through `core.geoReferenceLayer` and
+  `core.viewGeoReferenceLayer`.
+- Catalog sync command materializes catalog layers and default attachments.
+- Catalog sync can load a catalog from `--catalog-path`, configured storage, or
+  the built-in default catalog.
+- Validation-only command exists for catalog checks without materializing
+  registry rows.
+- Registry validation checks table existence, required columns, sampled SRID,
+  geometry type compatibility, selected-feature uniqueness, and GiST indexes.
+- Sync persists validation status, validation error, last validation time, row
+  count, bounds, attribution, explicit security policy, tile provider, and
+  operational metadata.
+- Services and authenticated REST endpoints exist for attached layer metadata,
+  TileJSON, MVT tiles, bounds, and feature details.
+- Disabled and invalid layers are materialized but are not served by reference
+  layer metadata, TileJSON, tile, bounds, or feature endpoints.
+- Reference MVT SQL builder exists and supports non-`4326` source SRIDs.
+- Initial schema and SQL-safety unit tests exist.
+
+Remaining implementation:
+
+- Add sample tile generation checks to validation if v1 wants to catch
+  tile-time SQL issues before sync completes.
+- Add cache header strategy and tile metrics logging for reference tile requests.
+- Add integration tests for validation, sync, auth boundaries, invalid/disabled/
+  archived layers, feature detail, MVT bytes, and SRID `7856`.
 
 ## Frontend Tasks
 
-- Add reference layer types to frontend model.
-- Fetch map-view reference layer attachments.
-- Extend map rendering to add reference layer vector sources.
-- Add fill, line, and point layers using registry style metadata.
-- Add layer visibility controls.
-- Add hover/click handling for reference features.
-- Add popup or side panel for allowlisted reference properties.
-- Preserve object feature click behavior from Epic 4.
-- Add loading/error states per reference layer.
-- Add basic attribution display if the base map style does not handle it.
-- Add tests for layer source construction and click behavior.
+Implemented:
+
+- Reference layer types exist in the frontend model.
+- Map views fetch attached reference layers.
+- Map rendering adds MapLibre vector sources for visible reference layers.
+- Fill, line, and circle layers render from registry style metadata.
+- Layer visibility controls exist in the map layers dropdown.
+- Reference-only map views render when attached reference layers exist and no
+  primary object tile source is available.
+- Map-surface loading/error states exist for reference layer loading failures.
+- Reference-layer attribution is passed through to MapLibre vector sources.
+- Reference feature clicks open the side-panel insight page.
+- Object feature click behavior from Epic 4 is preserved.
+- Basic reference map rendering, attribution, and feature picker tests exist.
+
+Remaining implementation:
+
+- Add broader behavior tests for visibility toggles, reference feature
+  side-panel navigation, and object-click preservation.
 
 ## Local Pipeline and Tooling Tasks
 
-- Add a sanitized `geofs` example catalog for parcels and transactions.
+Implemented:
+
+- Private `geofs` example catalog exists for parcels and transactions.
+
+Remaining implementation:
+
 - Add command examples for syncing and validating that catalog.
 - Add optional sample pipeline script for loading a new reference dataset into a
   `geo_*` schema in the primary database.
@@ -957,7 +991,7 @@ For each benchmark, validate:
 - Catalog schema validation.
 - Catalog connection-key validation.
 - Registry identifier validation.
-- Property allowlist validation.
+- Sidebar contract allowlist validation.
 - Style metadata validation.
 - Security policy validation.
 - MVT SQL generation for reference layers.
@@ -972,9 +1006,10 @@ For each benchmark, validate:
 - Resolve an external PostGIS connection from an env-backed connection key.
 - Reject a layer with a missing geometry column.
 - Reject a layer without a spatial index when enabled.
-- Reject an exposed property that is not present or not allowed.
+- Reject a sidebar contract field that is not present or not allowed.
 - Serve MVT bytes for a registered layer.
-- Ensure tile payload includes only allowlisted properties.
+- Ensure tile payload includes only feature identity, title, and contract sort
+  keys.
 - Ensure unauthenticated users cannot read reference tiles.
 - Ensure users from another workspace cannot read reference tiles.
 - Ensure disabled layers do not serve tiles.
@@ -988,7 +1023,7 @@ For each benchmark, validate:
 - Map view requests attached reference layers.
 - MapLibre sources are configured from registry metadata.
 - Layer visibility toggles hide and show the correct layers.
-- Reference feature click opens an insight popup/panel.
+- Reference feature click opens the side-panel insight page.
 - Object feature click still opens the Twenty record.
 - Missing or failed reference layers show a non-blocking state.
 - Style metadata maps to expected MapLibre layer definitions.
@@ -1004,35 +1039,42 @@ For each benchmark, validate:
 
 ## Acceptance Criteria
 
-- A JSON catalog can define a pipeline-owned PostGIS table as a reference
-  geospatial layer without creating a Twenty object.
-- The catalog lives under the owning server package or a configured storage
-  path, not a new root-level config directory.
-- Connection strings are resolved from env/config variables and are not stored
-  in committed catalogs or runtime metadata rows.
-- Catalog sync materializes validated rows into `core.geoReferenceLayer` and
-  `core.viewGeoReferenceLayer`.
-- Registered reference layers may point to same-database `geo_*` schemas or to
-  explicitly configured external PostGIS connections.
-- Registry metadata declares source table, id column, geometry column,
-  geometry type, zoom range, style, attribution, and exposed properties.
-- Registry validation rejects unsafe identifiers, missing tables, missing
-  geometry columns, incompatible SRIDs, and missing spatial indexes.
-- A map view can attach one or more reference layers.
-- The frontend renders attached reference layers together with an Epic 4 object
-  layer.
-- Reference layer tiles include only stable feature id and allowlisted
-  properties.
-- Reference feature click shows a tooltip or insight panel without requiring a
-  Twenty record page.
-- Object feature click behavior remains unchanged.
-- Reference layer endpoints are authenticated and workspace-scoped.
-- Disabled or unauthorized layers do not serve metadata, tiles, or feature
-  details.
-- Large reference datasets can be loaded outside normal seed data.
-- Source SRIDs other than `4326`, including the `geofs` SRID `7856`, render
-  correctly through MVT tiles.
-- The design keeps a future path to Martin, pg_tileserv, PMTiles, or MBTiles.
+- [x] **Done**: A JSON catalog can define a pipeline-owned PostGIS table as a
+      reference geospatial layer without creating a Twenty object.
+- [ ] **Partial**: The catalog lives under the owning server package or an
+      explicit `--catalog-path`; configured storage-path loading is implemented,
+      but local pipeline docs still need command examples.
+- [x] **Done**: Connection strings are resolved from env/config variables and
+      are not stored in committed catalogs.
+- [x] **Done**: Catalog sync materializes rows into `core.geoReferenceLayer` and
+      `core.viewGeoReferenceLayer`.
+- [x] **Done**: Registered reference layers may point to same-database PostGIS
+      sources or explicitly configured external PostGIS connections.
+- [x] **Done**: Registry metadata declares source table, id column, geometry
+      column, geometry type, zoom range, style, sidebar contract, attribution,
+      explicit security policy, validation state, bounds, row count, and operational
+      metadata.
+- [ ] **Partial**: Registry validation rejects unsafe identifiers, missing
+      tables, missing columns, SRID mismatches, geometry type mismatches, duplicate
+      selected feature values, and missing GiST indexes; sample tile checks remain.
+- [x] **Done**: A map view can attach one or more reference layers.
+- [x] **Done**: The frontend renders attached reference layers together with an
+      Epic 4 object layer or as a reference-only map view.
+- [x] **Done**: Reference layer tiles include only stable feature identity,
+      title, and contract sort keys.
+- [x] **Done**: Reference feature click shows a side-panel insight view without
+      requiring a Twenty record page.
+- [x] **Done**: Object feature click behavior remains unchanged.
+- [x] **Done**: Reference layer endpoints are authenticated and
+      workspace-scoped.
+- [x] **Done**: Unauthorized, unattached, disabled, and invalid layers do not
+      serve metadata, tiles, or feature details; explicit policy metadata is
+      persisted.
+- [x] **Done**: Large reference datasets can be loaded outside normal seed data.
+- [x] **Done**: Source SRIDs other than `4326`, including the `geofs` SRID
+      `7856`, render through MVT tile SQL.
+- [ ] **Partial**: The design keeps a future path to Martin, pg_tileserv,
+      PMTiles, or MBTiles; only live Twenty PostGIS serving is implemented.
 
 ## Risks
 
@@ -1050,29 +1092,25 @@ For each benchmark, validate:
 
 ## Suggested PR Breakdown
 
-1. Registry foundation:
-   - reference layer metadata
-   - map-view layer attachments
-   - migrations
-   - validation utilities
-   - tests
-2. Pipeline commands:
-   - upsert reference layer
-   - validate reference layer
-   - attach reference layer to map view
-   - sample local pipeline docs/scripts
-3. Reference tile service:
-   - authenticated tile endpoint
-   - reference MVT SQL builder
-   - feature detail endpoint
-   - backend tests
-4. Frontend layer composition:
-   - fetch attached layers
-   - MapLibre sources/layers
-   - visibility controls
-   - tooltip/insight panel
-5. Benchmark and provider hardening:
-   - load benchmark layers as non-object references
-   - performance smoke tests
-   - cache headers
-   - provider comparison notes
+1. Validation hardening:
+   - reusable validation service
+   - GiST, geometry type, bounds, row count, and sample tile checks
+   - validation-only command
+   - backend unit and integration tests
+2. Catalog loading and metadata hardening:
+   - storage-path catalog loading
+   - explicit security policy, attribution, validation, and operational metadata
+   - disabled-layer handling
+3. Frontend completion:
+   - reference-only map views
+   - map-surface loading/error states
+   - attribution display
+   - reference-layer behavior tests
+4. Pipeline and benchmark readiness:
+   - command examples
+   - optional local `geo_*` load script
+   - `geofs` benchmark notes and performance smoke checks
+5. Provider future-proofing:
+   - keep `TWENTY_POSTGIS` as the only implemented provider
+   - document Martin, pg_tileserv, PMTiles, and MBTiles as deferred provider
+     targets
