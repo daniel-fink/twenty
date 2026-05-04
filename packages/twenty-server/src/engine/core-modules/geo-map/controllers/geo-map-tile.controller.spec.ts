@@ -83,6 +83,54 @@ describe('GeoMapTileController', () => {
       'Content-Type',
       'application/vnd.mapbox-vector-tile',
     );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'private, no-cache',
+    );
+    expect(response.send).toHaveBeenCalledWith(tile);
+  });
+
+  it('should apply a private cache strategy to reference vector tiles', async () => {
+    const tile = Buffer.from('reference-tile');
+    const geoMapTileService = {};
+    const geoReferenceLayerService = {
+      getVectorTile: jest.fn().mockResolvedValue(tile),
+    };
+    const response = {
+      send: jest.fn(),
+      setHeader: jest.fn(),
+    };
+    const controller = new GeoMapTileController(
+      geoMapTileService as never,
+      geoReferenceLayerService as never,
+    );
+
+    await controller.getReferenceLayerVectorTile(
+      'view-id',
+      'layer-id',
+      4,
+      8,
+      5,
+      response as never,
+    );
+
+    expect(geoReferenceLayerService.getVectorTile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        layerId: 'layer-id',
+        viewId: 'view-id',
+        x: 8,
+        y: 5,
+        z: 4,
+      }),
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/vnd.mapbox-vector-tile',
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'private, max-age=300, stale-while-revalidate=60',
+    );
     expect(response.send).toHaveBeenCalledWith(tile);
   });
 });

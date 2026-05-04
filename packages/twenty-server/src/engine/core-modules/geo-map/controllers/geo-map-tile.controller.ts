@@ -21,6 +21,10 @@ import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 
+const MAP_VECTOR_TILE_CACHE_CONTROL = 'private, no-cache';
+const REFERENCE_MAP_VECTOR_TILE_CACHE_CONTROL =
+  'private, max-age=300, stale-while-revalidate=60';
+
 @Controller('rest/map/views')
 @UseGuards(JwtAuthGuard, WorkspaceAuthGuard, NoPermissionGuard)
 export class GeoMapTileController {
@@ -144,7 +148,10 @@ export class GeoMapTileController {
     });
 
     response.setHeader('Content-Type', 'application/vnd.mapbox-vector-tile');
-    response.setHeader('Cache-Control', 'private, no-cache');
+    response.setHeader(
+      'Cache-Control',
+      REFERENCE_MAP_VECTOR_TILE_CACHE_CONTROL,
+    );
     response.send(tile);
   }
 
@@ -167,7 +174,7 @@ export class GeoMapTileController {
     });
 
     response.setHeader('Content-Type', 'application/vnd.mapbox-vector-tile');
-    response.setHeader('Cache-Control', 'private, no-cache');
+    response.setHeader('Cache-Control', MAP_VECTOR_TILE_CACHE_CONTROL);
     response.send(tile);
   }
 }

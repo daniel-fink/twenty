@@ -6,6 +6,8 @@ import { type RecordMapReferenceLayer } from '@/object-record/record-map/types/R
 
 const useMapLibreMapMock = jest.fn();
 const useMapReferenceLayersMock = jest.fn();
+const useRecordMapVectorTileLayersMock = jest.fn();
+const openRecordFromIndexViewMock = jest.fn();
 
 jest.mock('~/config', () => ({
   REACT_APP_MAP_VIEW_STYLE_URL: 'https://example.com/style.json',
@@ -51,11 +53,8 @@ jest.mock(
 jest.mock(
   '@/object-record/record-map/hooks/useRecordMapVectorTileLayers',
   () => ({
-    useRecordMapVectorTileLayers: () => ({
-      closeFeaturePicker: jest.fn(),
-      featurePicker: null,
-      openRecordFeature: jest.fn(),
-    }),
+    useRecordMapVectorTileLayers: (args: unknown) =>
+      useRecordMapVectorTileLayersMock(args),
   }),
 );
 
@@ -63,7 +62,7 @@ jest.mock(
   '@/object-record/record-index/hooks/useOpenRecordFromIndexView',
   () => ({
     useOpenRecordFromIndexView: () => ({
-      openRecordFromIndexView: jest.fn(),
+      openRecordFromIndexView: openRecordFromIndexViewMock,
     }),
   }),
 );
@@ -99,6 +98,11 @@ describe('RecordMap', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useMapLibreMapMock.mockReturnValue({ map: null });
+    useRecordMapVectorTileLayersMock.mockReturnValue({
+      closeFeaturePicker: jest.fn(),
+      featurePicker: null,
+      openRecordFeature: jest.fn(),
+    });
   });
 
   it('renders a reference-only map view when reference layers are attached', () => {
@@ -144,5 +148,29 @@ describe('RecordMap', () => {
         shouldRenderMap: true,
       }),
     );
+  });
+
+  it('keeps object feature clicks wired to the record index opener', () => {
+    useMapReferenceLayersMock.mockReturnValue({
+      isLoadingReferenceLayers: false,
+      referenceLayers: [],
+      referenceLayersError: null,
+    });
+
+    render(
+      <RecordMap
+        loading={false}
+        recordMapPoints={[]}
+        tileSource={{ filter: {}, viewId: 'map-view-id' }}
+      />,
+    );
+
+    const vectorLayerArgs = useRecordMapVectorTileLayersMock.mock.calls[0][0];
+
+    vectorLayerArgs.onFeatureClick('record-id');
+
+    expect(openRecordFromIndexViewMock).toHaveBeenCalledWith({
+      recordId: 'record-id',
+    });
   });
 });

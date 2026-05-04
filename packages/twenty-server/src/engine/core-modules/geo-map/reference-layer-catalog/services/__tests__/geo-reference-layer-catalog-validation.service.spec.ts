@@ -81,10 +81,16 @@ const createCatalog = (
   version: 1,
 });
 
-const createService = (queryResults: { rows: Record<string, unknown>[] }[]) => {
-  const query = jest
-    .fn()
-    .mockImplementation(() => Promise.resolve(queryResults.shift()));
+const createService = (
+  queryResults: ({ rows: Record<string, unknown>[] } | Error)[],
+) => {
+  const query = jest.fn().mockImplementation(() => {
+    const nextResult = queryResults.shift();
+
+    return nextResult instanceof Error
+      ? Promise.reject(nextResult)
+      : Promise.resolve(nextResult);
+  });
   const end = jest.fn().mockResolvedValue(undefined);
   const connect = jest.fn().mockResolvedValue({ end, query });
   const service = new GeoReferenceLayerCatalogValidationService({
@@ -110,6 +116,7 @@ const validQueryResults = () => [
   { rows: [{ has_gist_index: true }] },
   { rows: [{ duplicate_ids: '0', null_ids: '0' }] },
   { rows: [{ bounds: [1, 2, 3, 4], recordCount: 12 }] },
+  { rows: [{ tile: Buffer.from('tile') }] },
 ];
 
 describe('GeoReferenceLayerCatalogValidationService', () => {
@@ -223,6 +230,25 @@ describe('GeoReferenceLayerCatalogValidationService', () => {
       layers: [
         {
           error: expect.stringContaining('duplicate values'),
+          status: GeoReferenceLayerValidationStatus.INVALID,
+        },
+      ],
+    });
+  });
+
+  it('marks layers invalid when sample tile generation fails', async () => {
+    const { service } = createService([
+      ...validQueryResults().slice(0, 7),
+      new Error('sample tile failed'),
+    ]);
+
+    await expect(
+      service.validateCatalog({ catalog: createCatalog() }),
+    ).resolves.toMatchObject({
+      isValid: false,
+      layers: [
+        {
+          error: 'sample tile failed',
           status: GeoReferenceLayerValidationStatus.INVALID,
         },
       ],

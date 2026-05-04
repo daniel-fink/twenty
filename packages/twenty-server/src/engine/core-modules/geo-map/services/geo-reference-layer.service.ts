@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -33,6 +34,8 @@ type ReferenceLayerBounds = [number, number, number, number];
 
 @Injectable()
 export class GeoReferenceLayerService {
+  private readonly logger = new Logger(GeoReferenceLayerService.name);
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -156,6 +159,8 @@ export class GeoReferenceLayerService {
     x: number;
     y: number;
   }): Promise<Buffer> {
+    const startTime = performance.now();
+
     try {
       assertGeoReferenceTileCoordinates({ z, x, y });
     } catch {
@@ -169,6 +174,10 @@ export class GeoReferenceLayerService {
     });
 
     if (z < layer.tile.minZoom || z > layer.tile.maxZoom) {
+      this.logger.debug(
+        `Returned empty reference vector tile outside zoom policy for layer ${layer.id} in view ${viewId} at ${z}/${x}/${y} with minZoom ${layer.tile.minZoom} and maxZoom ${layer.tile.maxZoom}`,
+      );
+
       return Buffer.alloc(0);
     }
 
@@ -177,8 +186,14 @@ export class GeoReferenceLayerService {
     try {
       const tileSql = buildGeoReferenceLayerTileSql({ layer, z, x, y });
       const result = await client.query<{ tile: Buffer | null }>(tileSql);
+      const tile = result.rows[0]?.tile ?? Buffer.alloc(0);
+      const durationMs = Math.round(performance.now() - startTime);
 
-      return result.rows[0]?.tile ?? Buffer.alloc(0);
+      this.logger.debug(
+        `Generated reference vector tile for layer ${layer.id} in view ${viewId} at ${z}/${x}/${y} in ${durationMs}ms (${tile.length} bytes)`,
+      );
+
+      return tile;
     } finally {
       await client.end();
     }

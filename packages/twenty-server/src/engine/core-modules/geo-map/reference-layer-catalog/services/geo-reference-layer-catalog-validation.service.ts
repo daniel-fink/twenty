@@ -14,7 +14,10 @@ import {
   type LoadedGeoReferenceLayerCatalogLayer,
 } from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/load-geo-reference-layer-catalog.util';
 import { GeoReferenceLayerConnectionService } from 'src/engine/core-modules/geo-map/reference-layer-catalog/services/geo-reference-layer-connection.service';
-import { buildGeoReferenceLayerBoundsSql } from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/build-geo-reference-layer-tile-sql.util';
+import {
+  buildGeoReferenceLayerBoundsSql,
+  buildGeoReferenceLayerTileSql,
+} from 'src/engine/core-modules/geo-map/reference-layer-catalog/utils/build-geo-reference-layer-tile-sql.util';
 import {
   quoteGeoReferenceSqlIdentifier,
   quoteGeoReferenceSqlQualifiedName,
@@ -141,7 +144,18 @@ export class GeoReferenceLayerCatalogValidationService {
       sourceTable,
     });
 
-    return this.getLayerOperationalMetadata({ client, layer });
+    const operationalMetadata = await this.getLayerOperationalMetadata({
+      client,
+      layer,
+    });
+
+    await this.assertSampleTileGeneration({
+      bounds: operationalMetadata.bounds,
+      client,
+      layer,
+    });
+
+    return operationalMetadata;
   }
 
   private async assertSourceTableExists({
@@ -379,6 +393,68 @@ export class GeoReferenceLayerCatalogValidationService {
     return {
       bounds: result.rows[0]?.bounds ?? null,
       rowCount: Number(result.rows[0]?.recordCount ?? 0),
+    };
+  }
+
+  private async assertSampleTileGeneration({
+    bounds,
+    client,
+    layer,
+  }: {
+    bounds: GeoReferenceLayerBounds | null;
+    client: Client;
+    layer: LoadedGeoReferenceLayerCatalogLayer;
+  }) {
+    if (!isDefined(bounds)) {
+      return;
+    }
+
+    const [west, south, east, north] = bounds;
+    const z = layer.tile.minZoom;
+    const { x, y } = this.getTileCoordinatesForLonLat({
+      latitude: (south + north) / 2,
+      longitude: (west + east) / 2,
+      z,
+    });
+
+    await client.query<{ tile: Buffer | null }>(
+      buildGeoReferenceLayerTileSql({
+        layer: layer as unknown as GeoReferenceLayerEntity,
+        x,
+        y,
+        z,
+      }),
+    );
+  }
+
+  private getTileCoordinatesForLonLat({
+    latitude,
+    longitude,
+    z,
+  }: {
+    latitude: number;
+    longitude: number;
+    z: number;
+  }) {
+    const maxTileIndex = 2 ** z - 1;
+    const clampedLatitude = Math.max(
+      -85.05112878,
+      Math.min(85.05112878, latitude),
+    );
+    const clampedLongitude = Math.max(-180, Math.min(180, longitude));
+    const latitudeRadians = (clampedLatitude * Math.PI) / 180;
+    const x = Math.floor(((clampedLongitude + 180) / 360) * 2 ** z);
+    const y = Math.floor(
+      ((1 -
+        Math.log(Math.tan(latitudeRadians) + 1 / Math.cos(latitudeRadians)) /
+          Math.PI) /
+        2) *
+        2 ** z,
+    );
+
+    return {
+      x: Math.max(0, Math.min(maxTileIndex, x)),
+      y: Math.max(0, Math.min(maxTileIndex, y)),
     };
   }
 }
