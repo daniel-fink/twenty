@@ -113,6 +113,7 @@ const RecordIndexGeometryMapContent = ({
   return (
     <RecordMap
       loading={false}
+      objectNameSingular={objectNameSingular}
       recordMapPoints={[]}
       onSearchThisArea={handleSearchThisArea}
       tileSource={{ viewId, filter }}
@@ -134,7 +135,11 @@ const RecordIndexAddressMapContent = ({
 
   return (
     <>
-      <RecordMap loading={loading} recordMapPoints={recordMapPoints} />
+      <RecordMap
+        loading={loading}
+        objectNameSingular={objectNameSingular}
+        recordMapPoints={recordMapPoints}
+      />
       <RecordMapSSESubscribeEffect />
       <RecordIndexMapDataLoaderEffect records={records} />
     </>
