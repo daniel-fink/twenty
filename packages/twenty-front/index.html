@@ -43,6 +43,7 @@
       window._env_ = {
         // This will be overwritten
         REACT_APP_MAP_VIEW_STYLE_URL: '',
+        REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES: '',
       };
     </script>
     <!-- END: Twenty Config -->
@@ -74,13 +75,15 @@
       }
 
       @media (prefers-color-scheme: dark) {
-        html, body {
+        html,
+        body {
           background-color: var(--theme-dark-background-tertiary);
         }
       }
 
       @media (prefers-color-scheme: light) {
-        html, body {
+        html,
+        body {
           background-color: var(--theme-light-background-tertiary);
         }
       }

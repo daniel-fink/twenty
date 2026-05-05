@@ -18,12 +18,14 @@ import { FindOneFrontComponentDocument } from '~/generated-metadata/graphql';
 type FrontComponentRendererProps = {
   frontComponentId: string;
   commandMenuItemId?: string;
+  params?: Record<string, string>;
   recordId?: string;
 };
 
 export const FrontComponentRenderer = ({
   frontComponentId,
   commandMenuItemId,
+  params,
   recordId,
 }: FrontComponentRendererProps) => {
   const { colorScheme } = useContext(ThemeContext);
@@ -38,6 +40,7 @@ export const FrontComponentRenderer = ({
     useFrontComponentExecutionContext({
       frontComponentId,
       commandMenuItemId,
+      params,
       recordId,
     });
 

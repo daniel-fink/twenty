@@ -23,10 +23,12 @@ import { useNavigateApp } from '~/hooks/useNavigateApp';
 export const useFrontComponentExecutionContext = ({
   frontComponentId,
   commandMenuItemId,
+  params,
   recordId,
 }: {
   frontComponentId: string;
   commandMenuItemId?: string;
+  params?: Record<string, string>;
   recordId?: string;
 }): {
   executionContext: FrontComponentExecutionContext;
@@ -126,6 +128,7 @@ export const useFrontComponentExecutionContext = ({
 
   const executionContext: FrontComponentExecutionContext = {
     frontComponentId,
+    params,
     userId: currentUser?.id ?? null,
     recordId: recordId ?? null,
   };

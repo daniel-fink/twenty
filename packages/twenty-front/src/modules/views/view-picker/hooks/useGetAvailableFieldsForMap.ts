@@ -32,7 +32,7 @@ export const useGetAvailableFieldsForMap = () => {
 
   const navigate = useNavigateSettings();
 
-  const navigateToAddressFieldSettings = useCallback(() => {
+  const navigateToGeometryFieldSettings = useCallback(() => {
     setNavigationMemorizedUrl(location.pathname + location.search);
 
     if (isDefined(objectMetadataItem?.namePlural)) {
@@ -42,7 +42,7 @@ export const useGetAvailableFieldsForMap = () => {
           objectNamePlural: objectMetadataItem.namePlural,
         },
         {
-          fieldType: FieldMetadataType.ADDRESS,
+          fieldType: FieldMetadataType.GEOMETRY,
         },
       );
     } else {
@@ -58,6 +58,6 @@ export const useGetAvailableFieldsForMap = () => {
 
   return {
     availableFieldsForMap,
-    navigateToAddressFieldSettings,
+    navigateToGeometryFieldSettings,
   };
 };

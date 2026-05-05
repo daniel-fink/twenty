@@ -22,7 +22,7 @@ export const ObjectOptionsDropdownMapFieldsContent = () => {
   const { resetContent, closeDropdown } = useObjectOptionsDropdown();
   const { currentView } = useGetCurrentViewOnly();
   const { updateCurrentView } = useUpdateCurrentView();
-  const { availableFieldsForMap, navigateToAddressFieldSettings } =
+  const { availableFieldsForMap, navigateToGeometryFieldSettings } =
     useGetAvailableFieldsForMap();
 
   const filteredMapFields = availableFieldsForMap.filter((field) =>
@@ -70,9 +70,9 @@ export const ObjectOptionsDropdownMapFieldsContent = () => {
       <DropdownMenuItemsContainer scrollable={false}>
         <MenuItem
           LeftIcon={IconSettings}
-          text={t`Create address field`}
+          text={t`Create geometry field`}
           onClick={() => {
-            navigateToAddressFieldSettings();
+            navigateToGeometryFieldSettings();
             closeDropdown();
           }}
         />

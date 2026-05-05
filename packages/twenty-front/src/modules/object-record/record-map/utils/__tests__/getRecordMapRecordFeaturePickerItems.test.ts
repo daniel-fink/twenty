@@ -22,6 +22,7 @@ describe('getRecordMapRecordFeaturePickerItems', () => {
         recordId: 'record-1',
         swatchColor: RECORD_MAP_LAYER_COLORS.blue,
         title: 'Acme',
+        type: 'record',
       },
     ]);
   });

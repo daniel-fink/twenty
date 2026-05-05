@@ -61,8 +61,6 @@ export class FlatViewValidatorService {
       return;
     }
 
-    const isAddressMapField =
-      mapFieldMetadata.type === FieldMetadataType.ADDRESS;
     const mapFieldMetadataSettings = (
       mapFieldMetadata as unknown as {
         settings: FieldMetadataGeometrySettings | null;
@@ -73,11 +71,11 @@ export class FlatViewValidatorService {
       mapFieldMetadataSettings?.srid === 4326 &&
       mapFieldMetadataSettings?.isGeography === false;
 
-    if (!isAddressMapField && !isGeometryMapField) {
+    if (!isGeometryMapField) {
       validationResult.errors.push({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: t`Map field must be an ADDRESS or GEOMETRY field`,
-        userFriendlyMessage: msg`Map field must be an address or geometry field`,
+        message: t`Map field must be a GEOMETRY field`,
+        userFriendlyMessage: msg`Map field must be a geometry field`,
       });
     }
 

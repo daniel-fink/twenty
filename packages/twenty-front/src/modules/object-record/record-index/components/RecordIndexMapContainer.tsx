@@ -1,10 +1,7 @@
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 
 import { RecordMap } from '@/object-record/record-map/components/RecordMap';
-import { RecordIndexMapDataLoaderEffect } from '@/object-record/record-map/components/RecordIndexMapDataLoaderEffect';
-import { RecordMapSSESubscribeEffect } from '@/object-record/record-map/components/RecordMapSSESubscribeEffect';
 import { useFindManyRecordIndexTableParams } from '@/object-record/record-index/hooks/useFindManyRecordIndexTableParams';
-import { useRecordMapRecords } from '@/object-record/record-map/hooks/useRecordMapRecords';
 import { type MapFieldSource } from '@/object-record/record-map/types/MapFieldSource';
 import {
   isValidMapFieldMetadataItem,
@@ -16,7 +13,6 @@ import { useUpsertRecordFilter } from '@/object-record/record-filter/hooks/useUp
 import { buildRecordMapSearchAreaRecordFilter } from '@/object-record/record-map/utils/buildRecordMapSearchAreaRecordFilter';
 import { type RecordMapBounds } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
 import { isDefined } from 'twenty-shared/utils';
-import { FieldMetadataType } from '~/generated-metadata/graphql';
 
 type RecordIndexMapContainerProps = {
   recordMapInstanceId: string;
@@ -71,18 +67,9 @@ const RecordIndexMapContent = ({
   mapFieldSource: MapFieldSource;
   objectNameSingular: string;
 }) => {
-  if (mapFieldSource.type === FieldMetadataType.GEOMETRY) {
-    return (
-      <RecordIndexGeometryMapContent
-        viewId={viewId}
-        mapFieldSource={mapFieldSource}
-        objectNameSingular={objectNameSingular}
-      />
-    );
-  }
-
   return (
-    <RecordIndexAddressMapContent
+    <RecordIndexGeometryMapContent
+      viewId={viewId}
       mapFieldSource={mapFieldSource}
       objectNameSingular={objectNameSingular}
     />
@@ -118,30 +105,5 @@ const RecordIndexGeometryMapContent = ({
       onSearchThisArea={handleSearchThisArea}
       tileSource={{ viewId, filter }}
     />
-  );
-};
-
-const RecordIndexAddressMapContent = ({
-  mapFieldSource,
-  objectNameSingular,
-}: {
-  mapFieldSource: MapFieldSource;
-  objectNameSingular: string;
-}) => {
-  const { records, recordMapPoints, loading } = useRecordMapRecords({
-    mapFieldSource,
-    objectNameSingular,
-  });
-
-  return (
-    <>
-      <RecordMap
-        loading={loading}
-        objectNameSingular={objectNameSingular}
-        recordMapPoints={recordMapPoints}
-      />
-      <RecordMapSSESubscribeEffect />
-      <RecordIndexMapDataLoaderEffect records={records} />
-    </>
   );
 };

@@ -6,6 +6,7 @@ if [ -z "$REACT_APP_SERVER_BASE_URL" ]; then
 fi
 
 REACT_APP_MAP_VIEW_STYLE_URL=${REACT_APP_MAP_VIEW_STYLE_URL:-}
+REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES=${REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES:-}
 
 echo "Injecting runtime environment variables into index.html..."
 
@@ -13,7 +14,8 @@ CONFIG_BLOCK=$(cat << EOF
     <script id="twenty-env-config">
       window._env_ = {
         REACT_APP_SERVER_BASE_URL: "$REACT_APP_SERVER_BASE_URL",
-        REACT_APP_MAP_VIEW_STYLE_URL: "$REACT_APP_MAP_VIEW_STYLE_URL"
+        REACT_APP_MAP_VIEW_STYLE_URL: "$REACT_APP_MAP_VIEW_STYLE_URL",
+        REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES: "$REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES"
       };
     </script>
     <!-- END: Twenty Config -->

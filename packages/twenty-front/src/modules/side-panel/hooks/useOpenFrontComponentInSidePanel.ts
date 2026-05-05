@@ -1,5 +1,6 @@
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { viewableFrontComponentIdComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentIdComponentState';
+import { viewableFrontComponentParamsComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentParamsComponentState';
 import { viewableFrontComponentRecordContextComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentRecordContextComponentState';
 import { useStore } from 'jotai';
 import { SidePanelPages } from 'twenty-shared/types';
@@ -14,12 +15,14 @@ export const useOpenFrontComponentInSidePanel = () => {
     frontComponentId,
     pageTitle,
     pageIcon,
+    params,
     resetNavigationStack = false,
     recordContext,
   }: {
     frontComponentId: string;
     pageTitle: string;
     pageIcon: IconComponent;
+    params?: Record<string, string>;
     resetNavigationStack?: boolean;
     recordContext?: {
       recordId: string;
@@ -40,6 +43,13 @@ export const useOpenFrontComponentInSidePanel = () => {
         instanceId: pageComponentInstanceId,
       }),
       recordContext ?? null,
+    );
+
+    store.set(
+      viewableFrontComponentParamsComponentState.atomFamily({
+        instanceId: pageComponentInstanceId,
+      }),
+      params ?? null,
     );
 
     navigateSidePanelMenu({

@@ -3,7 +3,7 @@ import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/Drop
 import { OverlayContainer } from '@/ui/layout/overlay/components/OverlayContainer';
 import { createVirtualElementFromContainerOffset } from '@/page-layout/widgets/graph/utils/createVirtualElementFromContainerOffset';
 import {
-  type RecordMapRecordFeaturePickerItem,
+  type RecordMapFeaturePickerItem,
   type RecordMapRecordFeaturePickerState,
 } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { styled } from '@linaria/react';
@@ -35,8 +35,22 @@ type RecordMapRecordFeaturePickerProps = {
   featurePicker: RecordMapRecordFeaturePickerState | null;
   objectNameSingular?: string;
   onClose: () => void;
-  onSelectFeature: (item: RecordMapRecordFeaturePickerItem) => void;
+  onSelectFeature: (item: RecordMapFeaturePickerItem) => void;
 };
+
+const getItemKey = (item: RecordMapFeaturePickerItem) =>
+  item.type === 'record'
+    ? `record:${item.recordId}`
+    : `reference:${item.contributionId}:${item.featureId}`;
+
+const getItemContextualText = ({
+  item,
+  objectNameSingular,
+}: {
+  item: RecordMapFeaturePickerItem;
+  objectNameSingular?: string;
+}) =>
+  item.type === 'record' ? objectNameSingular : item.contribution.displayName;
 
 export const RecordMapRecordFeaturePicker = ({
   containerElement,
@@ -121,9 +135,12 @@ export const RecordMapRecordFeaturePicker = ({
           <DropdownMenuItemsContainer hasMaxHeight>
             {featurePicker.items.map((item) => (
               <MenuItem
-                key={item.recordId}
+                key={getItemKey(item)}
                 LeftComponent={<StyledSwatch color={item.swatchColor} />}
-                contextualText={objectNameSingular}
+                contextualText={getItemContextualText({
+                  item,
+                  objectNameSingular,
+                })}
                 onClick={() => onSelectFeature(item)}
                 text={item.title}
               />

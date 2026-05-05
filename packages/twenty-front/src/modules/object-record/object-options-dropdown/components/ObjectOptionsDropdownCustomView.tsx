@@ -114,7 +114,7 @@ export const ObjectOptionsDropdownCustomView = ({
     ...(customViewData?.type === ViewType.CALENDAR
       ? ['CalendarDateField', 'CalendarView']
       : []),
-    ...(customViewData?.type === ViewType.MAP ? ['MapAddressField'] : []),
+    ...(customViewData?.type === ViewType.MAP ? ['MapGeometryField'] : []),
     ...(customViewData?.type !== ViewType.CALENDAR &&
     customViewData?.type !== ViewType.MAP
       ? ['Group']
@@ -224,14 +224,14 @@ export const ObjectOptionsDropdownCustomView = ({
           )}
           {customViewData?.type === ViewType.MAP && (
             <SelectableListItem
-              itemId="MapAddressField"
+              itemId="MapGeometryField"
               onEnter={() => onContentChange('mapFields')}
             >
               <MenuItem
-                focused={selectedItemId === 'MapAddressField'}
+                focused={selectedItemId === 'MapGeometryField'}
                 onClick={() => onContentChange('mapFields')}
                 LeftIcon={viewTypeIconMapping(ViewType.MAP)}
-                text={t`Address field`}
+                text={t`Geometry field`}
                 contextualText={mapFieldMetadata?.label}
                 contextualTextPosition="right"
                 hasSubMenu

@@ -1,8 +1,6 @@
 import { type MapFieldSource } from '@/object-record/record-map/types/MapFieldSource';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { type ObjectRecord } from '@/object-record/types/ObjectRecord';
-import { FieldMetadataType } from '~/generated-metadata/graphql';
-
 const parseCoordinate = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -27,14 +25,8 @@ export const extractRecordMapCoordinates = ({
   mapFieldSource: MapFieldSource;
 }): RecordMapPoint | null => {
   const fieldValue = record[mapFieldSource.fieldName];
-  const latitude =
-    mapFieldSource.type === FieldMetadataType.GEOMETRY
-      ? parseCoordinate(fieldValue?.coordinates?.[1])
-      : parseCoordinate(fieldValue?.addressLat);
-  const longitude =
-    mapFieldSource.type === FieldMetadataType.GEOMETRY
-      ? parseCoordinate(fieldValue?.coordinates?.[0])
-      : parseCoordinate(fieldValue?.addressLng);
+  const latitude = parseCoordinate(fieldValue?.coordinates?.[1]);
+  const longitude = parseCoordinate(fieldValue?.coordinates?.[0]);
 
   if (
     latitude === null ||

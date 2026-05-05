@@ -142,14 +142,19 @@ const buildUpdateValidationArgs = ({
 describe('FlatViewValidatorService', () => {
   const service = new FlatViewValidatorService();
 
-  it('accepts a map view backed by an active address field on the same object', () => {
+  it('rejects a map view backed by an active address field', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
       }) as never,
     );
 
-    expect(result.errors).toHaveLength(0);
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: ViewExceptionCode.INVALID_VIEW_DATA,
+        message: 'Map field must be a GEOMETRY field',
+      }),
+    );
   });
 
   it('accepts a map view backed by an active point geometry field on the same object', () => {
@@ -181,7 +186,7 @@ describe('FlatViewValidatorService', () => {
     );
   });
 
-  it('rejects a map view backed by a non-address, non-geometry field', () => {
+  it('rejects a map view backed by a non-geometry field', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
@@ -192,15 +197,17 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS or GEOMETRY field',
+        message: 'Map field must be a GEOMETRY field',
       }),
     );
   });
 
-  it('rejects a map view backed by an inactive address field', () => {
+  it('rejects a map view backed by an inactive geometry field', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
+        mapFieldType: FieldMetadataType.GEOMETRY,
+        mapFieldSettings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
         mapFieldIsActive: false,
       }) as never,
     );
@@ -213,10 +220,12 @@ describe('FlatViewValidatorService', () => {
     );
   });
 
-  it('rejects a map view backed by an address field from another object', () => {
+  it('rejects a map view backed by a geometry field from another object', () => {
     const result = service.validateFlatViewCreation(
       buildValidationArgs({
         flatView: baseFlatView(),
+        mapFieldType: FieldMetadataType.GEOMETRY,
+        mapFieldSettings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
         mapFieldObjectUniversalIdentifier: 'other-object-universal-id',
       }) as never,
     );
@@ -229,20 +238,22 @@ describe('FlatViewValidatorService', () => {
     );
   });
 
-  it('accepts updating a view to map when backed by an active address field on the same object', () => {
+  it('accepts updating a view to map when backed by an active geometry field on the same object', () => {
     const result = service.validateFlatViewUpdate(
       buildUpdateValidationArgs({
         flatEntityUpdate: {
           type: ViewType.MAP,
           mapFieldMetadataUniversalIdentifier: addressFieldUniversalIdentifier,
         },
+        mapFieldType: FieldMetadataType.GEOMETRY,
+        mapFieldSettings: DEFAULT_GEOMETRY_FIELD_SETTINGS,
       }) as never,
     );
 
     expect(result.errors).toHaveLength(0);
   });
 
-  it('rejects updating a view to map when backed by a non-address, non-geometry field', () => {
+  it('rejects updating a view to map when backed by a non-geometry field', () => {
     const result = service.validateFlatViewUpdate(
       buildUpdateValidationArgs({
         flatEntityUpdate: {
@@ -256,7 +267,7 @@ describe('FlatViewValidatorService', () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: ViewExceptionCode.INVALID_VIEW_DATA,
-        message: 'Map field must be an ADDRESS or GEOMETRY field',
+        message: 'Map field must be a GEOMETRY field',
       }),
     );
   });
