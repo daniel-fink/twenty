@@ -18,6 +18,7 @@ import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/use
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
+import { useEffect } from 'react';
 import { IconMap, IconX } from 'twenty-ui/display';
 import { MenuItemToggle } from 'twenty-ui/navigation';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -80,6 +81,12 @@ export const RecordMapLayersDropdownButton = () => {
     isDropdownOpenComponentState,
     RECORD_MAP_LAYERS_DROPDOWN_ID,
   );
+
+  useEffect(() => {
+    if (isDropdownOpen) {
+      refreshReferenceLayerContributions();
+    }
+  }, [isDropdownOpen, refreshReferenceLayerContributions]);
 
   return (
     <Dropdown
