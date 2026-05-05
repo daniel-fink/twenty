@@ -24,10 +24,12 @@ export const useFrontComponentExecutionContext = ({
   frontComponentId,
   commandMenuItemId,
   selectedRecordIds,
+  params,
 }: {
   frontComponentId: string;
   commandMenuItemId?: string;
   selectedRecordIds?: string[];
+  params?: Record<string, string>;
 }): {
   executionContext: FrontComponentExecutionContext;
   frontComponentHostCommunicationApi: FrontComponentHostCommunicationApi;
@@ -126,6 +128,7 @@ export const useFrontComponentExecutionContext = ({
 
   const executionContext: FrontComponentExecutionContext = {
     frontComponentId,
+    params,
     userId: currentUser?.id ?? null,
     recordId: selectedRecordIds?.length === 1 ? selectedRecordIds[0] : null,
     selectedRecordIds: selectedRecordIds ?? [],

@@ -100,6 +100,7 @@ export const getRecordMapRecordFeaturePickerItems = ({
         feature,
         objectNameSingular,
       }),
+      type: 'record',
     });
   }
 

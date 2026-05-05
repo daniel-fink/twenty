@@ -44,8 +44,7 @@ export const REACT_APP_SERVER_BASE_URL =
   getWorkspaceAwareLocalUrl(
     window._env_?.REACT_APP_SERVER_BASE_URL ||
       import.meta.env.REACT_APP_SERVER_BASE_URL,
-  ) ||
-  getDefaultUrl();
+  ) || getDefaultUrl();
 
 export const DEFAULT_MAP_VIEW_STYLE_URL =
   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -65,3 +64,8 @@ export const REACT_APP_MAP_VIEW_STYLE_URL =
   window._env_?.REACT_APP_MAP_VIEW_STYLE_URL ||
   import.meta.env.REACT_APP_MAP_VIEW_STYLE_URL ||
   getDefaultMapViewStyleUrl();
+
+export const REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES = (window._env_
+  ?.REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES ||
+  import.meta.env.REACT_APP_MAP_LAYER_CONTRIBUTION_ROUTES ||
+  '') as string;

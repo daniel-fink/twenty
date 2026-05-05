@@ -19,12 +19,14 @@ type FrontComponentRendererProps = {
   frontComponentId: string;
   commandMenuItemId?: string;
   selectedRecordIds?: string[];
+  params?: Record<string, string>;
 };
 
 export const FrontComponentRenderer = ({
   frontComponentId,
   commandMenuItemId,
   selectedRecordIds,
+  params,
 }: FrontComponentRendererProps) => {
   const { colorScheme } = useContext(ThemeContext);
   const { enqueueErrorSnackBar } = useSnackBar();
@@ -39,6 +41,7 @@ export const FrontComponentRenderer = ({
       frontComponentId,
       commandMenuItemId,
       selectedRecordIds,
+      params,
     });
 
   const handleError = useCallback(

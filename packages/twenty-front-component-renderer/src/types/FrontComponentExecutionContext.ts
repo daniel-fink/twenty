@@ -3,8 +3,9 @@ export type FrontComponentExecutionContext = {
   userId: string | null;
   /**
    * @deprecated Use `selectedRecordIds` instead. Derive single record as `selectedRecordIds.length === 1 ? selectedRecordIds[0] : null`.
-   */
+  */
   recordId: string | null;
   /** All selected record IDs */
   selectedRecordIds: string[];
+  params?: Record<string, string>;
 };

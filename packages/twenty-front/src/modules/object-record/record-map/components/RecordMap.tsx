@@ -1,12 +1,16 @@
 import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 
+import { RECORD_MAP_REFERENCE_LAYERS_UPDATED_EVENT } from '@/object-record/record-map/constants/record-map-reference-layer.constants';
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
 import { RecordMapRecordFeaturePicker } from '@/object-record/record-map/components/RecordMapRecordFeaturePicker';
 import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
 import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
 import { useRecordMapAddressMarkers } from '@/object-record/record-map/hooks/useRecordMapAddressMarkers';
+import { useRecordMapReferenceLayerContributions } from '@/object-record/record-map/hooks/useRecordMapReferenceLayerContributions';
+import { useRecordMapReferenceLayers } from '@/object-record/record-map/hooks/useRecordMapReferenceLayers';
 import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
+import { type RecordMapReferenceFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { type RecordMapTileSource } from '@/object-record/record-map/types/RecordMapTileSource';
 import {
@@ -14,9 +18,14 @@ import {
   type RecordMapBounds,
 } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
 import { styled } from '@linaria/react';
+import { useApolloClient } from '@apollo/client/react';
 import { useCallback, useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
+import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { IconMap } from 'twenty-ui/display';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
+import { FindOneApplicationByUniversalIdentifierDocument } from '~/generated-metadata/graphql';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -71,6 +80,9 @@ export const RecordMap = ({
   const [hasUserMovedTileMap, setHasUserMovedTileMap] = useState(false);
   const [isFittingTileBounds, setIsFittingTileBounds] = useState(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
+  const apolloClient = useApolloClient();
+  const { enqueueErrorSnackBar } = useSnackBar();
+  const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
   const shouldRenderMap =
@@ -86,12 +98,57 @@ export const RecordMap = ({
     tileSourceFilter,
     tileSourceViewId,
   });
+  const { referenceLayerContributions, refreshReferenceLayerContributions } =
+    useRecordMapReferenceLayerContributions({
+      tileSourceViewId,
+    });
+  const { renderedReferenceLayers } = useRecordMapReferenceLayers({
+    map,
+    referenceLayerContributions,
+  });
 
   const handleRecordClick = useCallback(
     (recordId: string) => {
       openRecordFromIndexView({ recordId });
     },
     [openRecordFromIndexView],
+  );
+
+  const handleReferenceFeatureClick = useCallback(
+    async (item: RecordMapReferenceFeaturePickerItem) => {
+      const { data } = await apolloClient.query({
+        query: FindOneApplicationByUniversalIdentifierDocument,
+        variables: {
+          universalIdentifier:
+            item.contribution.featureDetailApplicationUniversalIdentifier,
+        },
+      });
+      const frontComponent = data?.findOneApplication?.frontComponents.find(
+        (candidate) =>
+          candidate.universalIdentifier ===
+          item.contribution.featureDetailFrontComponentUniversalIdentifier,
+      );
+
+      if (!isDefined(frontComponent)) {
+        enqueueErrorSnackBar({
+          message: 'Unable to open reference layer feature detail.',
+        });
+
+        return;
+      }
+
+      openFrontComponentInSidePanel({
+        frontComponentId: frontComponent.id,
+        pageIcon: IconMap,
+        pageTitle: item.title,
+        params: {
+          featureId: item.featureId,
+          layerId: item.layerId,
+          viewId: item.viewId,
+        },
+      });
+    },
+    [apolloClient, enqueueErrorSnackBar, openFrontComponentInSidePanel],
   );
 
   const fitMapToTileBounds = useCallback(() => {
@@ -125,6 +182,29 @@ export const RecordMap = ({
   }, [tileSourceFilter]);
 
   useEffect(() => {
+    const handleReferenceLayersUpdated = (event: Event) => {
+      const updatedViewId = (event as CustomEvent<{ viewId?: string }>).detail
+        ?.viewId;
+
+      if (updatedViewId === tileSourceViewId) {
+        refreshReferenceLayerContributions();
+      }
+    };
+
+    window.addEventListener(
+      RECORD_MAP_REFERENCE_LAYERS_UPDATED_EVENT,
+      handleReferenceLayersUpdated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        RECORD_MAP_REFERENCE_LAYERS_UPDATED_EVENT,
+        handleReferenceLayersUpdated,
+      );
+    };
+  }, [refreshReferenceLayerContributions, tileSourceViewId]);
+
+  useEffect(() => {
     if (!isDefined(map) || !isDefined(tileSourceViewId)) {
       return;
     }
@@ -156,6 +236,8 @@ export const RecordMap = ({
       map,
       objectNameSingular,
       onFeatureClick: handleRecordClick,
+      onReferenceFeatureClick: handleReferenceFeatureClick,
+      renderedReferenceLayers,
       tileJson,
       tileSourceFilter,
       tileSourceViewId,

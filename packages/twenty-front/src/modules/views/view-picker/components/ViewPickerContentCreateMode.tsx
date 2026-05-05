@@ -268,7 +268,7 @@ export const ViewPickerContentCreateMode = () => {
           <>
             <ViewPickerSelectContainer>
               <Select
-                label={t`Address field`}
+                label={t`Geometry field`}
                 fullWidth
                 value={viewPickerMapFieldMetadataId}
                 onChange={(value) => {
@@ -281,7 +281,7 @@ export const ViewPickerContentCreateMode = () => {
                         value: field.id,
                         label: field.label,
                       }))
-                    : [{ value: '', label: t`No Address field` }]
+                    : [{ value: '', label: t`No Geometry field` }]
                 }
                 dropdownId={VIEW_PICKER_MAP_FIELD_DROPDOWN_ID}
               />
@@ -289,7 +289,7 @@ export const ViewPickerContentCreateMode = () => {
             {availableFieldsForMap.length === 0 && (
               <StyledFieldAvailableContainer>
                 <Trans>
-                  Set up an Address field on {objectLabel} to create a Map
+                  Set up a Geometry field on {objectLabel} to create a Map
                 </Trans>
               </StyledFieldAvailableContainer>
             )}

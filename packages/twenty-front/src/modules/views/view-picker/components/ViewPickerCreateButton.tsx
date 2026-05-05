@@ -20,7 +20,7 @@ export const ViewPickerCreateButton = () => {
     useGetAvailableFieldsToGroupRecordsBy();
   const { availableFieldsForCalendar, navigateToDateFieldSettings } =
     useGetAvailableFieldsForCalendar();
-  const { availableFieldsForMap, navigateToAddressFieldSettings } =
+  const { availableFieldsForMap, navigateToGeometryFieldSettings } =
     useGetAvailableFieldsForMap();
 
   const { viewPickerMode } = useViewPickerMode();
@@ -99,7 +99,7 @@ export const ViewPickerCreateButton = () => {
     return (
       <Button
         title={t`Go to Settings`}
-        onClick={navigateToAddressFieldSettings}
+        onClick={navigateToGeometryFieldSettings}
         size="small"
         accent="blue"
         fullWidth

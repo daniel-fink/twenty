@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 
 import { viewableFrontComponentIdComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentIdComponentState';
+import { viewableFrontComponentParamsComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentParamsComponentState';
 import { viewableFrontComponentRecordContextComponentState } from '@/side-panel/pages/front-component/states/viewableFrontComponentRecordContextComponentState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { isDefined } from 'twenty-shared/utils';
@@ -19,6 +20,9 @@ export const SidePanelFrontComponentPage = () => {
   const viewableFrontComponentRecordContext = useAtomComponentStateValue(
     viewableFrontComponentRecordContextComponentState,
   );
+  const viewableFrontComponentParams = useAtomComponentStateValue(
+    viewableFrontComponentParamsComponentState,
+  );
 
   if (!isDefined(viewableFrontComponentId)) {
     return null;
@@ -35,6 +39,7 @@ export const SidePanelFrontComponentPage = () => {
       <FrontComponentRenderer
         frontComponentId={viewableFrontComponentId}
         selectedRecordIds={selectedRecordIds}
+        params={viewableFrontComponentParams ?? undefined}
       />
     </Suspense>
   );

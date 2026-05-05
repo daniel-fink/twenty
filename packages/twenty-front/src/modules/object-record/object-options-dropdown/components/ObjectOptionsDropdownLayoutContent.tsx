@@ -89,7 +89,7 @@ export const ObjectOptionsDropdownLayoutContent = () => {
     useGetAvailableFieldsToGroupRecordsBy();
   const { availableFieldsForCalendar, navigateToDateFieldSettings } =
     useGetAvailableFieldsForCalendar();
-  const { availableFieldsForMap, navigateToAddressFieldSettings } =
+  const { availableFieldsForMap, navigateToGeometryFieldSettings } =
     useGetAvailableFieldsForMap();
   const { closeDropdown } = useCloseDropdown();
 
@@ -126,7 +126,7 @@ export const ObjectOptionsDropdownLayoutContent = () => {
       return;
     }
     if (availableFieldsForMap.length === 0) {
-      navigateToAddressFieldSettings();
+      navigateToGeometryFieldSettings();
       closeDropdown(dropdownId);
       return;
     }
@@ -148,7 +148,7 @@ export const ObjectOptionsDropdownLayoutContent = () => {
     ...(currentView?.type === ViewType.CALENDAR
       ? ['CalendarView', 'CalendarDateField']
       : []),
-    ...(currentView?.type === ViewType.MAP ? ['MapAddressField'] : []),
+    ...(currentView?.type === ViewType.MAP ? ['MapGeometryField'] : []),
     ...(currentView?.type !== ViewType.TABLE ? ['Compact view'] : []),
   ];
 
@@ -308,14 +308,14 @@ export const ObjectOptionsDropdownLayoutContent = () => {
             )}
             {currentView?.type === ViewType.MAP && (
               <SelectableListItem
-                itemId="MapAddressField"
+                itemId="MapGeometryField"
                 onEnter={() => onContentChange('mapFields')}
               >
                 <MenuItem
-                  focused={selectedItemId === 'MapAddressField'}
+                  focused={selectedItemId === 'MapGeometryField'}
                   onClick={() => onContentChange('mapFields')}
                   LeftIcon={viewTypeIconMapping(ViewType.MAP)}
-                  text={t`Address field`}
+                  text={t`Geometry field`}
                   contextualText={mapFieldMetadata?.label}
                   contextualTextPosition="right"
                   hasSubMenu
