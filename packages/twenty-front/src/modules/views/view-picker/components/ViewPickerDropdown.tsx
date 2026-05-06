@@ -6,6 +6,7 @@ import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDrop
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useGetRecordIndexTotalCount } from '@/views/hooks/internal/useGetRecordIndexTotalCount';
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
+import { ViewType, viewTypeIconMapping } from '@/views/types/ViewType';
 import { ViewPickerContentCreateMode } from '@/views/view-picker/components/ViewPickerContentCreateMode';
 import { ViewPickerContentEditMode } from '@/views/view-picker/components/ViewPickerContentEditMode';
 import { ViewPickerContentEffect } from '@/views/view-picker/components/ViewPickerContentEffect';
@@ -70,7 +71,10 @@ export const ViewPickerDropdown = () => {
   const { viewPickerMode, setViewPickerMode } = useViewPickerMode();
 
   const { getIcon } = useIcons();
-  const CurrentViewIcon = getIcon(currentView?.icon);
+  const CurrentViewIcon =
+    currentView?.type === ViewType.MAP
+      ? viewTypeIconMapping(ViewType.MAP)
+      : getIcon(currentView?.icon);
 
   const handleClickOutside = async () => {
     if (isDropdownOpen && viewPickerMode === 'edit') {
