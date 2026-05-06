@@ -40,6 +40,7 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
           {
             contribution,
             layerIds: ['reference-fill'],
+            sourceId: 'reference-source',
           },
         ],
       }),
@@ -49,6 +50,14 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
         contributionId: contribution.contributionId,
         featureId: 'P-001',
         layerId: contribution.layerId,
+        selectedFeature: {
+          featureId: 'P-001',
+          featureIdProperty: 'selectedFeatureValue',
+          sourceId: 'reference-source',
+          sourceLayer: 'parcels',
+          swatchColor: '#2563eb',
+          type: 'reference',
+        },
         swatchColor: '#2563eb',
         title: 'Parcel P-001',
         type: 'reference',

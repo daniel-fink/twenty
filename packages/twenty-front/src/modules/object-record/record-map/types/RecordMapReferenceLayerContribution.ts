@@ -54,4 +54,5 @@ export type RecordMapReferenceLayerContributionsResponse = {
 export type RecordMapRenderedReferenceLayer = {
   contribution: RecordMapReferenceLayerContribution;
   layerIds: string[];
+  sourceId: string;
 };

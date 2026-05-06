@@ -78,6 +78,14 @@ export const getRecordMapReferenceFeaturePickerItems = ({
       contributionId: renderedLayer.contribution.contributionId,
       featureId: normalizedFeatureId,
       layerId: renderedLayer.contribution.layerId,
+      selectedFeature: {
+        featureId: normalizedFeatureId,
+        featureIdProperty,
+        sourceId: renderedLayer.sourceId,
+        sourceLayer: renderedLayer.contribution.sourceLayerName,
+        swatchColor: getLayerSwatchColor(renderedLayer),
+        type: 'reference',
+      },
       swatchColor: getLayerSwatchColor(renderedLayer),
       title:
         typeof title === 'string' && title !== ''
