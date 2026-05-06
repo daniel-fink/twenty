@@ -4,18 +4,19 @@ import {
 } from '~/config';
 
 import { getTokenPair } from '@/apollo/utils/getTokenPair';
+import { type RecordMapCamera } from '@/object-record/record-map/types/RecordMapCamera';
+import { getInitialRecordMapCamera } from '@/object-record/record-map/utils/recordMapCamera';
 import { useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
 import maplibregl from 'maplibre-gl';
 
-const DEFAULT_MAP_CENTER = { latitude: 20, longitude: 0 };
-const DEFAULT_MAP_ZOOM = 1.4;
-
 export const useMapLibreMap = ({
+  initialCamera,
   mapContainerElement,
   shouldRenderMap,
 }: {
+  initialCamera?: RecordMapCamera | null;
   mapContainerElement: HTMLDivElement | null;
   shouldRenderMap: boolean;
 }) => {
@@ -26,11 +27,15 @@ export const useMapLibreMap = ({
       return;
     }
 
+    const camera = getInitialRecordMapCamera(initialCamera);
+
     const mapInstance = new maplibregl.Map({
       container: mapContainerElement,
       style: REACT_APP_MAP_VIEW_STYLE_URL,
-      center: [DEFAULT_MAP_CENTER.longitude, DEFAULT_MAP_CENTER.latitude],
-      zoom: DEFAULT_MAP_ZOOM,
+      bearing: camera.bearing,
+      center: [camera.longitude, camera.latitude],
+      pitch: camera.pitch,
+      zoom: camera.zoom,
       transformRequest: (url): maplibregl.RequestParameters => {
         if (!url.startsWith(REACT_APP_SERVER_BASE_URL)) {
           return { url };
@@ -58,7 +63,7 @@ export const useMapLibreMap = ({
       setMap((currentMap) => (currentMap === mapInstance ? null : currentMap));
       mapInstance.remove();
     };
-  }, [mapContainerElement, shouldRenderMap]);
+  }, [initialCamera, mapContainerElement, shouldRenderMap]);
 
   return { map };
 };

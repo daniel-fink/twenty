@@ -17,10 +17,15 @@ import {
   getPaddedRecordMapBounds,
   type RecordMapBounds,
 } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
+import {
+  readRecordMapCamera,
+  writeRecordMapCamera,
+} from '@/object-record/record-map/utils/recordMapCamera';
 import { styled } from '@linaria/react';
 import { useApolloClient } from '@apollo/client/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
+import { useDebouncedCallback } from 'use-debounce';
 import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { IconMap } from 'twenty-ui/display';
@@ -78,7 +83,10 @@ export const RecordMap = ({
     useState<HTMLDivElement | null>(null);
   const [hasAutoFitTileBounds, setHasAutoFitTileBounds] = useState(false);
   const [hasUserMovedTileMap, setHasUserMovedTileMap] = useState(false);
-  const [isFittingTileBounds, setIsFittingTileBounds] = useState(false);
+  // oxlint-disable-next-line twenty/no-state-useref
+  const isFittingTileBoundsRef = useRef(false);
+  // oxlint-disable-next-line twenty/no-state-useref
+  const shouldPersistNextMoveRef = useRef(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
   const apolloClient = useApolloClient();
   const { enqueueErrorSnackBar } = useSnackBar();
@@ -90,7 +98,12 @@ export const RecordMap = ({
     (isDefined(tileSource) || loading || recordMapPoints.length > 0);
   const tileSourceViewId = tileSource?.viewId;
   const tileSourceFilter = JSON.stringify(tileSource?.filter ?? {});
+  const persistedMapCamera = useMemo(
+    () => readRecordMapCamera(tileSourceViewId),
+    [tileSourceViewId],
+  );
   const { map } = useMapLibreMap({
+    initialCamera: persistedMapCamera,
     mapContainerElement,
     shouldRenderMap,
   });
@@ -151,30 +164,87 @@ export const RecordMap = ({
     [apolloClient, enqueueErrorSnackBar, openFrontComponentInSidePanel],
   );
 
-  const fitMapToTileBounds = useCallback(() => {
-    if (!isDefined(map) || !isDefined(tileBounds?.bounds)) {
+  const persistRecordMapCamera = useDebouncedCallback(
+    ({
+      bearing,
+      latitude,
+      longitude,
+      pitch,
+      viewId,
+      zoom,
+    }: {
+      bearing: number;
+      latitude: number;
+      longitude: number;
+      pitch: number;
+      viewId: string;
+      zoom: number;
+    }) => {
+      writeRecordMapCamera({
+        camera: {
+          bearing,
+          latitude,
+          longitude,
+          pitch,
+          updatedAt: new Date().toISOString(),
+          zoom,
+        },
+        viewId,
+      });
+    },
+    400,
+  );
+
+  const persistCurrentMapCamera = useCallback(() => {
+    if (!isDefined(map) || !isDefined(tileSourceViewId)) {
       return;
     }
 
-    setIsFittingTileBounds(true);
+    const center = map.getCenter();
 
-    map.once('moveend', () => {
-      setIsFittingTileBounds(false);
+    persistRecordMapCamera({
+      bearing: map.getBearing(),
+      latitude: center.lat,
+      longitude: center.lng,
+      pitch: map.getPitch(),
+      viewId: tileSourceViewId,
+      zoom: map.getZoom(),
     });
-    window.setTimeout(() => {
-      setIsFittingTileBounds(false);
-    }, 750);
+  }, [map, persistRecordMapCamera, tileSourceViewId]);
 
-    map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
-      padding: 64,
-      maxZoom: 12,
-      essential: true,
-    });
-  }, [map, tileBounds]);
+  const fitMapToTileBounds = useCallback(
+    (options?: { persistCamera: boolean }) => {
+      if (!isDefined(map) || !isDefined(tileBounds?.bounds)) {
+        return;
+      }
+
+      isFittingTileBoundsRef.current = true;
+
+      if (options?.persistCamera === true) {
+        setHasUserMovedTileMap(true);
+        shouldPersistNextMoveRef.current = true;
+      }
+
+      map.once('moveend', () => {
+        isFittingTileBoundsRef.current = false;
+      });
+      window.setTimeout(() => {
+        isFittingTileBoundsRef.current = false;
+      }, 750);
+
+      map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
+        padding: 64,
+        maxZoom: 12,
+        essential: true,
+      });
+    },
+    [map, tileBounds],
+  );
 
   useEffect(() => {
     setHasAutoFitTileBounds(false);
     setHasUserMovedTileMap(false);
+    shouldPersistNextMoveRef.current = false;
   }, [tileSourceViewId]);
 
   useEffect(() => {
@@ -210,19 +280,39 @@ export const RecordMap = ({
     }
 
     const markUserMovedMap = () => {
-      if (!isFittingTileBounds) {
+      if (!isFittingTileBoundsRef.current) {
         setHasUserMovedTileMap(true);
+        shouldPersistNextMoveRef.current = true;
+      }
+    };
+
+    const persistUserMovedMap = () => {
+      if (shouldPersistNextMoveRef.current) {
+        shouldPersistNextMoveRef.current = false;
+        persistCurrentMapCamera();
       }
     };
 
     map.on('dragstart', markUserMovedMap);
+    map.on('moveend', persistUserMovedMap);
+    map.on('pitchstart', markUserMovedMap);
+    map.on('rotatestart', markUserMovedMap);
     map.on('zoomstart', markUserMovedMap);
 
     return () => {
       map.off('dragstart', markUserMovedMap);
+      map.off('moveend', persistUserMovedMap);
+      map.off('pitchstart', markUserMovedMap);
+      map.off('rotatestart', markUserMovedMap);
       map.off('zoomstart', markUserMovedMap);
     };
-  }, [isFittingTileBounds, map, tileSourceViewId]);
+  }, [map, persistCurrentMapCamera, tileSourceViewId]);
+
+  useEffect(() => {
+    return () => {
+      persistRecordMapCamera.cancel();
+    };
+  }, [persistRecordMapCamera, tileSourceViewId]);
 
   useRecordMapAddressMarkers({
     map,
@@ -246,6 +336,7 @@ export const RecordMap = ({
   useEffect(() => {
     if (
       !isDefined(tileBounds?.bounds) ||
+      isDefined(persistedMapCamera) ||
       hasUserMovedTileMap ||
       hasAutoFitTileBounds
     ) {
@@ -258,6 +349,7 @@ export const RecordMap = ({
     fitMapToTileBounds,
     hasAutoFitTileBounds,
     hasUserMovedTileMap,
+    persistedMapCamera,
     tileBounds,
   ]);
 
@@ -284,7 +376,7 @@ export const RecordMap = ({
         <RecordMapControls
           canFitToTileBounds={isDefined(tileBounds?.bounds)}
           map={map}
-          onFitToTileBounds={fitMapToTileBounds}
+          onFitToTileBounds={() => fitMapToTileBounds({ persistCamera: true })}
           onSearchThisArea={onSearchThisArea}
         />
       )}
