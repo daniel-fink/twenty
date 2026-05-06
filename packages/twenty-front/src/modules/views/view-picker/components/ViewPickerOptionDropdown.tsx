@@ -7,6 +7,7 @@ import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
 import { MenuItemWithOptionDropdown } from '@/ui/navigation/menu-item/components/MenuItemWithOptionDropdown';
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
 import { type View } from '@/views/types/View';
+import { ViewType, viewTypeIconMapping } from '@/views/types/ViewType';
 import { useDestroyViewFromCurrentState } from '@/views/view-picker/hooks/useDestroyViewFromCurrentState';
 import { viewPickerReferenceViewIdComponentState } from '@/views/view-picker/states/viewPickerReferenceViewIdComponentState';
 import { useLingui } from '@lingui/react/macro';
@@ -31,7 +32,12 @@ type ViewPickerOptionDropdownProps = {
   isLastView: boolean;
   view: Pick<
     View,
-    'id' | 'name' | 'icon' | 'visibility' | 'createdByUserWorkspaceId'
+    | 'id'
+    | 'name'
+    | 'icon'
+    | 'type'
+    | 'visibility'
+    | 'createdByUserWorkspaceId'
   >;
   onEdit: (event: React.MouseEvent<HTMLElement>, viewId: string) => void;
   handleViewSelect: (viewId: string) => void;
@@ -49,6 +55,10 @@ export const ViewPickerOptionDropdown = ({
   const { t } = useLingui();
   const { closeDropdown } = useCloseDropdown();
   const { getIcon } = useIcons();
+  const ViewIcon =
+    view.type === ViewType.MAP
+      ? viewTypeIconMapping(ViewType.MAP)
+      : getIcon(view.icon);
   const { destroyViewFromCurrentState } = useDestroyViewFromCurrentState();
   const setViewPickerReferenceViewId = useSetAtomComponentState(
     viewPickerReferenceViewIdComponentState,
@@ -114,7 +124,7 @@ export const ViewPickerOptionDropdown = ({
     <>
       <MenuItemWithOptionDropdown
         text={view.name}
-        LeftIcon={getIcon(view.icon)}
+        LeftIcon={ViewIcon}
         onClick={() => handleViewSelect(view.id)}
         isIconDisplayedOnHoverOnly={!shouldShowIconAlways}
         RightIcon={getVisibilityIcon()}

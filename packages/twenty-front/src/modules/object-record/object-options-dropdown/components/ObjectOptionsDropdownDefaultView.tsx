@@ -12,6 +12,7 @@ import { useAtomComponentSelectorValue } from '@/ui/utilities/state/jotai/hooks/
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { useOpenCreateViewDropdown } from '@/views/hooks/useOpenCreateViewDropown';
+import { ViewType, viewTypeIconMapping } from '@/views/types/ViewType';
 import { useLingui } from '@lingui/react/macro';
 import {
   IconCopy,
@@ -59,7 +60,10 @@ export const ObjectOptionsDropdownDefaultView = () => {
   const { copyToClipboard } = useCopyToClipboard();
 
   const { getIcon } = useIcons();
-  const MainIcon = getIcon(currentView?.icon);
+  const MainIcon =
+    currentView?.type === ViewType.MAP
+      ? viewTypeIconMapping(ViewType.MAP)
+      : getIcon(currentView?.icon);
 
   return (
     <DropdownContent>
