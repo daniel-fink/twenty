@@ -147,6 +147,7 @@ const addReferenceLayer = ({
   return {
     contribution,
     layerIds,
+    sourceId,
   };
 };
 

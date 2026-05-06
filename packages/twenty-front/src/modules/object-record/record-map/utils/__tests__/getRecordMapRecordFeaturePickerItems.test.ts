@@ -20,6 +20,14 @@ describe('getRecordMapRecordFeaturePickerItems', () => {
     ).toEqual([
       {
         recordId: 'record-1',
+        selectedFeature: {
+          featureId: 'record-1',
+          featureIdProperty: 'id',
+          sourceId: RECORD_MAP_VECTOR_TILE_LAYER.sourceId,
+          sourceLayer: RECORD_MAP_VECTOR_TILE_LAYER.sourceLayer,
+          swatchColor: RECORD_MAP_LAYER_COLORS.blue,
+          type: 'record',
+        },
         swatchColor: RECORD_MAP_LAYER_COLORS.blue,
         title: 'Acme',
         type: 'record',

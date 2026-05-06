@@ -27,7 +27,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { useDebouncedCallback } from 'use-debounce';
 import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
+import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { IconMap } from 'twenty-ui/display';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { FindOneApplicationByUniversalIdentifierDocument } from '~/generated-metadata/graphql';
@@ -91,6 +93,7 @@ export const RecordMap = ({
   const apolloClient = useApolloClient();
   const { enqueueErrorSnackBar } = useSnackBar();
   const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
+  const isSidePanelOpened = useAtomStateValue(isSidePanelOpenedState);
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
   const shouldRenderMap =
@@ -324,6 +327,7 @@ export const RecordMap = ({
   const { closeFeaturePicker, featurePicker, openRecordFeature } =
     useRecordMapVectorTileLayers({
       map,
+      isSidePanelOpened,
       objectNameSingular,
       onFeatureClick: handleRecordClick,
       onReferenceFeatureClick: handleReferenceFeatureClick,

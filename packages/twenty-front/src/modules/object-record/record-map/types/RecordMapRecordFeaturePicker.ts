@@ -1,8 +1,10 @@
 import { type RecordMapReferenceLayerContribution } from '@/object-record/record-map/types/RecordMapReferenceLayerContribution';
+import { type RecordMapSelectedFeature } from '@/object-record/record-map/types/RecordMapSelectedFeature';
 
 export type RecordMapRecordFeaturePickerItem = {
   type: 'record';
   recordId: string;
+  selectedFeature: RecordMapSelectedFeature;
   swatchColor: string;
   title: string;
 };
@@ -13,6 +15,7 @@ export type RecordMapReferenceFeaturePickerItem = {
   contributionId: string;
   featureId: string;
   layerId: string;
+  selectedFeature: RecordMapSelectedFeature;
   swatchColor: string;
   title: string;
   viewId: string;
