@@ -1,8 +1,8 @@
-import { type RecordMapReferenceFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
-import { type RecordMapRenderedReferenceLayer } from '@/object-record/record-map/types/RecordMapReferenceLayerContribution';
+import { type RecordMapContributedFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
+import { type RecordMapRenderedContributionLayer } from '@/object-record/record-map/types/RecordMapContribution';
 import { isDefined } from 'twenty-shared/utils';
 
-type RenderedReferenceFeatureHit = {
+type RenderedContributionFeatureHit = {
   id?: string | number;
   layer: {
     id: string;
@@ -11,7 +11,7 @@ type RenderedReferenceFeatureHit = {
 };
 
 const getLayerSwatchColor = (
-  renderedLayer: RecordMapRenderedReferenceLayer,
+  renderedLayer: RecordMapRenderedContributionLayer,
 ) => {
   const style = renderedLayer.contribution.style;
 
@@ -26,25 +26,25 @@ const getLayerSwatchColor = (
   return style?.fillColor ?? '#64748b';
 };
 
-export const getRecordMapReferenceFeaturePickerItems = ({
+export const getRecordMapContributedFeaturePickerItems = ({
   features,
-  renderedReferenceLayers,
+  renderedContributionLayers,
 }: {
-  features: RenderedReferenceFeatureHit[] | undefined;
-  renderedReferenceLayers: RecordMapRenderedReferenceLayer[];
-}): RecordMapReferenceFeaturePickerItem[] => {
+  features: RenderedContributionFeatureHit[] | undefined;
+  renderedContributionLayers: RecordMapRenderedContributionLayer[];
+}): RecordMapContributedFeaturePickerItem[] => {
   const renderedLayersByLayerId = new Map<
     string,
-    RecordMapRenderedReferenceLayer
+    RecordMapRenderedContributionLayer
   >();
 
-  for (const renderedLayer of renderedReferenceLayers) {
+  for (const renderedLayer of renderedContributionLayers) {
     for (const layerId of renderedLayer.layerIds) {
       renderedLayersByLayerId.set(layerId, renderedLayer);
     }
   }
 
-  const dedupedItems = new Map<string, RecordMapReferenceFeaturePickerItem>();
+  const dedupedItems = new Map<string, RecordMapContributedFeaturePickerItem>();
 
   for (const feature of features ?? []) {
     const renderedLayer = renderedLayersByLayerId.get(feature.layer.id);
@@ -78,20 +78,12 @@ export const getRecordMapReferenceFeaturePickerItems = ({
       contributionId: renderedLayer.contribution.contributionId,
       featureId: normalizedFeatureId,
       layerId: renderedLayer.contribution.layerId,
-      selectedFeature: {
-        featureId: normalizedFeatureId,
-        featureIdProperty,
-        sourceId: renderedLayer.sourceId,
-        sourceLayer: renderedLayer.contribution.sourceLayerName,
-        swatchColor: getLayerSwatchColor(renderedLayer),
-        type: 'reference',
-      },
       swatchColor: getLayerSwatchColor(renderedLayer),
       title:
         typeof title === 'string' && title !== ''
           ? title
           : renderedLayer.contribution.displayName,
-      type: 'reference',
+      type: 'contribution',
       viewId: renderedLayer.contribution.viewId,
     });
   }

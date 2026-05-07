@@ -1,32 +1,19 @@
 import { useIsPageLayoutInEditMode } from '@/page-layout/hooks/useIsPageLayoutInEditMode';
-import { usePageLayoutContentContext } from '@/page-layout/contexts/PageLayoutContentContext';
-import { PAGE_LAYOUT_GRID_MARGIN } from '@/page-layout/constants/PageLayoutGridMargin';
-import { PAGE_LAYOUT_GRID_ROW_HEIGHT } from '@/page-layout/constants/PageLayoutGridRowHeight';
 import { type PageLayoutWidget } from '@/page-layout/types/PageLayoutWidget';
 import { PageLayoutWidgetNoDataDisplay } from '@/page-layout/widgets/components/PageLayoutWidgetNoDataDisplay';
 import { WidgetSkeletonLoader } from '@/page-layout/widgets/components/WidgetSkeletonLoader';
-import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { styled } from '@linaria/react';
 import { useState } from 'react';
 import { getSafeUrl, isDefined } from 'twenty-shared/utils';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
-import {
-  PageLayoutTabLayoutMode,
-  PageLayoutType,
-} from '~/generated-metadata/graphql';
 
-const StyledContainer = styled.div<{
-  $isEditMode: boolean;
-  $minHeightPx?: number;
-}>`
+const StyledContainer = styled.div<{ $isEditMode: boolean }>`
   background: ${themeCssVariables.background.primary};
   border-radius: ${themeCssVariables.border.radius.md};
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: ${({ $minHeightPx }) =>
-    $minHeightPx === undefined ? '0' : `${$minHeightPx}px`};
   overflow: hidden;
   pointer-events: ${({ $isEditMode }) => ($isEditMode ? 'none' : 'auto')};
   position: relative;
@@ -68,36 +55,8 @@ export type IframeWidgetProps = {
   widget: PageLayoutWidget;
 };
 
-const getRecordAwareIframeUrl = ({
-  layoutType,
-  recordId,
-  url,
-}: {
-  layoutType: PageLayoutType;
-  recordId?: string;
-  url: string;
-}) => {
-  if (layoutType !== PageLayoutType.RECORD_PAGE || !isDefined(recordId)) {
-    return url;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-
-    if (!parsedUrl.searchParams.has('recordId')) {
-      parsedUrl.searchParams.set('recordId', recordId);
-    }
-
-    return parsedUrl.toString();
-  } catch {
-    return url;
-  }
-};
-
 export const IframeWidget = ({ widget }: IframeWidgetProps) => {
   const isPageLayoutInEditMode = useIsPageLayoutInEditMode();
-  const { layoutType, targetRecordIdentifier } = useLayoutRenderingContext();
-  const { layoutMode } = usePageLayoutContentContext();
 
   const configuration = widget.configuration;
 
@@ -121,27 +80,11 @@ export const IframeWidget = ({ widget }: IframeWidgetProps) => {
   };
 
   const safeUrl = isDefined(url) ? getSafeUrl(url) : undefined;
-  const recordAwareSafeUrl = isDefined(safeUrl)
-    ? getRecordAwareIframeUrl({
-        layoutType,
-        recordId: targetRecordIdentifier?.id,
-        url: safeUrl,
-      })
-    : undefined;
-  const isHttpUrl =
-    isDefined(recordAwareSafeUrl) && /^https?:\/\//i.test(recordAwareSafeUrl);
-  const verticalListMinHeightPx =
-    layoutMode === PageLayoutTabLayoutMode.VERTICAL_LIST
-      ? widget.gridPosition.rowSpan * PAGE_LAYOUT_GRID_ROW_HEIGHT +
-        Math.max(0, widget.gridPosition.rowSpan - 1) * PAGE_LAYOUT_GRID_MARGIN
-      : undefined;
+  const isHttpUrl = isDefined(safeUrl) && /^https?:\/\//i.test(safeUrl);
 
   if (hasError || !isHttpUrl) {
     return (
-      <StyledContainer
-        $isEditMode={isPageLayoutInEditMode}
-        $minHeightPx={verticalListMinHeightPx}
-      >
+      <StyledContainer $isEditMode={isPageLayoutInEditMode}>
         <StyledErrorContainer>
           <PageLayoutWidgetNoDataDisplay />
         </StyledErrorContainer>
@@ -150,10 +93,7 @@ export const IframeWidget = ({ widget }: IframeWidgetProps) => {
   }
 
   return (
-    <StyledContainer
-      $isEditMode={isPageLayoutInEditMode}
-      $minHeightPx={verticalListMinHeightPx}
-    >
+    <StyledContainer $isEditMode={isPageLayoutInEditMode}>
       {isLoading && (
         <StyledLoadingContainer>
           <WidgetSkeletonLoader />
@@ -161,7 +101,7 @@ export const IframeWidget = ({ widget }: IframeWidgetProps) => {
       )}
       <StyledIframe
         $isEditMode={isPageLayoutInEditMode}
-        src={recordAwareSafeUrl}
+        src={safeUrl}
         title={title}
         onLoad={handleIframeLoad}
         onError={handleIframeError}

@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { ObjectSortDropdownButton } from '@/object-record/object-sort-dropdown/components/ObjectSortDropdownButton';
-import { RecordMapLayersDropdownButton } from '@/object-record/record-map/components/RecordMapLayersDropdownButton';
+import { RecordMapAppControls } from '@/object-record/record-map/components/RecordMapAppControls';
 import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
 import { TopBar } from '@/ui/layout/top-bar/components/TopBar';
 import { QueryParamsFiltersEffect } from '@/views/components/QueryParamsFiltersEffect';
@@ -74,11 +74,8 @@ export const ViewBar = ({
             >
               <ViewBarFilterDropdown />
             </ObjectFilterDropdownComponentInstanceContext.Provider>
-            {viewType === ViewType.MAP ? (
-              <RecordMapLayersDropdownButton />
-            ) : (
-              <ObjectSortDropdownButton />
-            )}
+            {viewType === ViewType.MAP && <RecordMapAppControls />}
+            <ObjectSortDropdownButton />
             {optionsDropdownButton}
           </>
         }

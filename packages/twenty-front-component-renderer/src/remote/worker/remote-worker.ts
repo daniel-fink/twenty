@@ -162,6 +162,8 @@ const initializeHostCommunicationApi: WorkerExports['initializeHostCommunication
     frontComponentHostCommunicationApi.enqueueSnackbar =
       hostApi.enqueueSnackbar;
     frontComponentHostCommunicationApi.closeSidePanel = hostApi.closeSidePanel;
+    frontComponentHostCommunicationApi.refreshMapContributions =
+      hostApi.refreshMapContributions;
     frontComponentHostCommunicationApi.updateProgress = hostApi.updateProgress;
   };
 

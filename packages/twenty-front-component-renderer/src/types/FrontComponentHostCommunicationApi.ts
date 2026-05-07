@@ -4,6 +4,7 @@ import {
   type NavigateFunction,
   type OpenCommandConfirmationModalHostFunction,
   type OpenSidePanelPageFunction,
+  type RefreshMapContributionsFunction,
   type RequestAccessTokenRefreshFunction,
   type UnmountFrontComponentFunction,
   type UpdateProgressFunction,
@@ -17,5 +18,6 @@ export type FrontComponentHostCommunicationApi = {
   unmountFrontComponent: UnmountFrontComponentFunction;
   enqueueSnackbar: EnqueueSnackbarFunction;
   closeSidePanel: CloseSidePanelFunction;
+  refreshMapContributions: RefreshMapContributionsFunction;
   updateProgress: UpdateProgressFunction;
 };

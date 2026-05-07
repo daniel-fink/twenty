@@ -19,6 +19,7 @@ type FrontComponentRendererProps = {
   frontComponentId: string;
   commandMenuItemId?: string;
   selectedRecordIds?: string[];
+  onRefreshMapContributions?: () => void;
   params?: Record<string, string>;
 };
 
@@ -26,6 +27,7 @@ export const FrontComponentRenderer = ({
   frontComponentId,
   commandMenuItemId,
   selectedRecordIds,
+  onRefreshMapContributions,
   params,
 }: FrontComponentRendererProps) => {
   const { colorScheme } = useContext(ThemeContext);
@@ -41,6 +43,7 @@ export const FrontComponentRenderer = ({
       frontComponentId,
       commandMenuItemId,
       selectedRecordIds,
+      onRefreshMapContributions,
       params,
     });
 

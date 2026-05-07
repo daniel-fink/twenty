@@ -24,12 +24,15 @@ export const useFrontComponentExecutionContext = ({
   frontComponentId,
   commandMenuItemId,
   selectedRecordIds,
+  onRefreshMapContributions,
   params,
 }: {
   frontComponentId: string;
   commandMenuItemId?: string;
   selectedRecordIds?: string[];
+  onRefreshMapContributions?: () => void;
   params?: Record<string, string>;
+  onRefreshMapContributions?: () => void;
 }): {
   executionContext: FrontComponentExecutionContext;
   frontComponentHostCommunicationApi: FrontComponentHostCommunicationApi;
@@ -146,6 +149,11 @@ export const useFrontComponentExecutionContext = ({
       closeSidePanelMenu();
     };
 
+  const refreshMapContributions: FrontComponentHostCommunicationApi['refreshMapContributions'] =
+    async () => {
+      onRefreshMapContributions?.();
+    };
+
   const updateProgress: FrontComponentHostCommunicationApi['updateProgress'] =
     async (progress) => {
       if (!isDefined(commandMenuItemId)) {
@@ -164,6 +172,7 @@ export const useFrontComponentExecutionContext = ({
       enqueueSnackbar,
       unmountFrontComponent,
       closeSidePanel,
+      refreshMapContributions,
       updateProgress,
     };
 

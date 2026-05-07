@@ -34,6 +34,7 @@ export { enqueueSnackbar } from './functions/enqueueSnackbar';
 export { navigate } from './functions/navigate';
 export { openCommandConfirmationModal } from './functions/openCommandConfirmationModal';
 export { openSidePanelPage } from './functions/openSidePanelPage';
+export { refreshMapContributions } from './functions/refreshMapContributions';
 export { unmountFrontComponent } from './functions/unmountFrontComponent';
 export { updateProgress } from './functions/updateProgress';
 export { useFrontComponentExecutionContext } from './hooks/useFrontComponentExecutionContext';
@@ -52,6 +53,7 @@ export type {
   OpenCommandConfirmationModalFunction,
   OpenCommandConfirmationModalHostFunction,
   OpenSidePanelPageFunction,
+  RefreshMapContributionsFunction,
   RequestAccessTokenRefreshFunction,
   UnmountFrontComponentFunction,
   UpdateProgressFunction,

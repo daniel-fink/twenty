@@ -1,4 +1,4 @@
-export type RecordMapReferenceLayerStyle =
+export type RecordMapLayerContributionStyle =
   | {
       type: 'fill';
       fillColor: string;
@@ -22,37 +22,48 @@ export type RecordMapReferenceLayerStyle =
       circleStrokeWidth?: number;
     };
 
-export type RecordMapReferenceLayerContribution = {
+export type RecordMapOpenFrontComponentAction = {
+  applicationUniversalIdentifier: string;
+  frontComponentUniversalIdentifier: string;
+  params?: Record<string, string>;
+  type: 'OPEN_FRONT_COMPONENT';
+};
+
+export type RecordMapLayerContribution = {
   attribution?: string | null;
   bounds?: Record<string, unknown> | number[] | null;
   contributionId: string;
   displayName: string;
-  featureDetailApplicationUniversalIdentifier: string;
-  featureDetailCallbackUrl: string;
-  featureDetailFrontComponentUniversalIdentifier: string;
   featureIdProperty?: string;
+  featureSelectionAction?: RecordMapOpenFrontComponentAction;
   isVisible: boolean;
   layerId: string;
   maxZoom?: number | null;
   minZoom?: number | null;
   position: number;
   sourceLayerName: string;
-  style?: RecordMapReferenceLayerStyle | null;
+  style?: RecordMapLayerContributionStyle | null;
   titleProperty?: string;
   tileJsonUrl: string;
-  tileToken?: string;
-  visibilityCallbackUrl?: string;
   viewId: string;
 };
 
-export type RecordMapReferenceLayerContributionsResponse = {
-  layers: RecordMapReferenceLayerContribution[];
+export type RecordMapControlContribution = {
+  applicationUniversalIdentifier: string;
+  contributionId: string;
+  frontComponentUniversalIdentifier: string;
+  params?: Record<string, string>;
+  position: number;
+};
+
+export type RecordMapContributionsResponse = {
+  controls?: RecordMapControlContribution[];
+  layers: RecordMapLayerContribution[];
   status: 'success';
   viewId: string;
 };
 
-export type RecordMapRenderedReferenceLayer = {
-  contribution: RecordMapReferenceLayerContribution;
+export type RecordMapRenderedContributionLayer = {
+  contribution: RecordMapLayerContribution;
   layerIds: string[];
-  sourceId: string;
 };

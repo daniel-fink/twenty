@@ -1,11 +1,12 @@
 import { REACT_APP_SERVER_BASE_URL } from '~/config';
 
 import { ensureTokenPairIsFresh } from '@/apollo/utils/ensureTokenPairIsFresh';
-import { RECORD_MAP_REFERENCE_LAYER_CONTRIBUTION_ROUTES } from '@/object-record/record-map/constants/record-map-reference-layer.constants';
+import { RECORD_MAP_EXTENSION_CONTRIBUTION_ROUTES } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import {
-  type RecordMapReferenceLayerContribution,
-  type RecordMapReferenceLayerContributionsResponse,
-} from '@/object-record/record-map/types/RecordMapReferenceLayerContribution';
+  type RecordMapControlContribution,
+  type RecordMapLayerContribution,
+  type RecordMapContributionsResponse,
+} from '@/object-record/record-map/types/RecordMapContribution';
 import { useCallback, useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -59,27 +60,39 @@ const fetchContributionRoute = async ({
       : response;
 
   if (!resolvedResponse.ok) {
-    throw new Error('Failed to load map reference layers');
+    throw new Error('Failed to load map contributions');
   }
 
   const payload =
-    (await resolvedResponse.json()) as RecordMapReferenceLayerContributionsResponse;
+    (await resolvedResponse.json()) as RecordMapContributionsResponse;
 
-  return payload.status === 'success' ? payload.layers : [];
+  return payload.status === 'success'
+    ? {
+        controls: payload.controls ?? [],
+        layers: payload.layers,
+      }
+    : {
+        controls: [],
+        layers: [],
+      };
 };
 
-export const useRecordMapReferenceLayerContributions = ({
+export const useRecordMapContributions = ({
   tileSourceViewId,
 }: {
   tileSourceViewId?: string;
 }) => {
-  const [contributions, setContributions] = useState<
-    RecordMapReferenceLayerContribution[]
+  const [layerContributions, setLayerContributions] = useState<
+    RecordMapLayerContribution[]
+  >([]);
+  const [controlContributions, setControlContributions] = useState<
+    RecordMapControlContribution[]
   >([]);
 
-  const refreshReferenceLayerContributions = useCallback(() => {
+  const refreshMapContributions = useCallback(() => {
     if (!isDefined(tileSourceViewId)) {
-      setContributions([]);
+      setLayerContributions([]);
+      setControlContributions([]);
 
       return;
     }
@@ -87,7 +100,7 @@ export const useRecordMapReferenceLayerContributions = ({
     const abortController = new AbortController();
 
     void Promise.all(
-      RECORD_MAP_REFERENCE_LAYER_CONTRIBUTION_ROUTES.map((route) =>
+      RECORD_MAP_EXTENSION_CONTRIBUTION_ROUTES.map((route) =>
         fetchContributionRoute({
           abortController,
           route,
@@ -96,12 +109,20 @@ export const useRecordMapReferenceLayerContributions = ({
       ),
     )
       .then((responses) => {
-        setContributions(
+        setLayerContributions(
           responses
-            .flat()
+            .flatMap((response) => response.layers)
             .sort(
               (firstLayer, secondLayer) =>
                 firstLayer.position - secondLayer.position,
+            ),
+        );
+        setControlContributions(
+          responses
+            .flatMap((response) => response.controls)
+            .sort(
+              (firstControl, secondControl) =>
+                firstControl.position - secondControl.position,
             ),
         );
       })
@@ -110,7 +131,8 @@ export const useRecordMapReferenceLayerContributions = ({
           return;
         }
 
-        setContributions([]);
+        setLayerContributions([]);
+        setControlContributions([]);
       });
 
     return () => {
@@ -119,12 +141,12 @@ export const useRecordMapReferenceLayerContributions = ({
   }, [tileSourceViewId]);
 
   useEffect(() => {
-    return refreshReferenceLayerContributions();
-  }, [refreshReferenceLayerContributions]);
+    return refreshMapContributions();
+  }, [refreshMapContributions]);
 
   return {
-    referenceLayerContributions: contributions,
-    refreshReferenceLayerContributions,
-    setReferenceLayerContributions: setContributions,
+    controlContributions,
+    layerContributions,
+    refreshMapContributions,
   };
 };

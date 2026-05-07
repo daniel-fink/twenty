@@ -95,14 +95,6 @@ export const getRecordMapRecordFeaturePickerItems = ({
       geometryPriority,
       recordId: normalizedRecordId,
       renderedFeatureIndex,
-      selectedFeature: {
-        featureId: normalizedRecordId,
-        featureIdProperty: 'id',
-        sourceId: RECORD_MAP_VECTOR_TILE_LAYER.sourceId,
-        sourceLayer: RECORD_MAP_VECTOR_TILE_LAYER.sourceLayer,
-        swatchColor: RECORD_MAP_LAYER_COLORS.blue,
-        type: 'record',
-      },
       swatchColor: RECORD_MAP_LAYER_COLORS.blue,
       title: getRecordTitle({
         feature,
