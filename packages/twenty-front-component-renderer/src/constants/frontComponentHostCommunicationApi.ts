@@ -4,6 +4,7 @@ import {
   type NavigateFunction,
   type OpenCommandConfirmationModalFunction,
   type OpenSidePanelPageFunction,
+  type RefreshMapContributionsFunction,
   type RequestAccessTokenRefreshFunction,
   type UnmountFrontComponentFunction,
   type UpdateProgressFunction,
@@ -19,6 +20,7 @@ type FrontComponentHostCommunicationApiStore = {
   unmountFrontComponent?: UnmountFrontComponentFunction;
   enqueueSnackbar?: EnqueueSnackbarFunction;
   closeSidePanel?: CloseSidePanelFunction;
+  refreshMapContributions?: RefreshMapContributionsFunction;
   updateProgress?: UpdateProgressFunction;
 };
 

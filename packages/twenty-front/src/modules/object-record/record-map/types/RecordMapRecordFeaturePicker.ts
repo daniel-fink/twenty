@@ -1,21 +1,18 @@
-import { type RecordMapReferenceLayerContribution } from '@/object-record/record-map/types/RecordMapReferenceLayerContribution';
-import { type RecordMapSelectedFeature } from '@/object-record/record-map/types/RecordMapSelectedFeature';
+import { type RecordMapLayerContribution } from '@/object-record/record-map/types/RecordMapContribution';
 
 export type RecordMapRecordFeaturePickerItem = {
   type: 'record';
   recordId: string;
-  selectedFeature: RecordMapSelectedFeature;
   swatchColor: string;
   title: string;
 };
 
-export type RecordMapReferenceFeaturePickerItem = {
-  type: 'reference';
-  contribution: RecordMapReferenceLayerContribution;
+export type RecordMapContributedFeaturePickerItem = {
+  type: 'contribution';
+  contribution: RecordMapLayerContribution;
   contributionId: string;
   featureId: string;
   layerId: string;
-  selectedFeature: RecordMapSelectedFeature;
   swatchColor: string;
   title: string;
   viewId: string;
@@ -23,7 +20,7 @@ export type RecordMapReferenceFeaturePickerItem = {
 
 export type RecordMapFeaturePickerItem =
   | RecordMapRecordFeaturePickerItem
-  | RecordMapReferenceFeaturePickerItem;
+  | RecordMapContributedFeaturePickerItem;
 
 export type RecordMapRecordFeaturePickerState = {
   items: RecordMapFeaturePickerItem[];

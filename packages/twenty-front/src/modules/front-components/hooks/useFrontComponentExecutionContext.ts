@@ -23,11 +23,13 @@ import { useNavigateApp } from '~/hooks/useNavigateApp';
 export const useFrontComponentExecutionContext = ({
   frontComponentId,
   commandMenuItemId,
+  onRefreshMapContributions,
   params,
   recordId,
 }: {
   frontComponentId: string;
   commandMenuItemId?: string;
+  onRefreshMapContributions?: () => void;
   params?: Record<string, string>;
   recordId?: string;
 }): {
@@ -145,6 +147,11 @@ export const useFrontComponentExecutionContext = ({
       closeSidePanelMenu();
     };
 
+  const refreshMapContributions: FrontComponentHostCommunicationApi['refreshMapContributions'] =
+    async () => {
+      onRefreshMapContributions?.();
+    };
+
   const updateProgress: FrontComponentHostCommunicationApi['updateProgress'] =
     async (progress) => {
       if (!isDefined(commandMenuItemId)) {
@@ -163,6 +170,7 @@ export const useFrontComponentExecutionContext = ({
       enqueueSnackbar,
       unmountFrontComponent,
       closeSidePanel,
+      refreshMapContributions,
       updateProgress,
     };
 

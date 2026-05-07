@@ -28,6 +28,7 @@ const HOST_COMMUNICATION_API_NOOP_INITIALIZATION: FrontComponentHostCommunicatio
     unmountFrontComponent: noopAsync,
     enqueueSnackbar: noopAsync,
     closeSidePanel: noopAsync,
+    refreshMapContributions: noopAsync,
     updateProgress: noopAsync,
   };
 

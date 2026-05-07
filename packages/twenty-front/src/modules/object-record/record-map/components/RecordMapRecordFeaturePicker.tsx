@@ -41,7 +41,7 @@ type RecordMapRecordFeaturePickerProps = {
 const getItemKey = (item: RecordMapFeaturePickerItem) =>
   item.type === 'record'
     ? `record:${item.recordId}`
-    : `reference:${item.contributionId}:${item.featureId}`;
+    : `contribution:${item.contributionId}:${item.featureId}`;
 
 const getItemContextualText = ({
   item,

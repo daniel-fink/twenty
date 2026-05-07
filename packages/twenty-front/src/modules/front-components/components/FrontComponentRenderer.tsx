@@ -18,6 +18,7 @@ import { FindOneFrontComponentDocument } from '~/generated-metadata/graphql';
 type FrontComponentRendererProps = {
   frontComponentId: string;
   commandMenuItemId?: string;
+  onRefreshMapContributions?: () => void;
   params?: Record<string, string>;
   recordId?: string;
 };
@@ -25,6 +26,7 @@ type FrontComponentRendererProps = {
 export const FrontComponentRenderer = ({
   frontComponentId,
   commandMenuItemId,
+  onRefreshMapContributions,
   params,
   recordId,
 }: FrontComponentRendererProps) => {
@@ -40,6 +42,7 @@ export const FrontComponentRenderer = ({
     useFrontComponentExecutionContext({
       frontComponentId,
       commandMenuItemId,
+      onRefreshMapContributions,
       params,
       recordId,
     });

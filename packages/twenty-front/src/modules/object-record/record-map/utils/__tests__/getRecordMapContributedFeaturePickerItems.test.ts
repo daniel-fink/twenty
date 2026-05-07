@@ -1,13 +1,14 @@
-import { getRecordMapReferenceFeaturePickerItems } from '@/object-record/record-map/utils/getRecordMapReferenceFeaturePickerItems';
+import { type RecordMapLayerContribution } from '@/object-record/record-map/types/RecordMapContribution';
+import { getRecordMapContributedFeaturePickerItems } from '@/object-record/record-map/utils/getRecordMapContributedFeaturePickerItems';
 
-const contribution = {
+const contribution: RecordMapLayerContribution = {
   contributionId: 'view-1:layer-1',
   displayName: 'Parcels',
-  featureDetailApplicationUniversalIdentifier:
-    'b96a9f0c-356c-4d10-98a2-d487d3c2a658',
-  featureDetailCallbackUrl: '/s/example/feature-detail',
-  featureDetailFrontComponentUniversalIdentifier:
-    '4dc7dffc-1b6a-4cf3-989c-981ff2a5f46c',
+  featureSelectionAction: {
+    applicationUniversalIdentifier: 'b96a9f0c-356c-4d10-98a2-d487d3c2a658',
+    frontComponentUniversalIdentifier: '4dc7dffc-1b6a-4cf3-989c-981ff2a5f46c',
+    type: 'OPEN_FRONT_COMPONENT',
+  },
   featureIdProperty: 'selectedFeatureValue',
   isVisible: true,
   layerId: 'layer-1',
@@ -23,10 +24,10 @@ const contribution = {
   viewId: 'view-1',
 };
 
-describe('getRecordMapReferenceFeaturePickerItems', () => {
-  it('returns reference picker items from configured feature properties', () => {
+describe('getRecordMapContributedFeaturePickerItems', () => {
+  it('returns contributed picker items from configured feature properties', () => {
     expect(
-      getRecordMapReferenceFeaturePickerItems({
+      getRecordMapContributedFeaturePickerItems({
         features: [
           {
             layer: { id: 'reference-fill' },
@@ -36,11 +37,10 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
             },
           },
         ],
-        renderedReferenceLayers: [
+        renderedContributionLayers: [
           {
             contribution,
             layerIds: ['reference-fill'],
-            sourceId: 'reference-source',
           },
         ],
       }),
@@ -50,17 +50,9 @@ describe('getRecordMapReferenceFeaturePickerItems', () => {
         contributionId: contribution.contributionId,
         featureId: 'P-001',
         layerId: contribution.layerId,
-        selectedFeature: {
-          featureId: 'P-001',
-          featureIdProperty: 'selectedFeatureValue',
-          sourceId: 'reference-source',
-          sourceLayer: 'parcels',
-          swatchColor: '#2563eb',
-          type: 'reference',
-        },
         swatchColor: '#2563eb',
         title: 'Parcel P-001',
-        type: 'reference',
+        type: 'contribution',
         viewId: contribution.viewId,
       },
     ]);

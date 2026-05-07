@@ -1,9 +1,9 @@
-import { RECORD_MAP_REFERENCE_LAYER_ID_PREFIX } from '@/object-record/record-map/constants/record-map-reference-layer.constants';
+import { RECORD_MAP_CONTRIBUTED_LAYER_ID_PREFIX } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import { RECORD_MAP_VECTOR_TILE_LAYER } from '@/object-record/record-map/constants/record-map-vector-tile-layer.constants';
 import {
-  type RecordMapReferenceLayerContribution,
-  type RecordMapRenderedReferenceLayer,
-} from '@/object-record/record-map/types/RecordMapReferenceLayerContribution';
+  type RecordMapLayerContribution,
+  type RecordMapRenderedContributionLayer,
+} from '@/object-record/record-map/types/RecordMapContribution';
 import { useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -25,8 +25,8 @@ const hasSource = (map: maplibregl.Map, sourceId: string) => {
   }
 };
 
-const getReferenceLayerPrefix = (contributionId: string) =>
-  `${RECORD_MAP_REFERENCE_LAYER_ID_PREFIX}-${contributionId.replace(
+const getContributedLayerPrefix = (contributionId: string) =>
+  `${RECORD_MAP_CONTRIBUTED_LAYER_ID_PREFIX}-${contributionId.replace(
     /[^a-zA-Z0-9_-]/g,
     '-',
   )}`;
@@ -45,14 +45,14 @@ const addLayer = ({
   map.addLayer(layer, beforeId);
 };
 
-const addReferenceLayer = ({
+const addContributedLayer = ({
   contribution,
   map,
 }: {
-  contribution: RecordMapReferenceLayerContribution;
+  contribution: RecordMapLayerContribution;
   map: maplibregl.Map;
-}): RecordMapRenderedReferenceLayer => {
-  const sourceId = getReferenceLayerPrefix(contribution.contributionId);
+}): RecordMapRenderedContributionLayer => {
+  const sourceId = getContributedLayerPrefix(contribution.contributionId);
   const layerPrefix = sourceId;
   const style = contribution.style ?? {
     fillColor: '#64748b',
@@ -147,29 +147,28 @@ const addReferenceLayer = ({
   return {
     contribution,
     layerIds,
-    sourceId,
   };
 };
 
-export const useRecordMapReferenceLayers = ({
+export const useRecordMapContributedLayers = ({
+  layerContributions,
   map,
-  referenceLayerContributions,
 }: {
+  layerContributions: RecordMapLayerContribution[];
   map: maplibregl.Map | null;
-  referenceLayerContributions: RecordMapReferenceLayerContribution[];
 }) => {
-  const [renderedReferenceLayers, setRenderedReferenceLayers] = useState<
-    RecordMapRenderedReferenceLayer[]
+  const [renderedContributionLayers, setRenderedContributionLayers] = useState<
+    RecordMapRenderedContributionLayer[]
   >([]);
 
   useEffect(() => {
     if (!isDefined(map)) {
-      setRenderedReferenceLayers([]);
+      setRenderedContributionLayers([]);
 
       return;
     }
 
-    const visibleContributions = referenceLayerContributions.filter(
+    const visibleContributions = layerContributions.filter(
       (contribution) => contribution.isVisible,
     );
     const setPointerCursor = () => {
@@ -179,9 +178,9 @@ export const useRecordMapReferenceLayers = ({
       map.getCanvas().style.cursor = '';
     };
 
-    const addReferenceLayers = () => {
+    const addContributedLayers = () => {
       const renderedLayers = visibleContributions.map((contribution) =>
-        addReferenceLayer({ contribution, map }),
+        addContributedLayer({ contribution, map }),
       );
 
       for (const layerId of renderedLayers.flatMap((layer) => layer.layerIds)) {
@@ -189,21 +188,21 @@ export const useRecordMapReferenceLayers = ({
         map.on('mouseleave', layerId, resetPointerCursor);
       }
 
-      setRenderedReferenceLayers(renderedLayers);
+      setRenderedContributionLayers(renderedLayers);
     };
 
     if (map.isStyleLoaded()) {
-      addReferenceLayers();
+      addContributedLayers();
     } else {
-      map.once('load', addReferenceLayers);
+      map.once('load', addContributedLayers);
     }
 
     return () => {
-      map.off('load', addReferenceLayers);
-      setRenderedReferenceLayers([]);
+      map.off('load', addContributedLayers);
+      setRenderedContributionLayers([]);
 
       for (const contribution of [...visibleContributions].reverse()) {
-        const layerPrefix = getReferenceLayerPrefix(
+        const layerPrefix = getContributedLayerPrefix(
           contribution.contributionId,
         );
         const sourceId = layerPrefix;
@@ -227,7 +226,7 @@ export const useRecordMapReferenceLayers = ({
         }
       }
     };
-  }, [map, referenceLayerContributions]);
+  }, [layerContributions, map]);
 
-  return { renderedReferenceLayers };
+  return { renderedContributionLayers };
 };
