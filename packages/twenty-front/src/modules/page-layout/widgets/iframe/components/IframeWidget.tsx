@@ -2,6 +2,8 @@ import { useIsPageLayoutInEditMode } from '@/page-layout/hooks/useIsPageLayoutIn
 import { type PageLayoutWidget } from '@/page-layout/types/PageLayoutWidget';
 import { PageLayoutWidgetNoDataDisplay } from '@/page-layout/widgets/components/PageLayoutWidgetNoDataDisplay';
 import { WidgetSkeletonLoader } from '@/page-layout/widgets/components/WidgetSkeletonLoader';
+import { resolveIframeWidgetUrlRecordTokens } from '@/page-layout/widgets/iframe/utils/resolveIframeWidgetUrlRecordTokens';
+import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { styled } from '@linaria/react';
 import { useState } from 'react';
 import { getSafeUrl, isDefined } from 'twenty-shared/utils';
@@ -57,6 +59,7 @@ export type IframeWidgetProps = {
 
 export const IframeWidget = ({ widget }: IframeWidgetProps) => {
   const isPageLayoutInEditMode = useIsPageLayoutInEditMode();
+  const { targetRecordIdentifier } = useLayoutRenderingContext();
 
   const configuration = widget.configuration;
 
@@ -79,7 +82,11 @@ export const IframeWidget = ({ widget }: IframeWidgetProps) => {
     setHasError(true);
   };
 
-  const safeUrl = isDefined(url) ? getSafeUrl(url) : undefined;
+  const resolvedUrl = isDefined(url)
+    ? resolveIframeWidgetUrlRecordTokens(url, targetRecordIdentifier?.id)
+    : undefined;
+
+  const safeUrl = isDefined(resolvedUrl) ? getSafeUrl(resolvedUrl) : undefined;
   const isHttpUrl = isDefined(safeUrl) && /^https?:\/\//i.test(safeUrl);
 
   if (hasError || !isHttpUrl) {
