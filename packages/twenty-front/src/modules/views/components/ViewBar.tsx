@@ -75,7 +75,7 @@ export const ViewBar = ({
               <ViewBarFilterDropdown />
             </ObjectFilterDropdownComponentInstanceContext.Provider>
             {viewType === ViewType.MAP && <RecordMapAppControls />}
-            <ObjectSortDropdownButton />
+            {viewType !== ViewType.MAP && <ObjectSortDropdownButton />}
             {optionsDropdownButton}
           </>
         }
