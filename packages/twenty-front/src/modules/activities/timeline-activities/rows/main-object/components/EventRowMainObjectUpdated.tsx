@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { EventCard } from '@/activities/timeline-activities/rows/components/EventCard';
 import { EventCardToggleButton } from '@/activities/timeline-activities/rows/components/EventCardToggleButton';
@@ -9,7 +9,7 @@ import { EventFieldDiffContainer } from '@/activities/timeline-activities/rows/m
 import { type TimelineActivity } from '@/activities/timeline-activities/types/TimelineActivity';
 import { type FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
-import { OverflowingTextWithTooltip } from 'twenty-ui/display';
+import { AppTooltip, TooltipDelay } from 'twenty-ui/display';
 import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 
 type EventRowMainObjectUpdatedProps = {
@@ -57,6 +57,9 @@ const StyledStructuredDiffRow = styled.div`
 const StyledStructuredDiffLabel = styled.div`
   color: ${themeCssVariables.font.color.tertiary};
   min-width: 0;
+`;
+
+const StyledStructuredDiffLabelText = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -99,6 +102,29 @@ const formatStructuredDiffValue = (value: unknown) => {
 
 const getStructuredDiffTitle = (value: unknown) =>
   typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+
+const StructuredDiffLabel = ({ label }: { label: string }) => {
+  const tooltipAnchorId = useId();
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+
+  return (
+    <StyledStructuredDiffLabel
+      data-structured-diff-label-id={tooltipAnchorId}
+      onMouseEnter={() => setIsTooltipOpen(true)}
+      onMouseLeave={() => setIsTooltipOpen(false)}
+    >
+      <StyledStructuredDiffLabelText>{label}</StyledStructuredDiffLabelText>
+      <AppTooltip
+        anchorSelect={`[data-structured-diff-label-id='${tooltipAnchorId}']`}
+        content={label}
+        delay={TooltipDelay.shortDelay}
+        isOpen={isTooltipOpen}
+        noArrow
+        place="bottom"
+      />
+    </StyledStructuredDiffLabel>
+  );
+};
 
 export const EventRowMainObjectUpdated = ({
   authorFullName,
@@ -150,12 +176,7 @@ export const EventRowMainObjectUpdated = ({
               index: number,
             ) => (
               <StyledStructuredDiffRow key={`${String(change.label)}-${index}`}>
-                <StyledStructuredDiffLabel>
-                  <OverflowingTextWithTooltip
-                    alwaysShowTooltip
-                    text={String(change.label ?? '')}
-                  />
-                </StyledStructuredDiffLabel>
+                <StructuredDiffLabel label={String(change.label ?? '')} />
                 <StyledStructuredDiffValue
                   title={formatStructuredDiffValue(change.before)}
                 >
