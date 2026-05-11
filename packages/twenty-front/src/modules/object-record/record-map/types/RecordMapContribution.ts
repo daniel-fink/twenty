@@ -4,9 +4,22 @@ export type RecordMapLayerContributionStyle =
       fillColor: string;
       fillColorProperty?: string;
       fillOpacity?: number;
+      fillOpacityProperty?: string;
       lineColor?: string;
       lineOpacity?: number;
       lineWidth?: number;
+      swatch?: {
+        colors?: unknown;
+        name?: string;
+        type?: unknown;
+      };
+      selectedStyle?: {
+        fillColor: string;
+        fillOpacity?: number;
+        lineColor?: string;
+        lineOpacity?: number;
+        lineWidth?: number;
+      };
     }
   | {
       type: 'line';
@@ -66,5 +79,11 @@ export type RecordMapContributionsResponse = {
 
 export type RecordMapRenderedContributionLayer = {
   contribution: RecordMapLayerContribution;
+  hitLayerIds: string[];
   layerIds: string[];
+};
+
+export type RecordMapSelectedContributionFeature = {
+  contributionId: string;
+  featureId: string;
 };

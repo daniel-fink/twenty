@@ -22,8 +22,8 @@ import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 const RECORD_MAP_RECORD_FEATURE_PICKER_WIDTH = 280;
 
-const StyledSwatch = styled.div<{ color: string }>`
-  background: ${({ color }) => color};
+const StyledSwatch = styled.div<{ background: string }>`
+  background: ${({ background }) => background};
   border: 1px solid ${themeCssVariables.border.color.medium};
   border-radius: ${themeCssVariables.border.radius.xs};
   height: 12px;
@@ -136,7 +136,7 @@ export const RecordMapRecordFeaturePicker = ({
             {featurePicker.items.map((item) => (
               <MenuItem
                 key={getItemKey(item)}
-                LeftComponent={<StyledSwatch color={item.swatchColor} />}
+                LeftComponent={<StyledSwatch background={item.swatchColor} />}
                 contextualText={getItemContextualText({
                   item,
                   objectNameSingular,

@@ -1,9 +1,15 @@
-import { RECORD_MAP_CONTRIBUTED_LAYER_ID_PREFIX } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import { RECORD_MAP_VECTOR_TILE_LAYER } from '@/object-record/record-map/constants/record-map-vector-tile-layer.constants';
 import {
   type RecordMapLayerContribution,
   type RecordMapRenderedContributionLayer,
+  type RecordMapSelectedContributionFeature,
 } from '@/object-record/record-map/types/RecordMapContribution';
+import { getRecordMapContributedLayerPrefix } from '@/object-record/record-map/utils/getRecordMapContributedLayerPrefix';
+import { getRecordMapContributionRenderOrder } from '@/object-record/record-map/utils/getRecordMapContributionRenderOrder';
+import {
+  getRecordMapSelectedContributionLayerIds,
+  getRecordMapSelectedContributionLayers,
+} from '@/object-record/record-map/utils/getRecordMapSelectedContributionLayers';
 import { resolveRecordMapContributionFillColor } from '@/object-record/record-map/utils/resolveRecordMapContributionFillColor';
 import { useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
@@ -26,11 +32,25 @@ const hasSource = (map: maplibregl.Map, sourceId: string) => {
   }
 };
 
-const getContributedLayerPrefix = (contributionId: string) =>
-  `${RECORD_MAP_CONTRIBUTED_LAYER_ID_PREFIX}-${contributionId.replace(
-    /[^a-zA-Z0-9_-]/g,
-    '-',
-  )}`;
+const removeSelectedContributionLayers = ({
+  contributionId,
+  map,
+}: {
+  contributionId: string;
+  map: maplibregl.Map;
+}) => {
+  const selectedLayerIds =
+    getRecordMapSelectedContributionLayerIds(contributionId);
+
+  for (const layerId of [
+    selectedLayerIds.fillLayerId,
+    selectedLayerIds.outlineLayerId,
+  ]) {
+    if (hasLayer(map, layerId)) {
+      map.removeLayer(layerId);
+    }
+  }
+};
 
 const addLayer = ({
   layer,
@@ -46,6 +66,20 @@ const addLayer = ({
   map.addLayer(layer, beforeId);
 };
 
+const resolveRecordMapContributionFillOpacity = (
+  style: Extract<RecordMapLayerContribution['style'], { type: 'fill' }>,
+): number | maplibregl.ExpressionSpecification => {
+  const fallbackOpacity = style.fillOpacity ?? 0.24;
+
+  return isDefined(style.fillOpacityProperty)
+    ? ([
+        'to-number',
+        ['get', style.fillOpacityProperty],
+        fallbackOpacity,
+      ] as maplibregl.ExpressionSpecification)
+    : fallbackOpacity;
+};
+
 const addContributedLayer = ({
   contribution,
   map,
@@ -53,13 +87,16 @@ const addContributedLayer = ({
   contribution: RecordMapLayerContribution;
   map: maplibregl.Map;
 }): RecordMapRenderedContributionLayer => {
-  const sourceId = getContributedLayerPrefix(contribution.contributionId);
+  const sourceId = getRecordMapContributedLayerPrefix(
+    contribution.contributionId,
+  );
   const layerPrefix = sourceId;
   const style = contribution.style ?? {
     fillColor: '#64748b',
     fillOpacity: 0.24,
     type: 'fill' as const,
   };
+  const hitLayerIds: string[] = [];
   const layerIds: string[] = [];
 
   if (!hasSource(map, sourceId)) {
@@ -72,6 +109,7 @@ const addContributedLayer = ({
   if (style.type === 'fill') {
     const fillLayerId = `${layerPrefix}-fill`;
     const outlineLayerId = `${layerPrefix}-outline`;
+    const hitLayerId = `${layerPrefix}-hit`;
 
     addLayer({
       map,
@@ -82,7 +120,20 @@ const addContributedLayer = ({
         'source-layer': contribution.sourceLayerName,
         paint: {
           'fill-color': resolveRecordMapContributionFillColor(style),
-          'fill-opacity': style.fillOpacity ?? 0.24,
+          'fill-opacity': resolveRecordMapContributionFillOpacity(style),
+        },
+      },
+    });
+    addLayer({
+      map,
+      layer: {
+        id: hitLayerId,
+        type: 'fill',
+        source: sourceId,
+        'source-layer': contribution.sourceLayerName,
+        paint: {
+          'fill-color': '#000000',
+          'fill-opacity': 0.01,
         },
       },
     });
@@ -101,6 +152,7 @@ const addContributedLayer = ({
       },
     });
     layerIds.push(fillLayerId, outlineLayerId);
+    hitLayerIds.push(hitLayerId);
   }
 
   if (style.type === 'line') {
@@ -121,6 +173,7 @@ const addContributedLayer = ({
       },
     });
     layerIds.push(lineLayerId);
+    hitLayerIds.push(lineLayerId);
   }
 
   if (style.type === 'circle') {
@@ -143,10 +196,12 @@ const addContributedLayer = ({
       },
     });
     layerIds.push(circleLayerId);
+    hitLayerIds.push(circleLayerId);
   }
 
   return {
     contribution,
+    hitLayerIds,
     layerIds,
   };
 };
@@ -154,9 +209,11 @@ const addContributedLayer = ({
 export const useRecordMapContributedLayers = ({
   layerContributions,
   map,
+  selectedContributionFeature,
 }: {
   layerContributions: RecordMapLayerContribution[];
   map: maplibregl.Map | null;
+  selectedContributionFeature: RecordMapSelectedContributionFeature | null;
 }) => {
   const [renderedContributionLayers, setRenderedContributionLayers] = useState<
     RecordMapRenderedContributionLayer[]
@@ -172,6 +229,8 @@ export const useRecordMapContributedLayers = ({
     const visibleContributions = layerContributions.filter(
       (contribution) => contribution.isVisible,
     );
+    setRenderedContributionLayers([]);
+
     const setPointerCursor = () => {
       map.getCanvas().style.cursor = 'pointer';
     };
@@ -180,11 +239,14 @@ export const useRecordMapContributedLayers = ({
     };
 
     const addContributedLayers = () => {
-      const renderedLayers = visibleContributions.map((contribution) =>
-        addContributedLayer({ contribution, map }),
-      );
+      const renderedLayers = getRecordMapContributionRenderOrder(
+        visibleContributions,
+      ).map((contribution) => addContributedLayer({ contribution, map }));
 
-      for (const layerId of renderedLayers.flatMap((layer) => layer.layerIds)) {
+      for (const layerId of renderedLayers.flatMap((layer) => [
+        ...layer.layerIds,
+        ...layer.hitLayerIds,
+      ])) {
         map.on('mouseenter', layerId, setPointerCursor);
         map.on('mouseleave', layerId, resetPointerCursor);
       }
@@ -200,19 +262,24 @@ export const useRecordMapContributedLayers = ({
 
     return () => {
       map.off('load', addContributedLayers);
-      setRenderedContributionLayers([]);
 
       for (const contribution of [...visibleContributions].reverse()) {
-        const layerPrefix = getContributedLayerPrefix(
+        const layerPrefix = getRecordMapContributedLayerPrefix(
           contribution.contributionId,
         );
         const sourceId = layerPrefix;
         const layerIds = [
           `${layerPrefix}-fill`,
           `${layerPrefix}-outline`,
+          `${layerPrefix}-hit`,
           `${layerPrefix}-line`,
           `${layerPrefix}-circle`,
         ];
+
+        removeSelectedContributionLayers({
+          contributionId: contribution.contributionId,
+          map,
+        });
 
         for (const layerId of layerIds) {
           if (hasLayer(map, layerId)) {
@@ -228,6 +295,48 @@ export const useRecordMapContributedLayers = ({
       }
     };
   }, [layerContributions, map]);
+
+  useEffect(() => {
+    if (!isDefined(map)) {
+      return;
+    }
+
+    const removeSelectedLayers = () => {
+      for (const renderedLayer of renderedContributionLayers) {
+        removeSelectedContributionLayers({
+          contributionId: renderedLayer.contribution.contributionId,
+          map,
+        });
+      }
+    };
+
+    removeSelectedLayers();
+
+    if (selectedContributionFeature === null) {
+      return removeSelectedLayers;
+    }
+
+    const selectedRenderedLayer = renderedContributionLayers.find(
+      (renderedLayer) =>
+        renderedLayer.contribution.contributionId ===
+        selectedContributionFeature.contributionId,
+    );
+
+    if (!isDefined(selectedRenderedLayer)) {
+      return removeSelectedLayers;
+    }
+
+    const selectedLayers = getRecordMapSelectedContributionLayers({
+      contribution: selectedRenderedLayer.contribution,
+      featureId: selectedContributionFeature.featureId,
+    });
+
+    for (const layer of selectedLayers) {
+      addLayer({ layer, map });
+    }
+
+    return removeSelectedLayers;
+  }, [map, renderedContributionLayers, selectedContributionFeature]);
 
   return { renderedContributionLayers };
 };
