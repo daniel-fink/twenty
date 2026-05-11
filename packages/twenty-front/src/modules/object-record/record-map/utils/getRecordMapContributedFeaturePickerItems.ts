@@ -10,20 +10,38 @@ type RenderedContributionFeatureHit = {
   properties?: Record<string, unknown> | null;
 };
 
-const getLayerSwatchColor = (
+const isHexColor = (value: unknown): value is string =>
+  typeof value === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value);
+
+const getRecordMapContributionSwatchBackground = (
   renderedLayer: RecordMapRenderedContributionLayer,
-) => {
+): string => {
   const style = renderedLayer.contribution.style;
 
+  if (style?.type === 'fill') {
+    if (
+      style.swatch?.type === 'palette' &&
+      Array.isArray(style.swatch.colors)
+    ) {
+      const colors = style.swatch.colors.filter(isHexColor);
+
+      if (colors.length >= 2) {
+        return `linear-gradient(90deg, ${colors.join(', ')})`;
+      }
+    }
+
+    return [style.fillColor, style.lineColor].find(isHexColor) ?? '#64748b';
+  }
+
   if (style?.type === 'line') {
-    return style.lineColor;
+    return isHexColor(style.lineColor) ? style.lineColor : '#64748b';
   }
 
   if (style?.type === 'circle') {
-    return style.circleColor;
+    return isHexColor(style.circleColor) ? style.circleColor : '#64748b';
   }
 
-  return style?.fillColor ?? '#64748b';
+  return '#64748b';
 };
 
 export const getRecordMapContributedFeaturePickerItems = ({
@@ -39,7 +57,10 @@ export const getRecordMapContributedFeaturePickerItems = ({
   >();
 
   for (const renderedLayer of renderedContributionLayers) {
-    for (const layerId of renderedLayer.layerIds) {
+    for (const layerId of [
+      ...renderedLayer.layerIds,
+      ...renderedLayer.hitLayerIds,
+    ]) {
       renderedLayersByLayerId.set(layerId, renderedLayer);
     }
   }
@@ -78,7 +99,7 @@ export const getRecordMapContributedFeaturePickerItems = ({
       contributionId: renderedLayer.contribution.contributionId,
       featureId: normalizedFeatureId,
       layerId: renderedLayer.contribution.layerId,
-      swatchColor: getLayerSwatchColor(renderedLayer),
+      swatchColor: getRecordMapContributionSwatchBackground(renderedLayer),
       title:
         typeof title === 'string' && title !== ''
           ? title

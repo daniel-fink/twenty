@@ -31,11 +31,13 @@ const buildMarkerElement = (recordName?: string) => {
 
 export const useRecordMapAddressMarkers = ({
   map,
+  onMarkerClick,
   onRecordClick,
   recordMapPoints,
   tileSource,
 }: {
   map: maplibregl.Map | null;
+  onMarkerClick?: (point: maplibregl.Point) => void;
   onRecordClick: (recordId: string) => void;
   recordMapPoints: RecordMapPoint[];
   tileSource?: RecordMapTileSource;
@@ -49,7 +51,14 @@ export const useRecordMapAddressMarkers = ({
       const recordName = point.record.name ?? point.record.displayName;
       const markerElement = buildMarkerElement(recordName);
 
-      markerElement.addEventListener('click', () => {
+      markerElement.addEventListener('click', (event) => {
+        if (isDefined(onMarkerClick)) {
+          event.stopPropagation();
+          onMarkerClick(map.project([point.longitude, point.latitude]));
+
+          return;
+        }
+
         onRecordClick(point.record.id);
       });
 
@@ -86,5 +95,5 @@ export const useRecordMapAddressMarkers = ({
     return () => {
       markers.forEach((marker) => marker.remove());
     };
-  }, [map, onRecordClick, recordMapPoints, tileSource]);
+  }, [map, onMarkerClick, onRecordClick, recordMapPoints, tileSource]);
 };

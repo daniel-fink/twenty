@@ -10,6 +10,7 @@ import {
   type RecordMapRecordFeaturePickerState,
 } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { type RecordMapRenderedContributionLayer } from '@/object-record/record-map/types/RecordMapContribution';
+import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { getRecordMapContributedFeaturePickerItems } from '@/object-record/record-map/utils/getRecordMapContributedFeaturePickerItems';
 import { getRecordMapRecordFeaturePickerItems } from '@/object-record/record-map/utils/getRecordMapRecordFeaturePickerItems';
 import { useCallback, useEffect, useState } from 'react';
@@ -49,26 +50,29 @@ const hasSource = (map: maplibregl.Map, sourceId: string) => {
   }
 };
 
-type RecordMapContributedFeatureHits = Parameters<
-  typeof getRecordMapContributedFeaturePickerItems
->[0]['features'];
+const MAP_FEATURE_PICKER_QUERY_RADIUS = 8;
+const MAP_ADDRESS_MARKER_PICKER_RADIUS = 12;
 
 export const useRecordMapVectorTileLayers = ({
+  areAddressMarkersRendered,
   map,
   objectNameSingular,
   onContributedFeatureClick,
   onFeatureClick,
+  recordMapPoints,
   renderedContributionLayers,
   tileJson,
   tileSourceFilter,
   tileSourceViewId,
 }: {
+  areAddressMarkersRendered: boolean;
   map: maplibregl.Map | null;
   objectNameSingular?: string;
   onContributedFeatureClick: (
     item: RecordMapContributedFeaturePickerItem,
   ) => void;
   onFeatureClick: (recordId: string) => void;
+  recordMapPoints: RecordMapPoint[];
   renderedContributionLayers: RecordMapRenderedContributionLayer[];
   tileJson: RecordMapTileJsonResponse | null;
   tileSourceFilter: string;
@@ -95,21 +99,12 @@ export const useRecordMapVectorTileLayers = ({
     [onContributedFeatureClick, onFeatureClick],
   );
 
-  useEffect(() => {
-    if (!isDefined(map)) {
-      return;
-    }
+  const getRecordPickerItemsAtPoint = useCallback(
+    (point: maplibregl.Point) => {
+      if (!isDefined(map)) {
+        return [];
+      }
 
-    const hasNativeTileSource =
-      isDefined(tileSourceViewId) && tileJson !== null;
-    const tileUrl = hasNativeTileSource
-      ? `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${tileSourceViewId}/tiles/{z}/{x}/{y}.mvt${
-          tileSourceFilter === '{}'
-            ? ''
-            : `?filter=${encodeURIComponent(tileSourceFilter)}`
-        }`
-      : null;
-    const getRecordPickerItemsAtPoint = (point: maplibregl.Point) => {
       const recordLayerIds = RECORD_MAP_VECTOR_TILE_LAYER.layerIds.filter(
         (layerId) => hasLayer(map, layerId),
       );
@@ -117,8 +112,14 @@ export const useRecordMapVectorTileLayers = ({
         recordLayerIds.length > 0
           ? map.queryRenderedFeatures(
               [
-                [point.x - 8, point.y - 8],
-                [point.x + 8, point.y + 8],
+                [
+                  point.x - MAP_FEATURE_PICKER_QUERY_RADIUS,
+                  point.y - MAP_FEATURE_PICKER_QUERY_RADIUS,
+                ],
+                [
+                  point.x + MAP_FEATURE_PICKER_QUERY_RADIUS,
+                  point.y + MAP_FEATURE_PICKER_QUERY_RADIUS,
+                ],
               ],
               {
                 layers: recordLayerIds,
@@ -130,9 +131,86 @@ export const useRecordMapVectorTileLayers = ({
         features,
         objectNameSingular,
       });
-    };
+    },
+    [map, objectNameSingular],
+  );
 
-    const openPickerItems = ({
+  const getAddressMarkerPickerItemsAtPoint = useCallback(
+    (point: maplibregl.Point) => {
+      if (!isDefined(map) || !areAddressMarkersRendered) {
+        return [];
+      }
+
+      return recordMapPoints
+        .filter((recordMapPoint) => {
+          const markerPoint = map.project([
+            recordMapPoint.longitude,
+            recordMapPoint.latitude,
+          ]);
+
+          return (
+            Math.abs(markerPoint.x - point.x) <=
+              MAP_ADDRESS_MARKER_PICKER_RADIUS &&
+            Math.abs(markerPoint.y - point.y) <=
+              MAP_ADDRESS_MARKER_PICKER_RADIUS
+          );
+        })
+        .map(
+          (recordMapPoint): RecordMapFeaturePickerItem => ({
+            recordId: recordMapPoint.record.id,
+            swatchColor: RECORD_MAP_LAYER_COLORS.blue,
+            title:
+              recordMapPoint.record.name ??
+              recordMapPoint.record.displayName ??
+              (isDefined(objectNameSingular)
+                ? `${objectNameSingular} record`
+                : 'Record'),
+            type: 'record',
+          }),
+        );
+    },
+    [areAddressMarkersRendered, map, objectNameSingular, recordMapPoints],
+  );
+
+  const getContributedPickerItemsAtPoint = useCallback(
+    (point: maplibregl.Point) => {
+      if (!isDefined(map)) {
+        return [];
+      }
+
+      const contributedLayerIds = renderedContributionLayers.flatMap(
+        (renderedLayer) =>
+          renderedLayer.hitLayerIds.filter((layerId) => hasLayer(map, layerId)),
+      );
+      const contributedFeatures =
+        contributedLayerIds.length > 0
+          ? map.queryRenderedFeatures(
+              [
+                [
+                  point.x - MAP_FEATURE_PICKER_QUERY_RADIUS,
+                  point.y - MAP_FEATURE_PICKER_QUERY_RADIUS,
+                ],
+                [
+                  point.x + MAP_FEATURE_PICKER_QUERY_RADIUS,
+                  point.y + MAP_FEATURE_PICKER_QUERY_RADIUS,
+                ],
+              ],
+              {
+                layers: contributedLayerIds,
+              },
+            )
+          : [];
+
+      return getRecordMapContributedFeaturePickerItems({
+        features: contributedFeatures,
+        renderedContributionLayers,
+      });
+    },
+    [map, renderedContributionLayers],
+  );
+
+  const openPickerItems = useCallback(
+    ({
       items,
       point,
     }: {
@@ -169,55 +247,45 @@ export const useRecordMapVectorTileLayers = ({
           y: point.y,
         },
       });
-    };
+    },
+    [onContributedFeatureClick, onFeatureClick],
+  );
 
+  const openFeaturePickerAtPoint = useCallback(
+    (point: maplibregl.Point) => {
+      openPickerItems({
+        items: [
+          ...getRecordPickerItemsAtPoint(point),
+          ...getAddressMarkerPickerItemsAtPoint(point),
+          ...getContributedPickerItemsAtPoint(point),
+        ],
+        point,
+      });
+    },
+    [
+      getAddressMarkerPickerItemsAtPoint,
+      getContributedPickerItemsAtPoint,
+      getRecordPickerItemsAtPoint,
+      openPickerItems,
+    ],
+  );
+
+  useEffect(() => {
+    if (!isDefined(map)) {
+      return;
+    }
+
+    const hasNativeTileSource =
+      isDefined(tileSourceViewId) && tileJson !== null;
+    const tileUrl = hasNativeTileSource
+      ? `${REACT_APP_SERVER_BASE_URL}/rest/map/views/${tileSourceViewId}/tiles/{z}/{x}/{y}.mvt${
+          tileSourceFilter === '{}'
+            ? ''
+            : `?filter=${encodeURIComponent(tileSourceFilter)}`
+        }`
+      : null;
     const handleMapClick = (event: maplibregl.MapMouseEvent) => {
-      const pickerItems = getRecordPickerItemsAtPoint(event.point);
-      const contributedLayerIds = renderedContributionLayers.flatMap(
-        (renderedLayer) =>
-          renderedLayer.layerIds.filter((layerId) => hasLayer(map, layerId)),
-      );
-      const contributedFeatures =
-        contributedLayerIds.length > 0
-          ? map.queryRenderedFeatures(
-              [
-                [event.point.x - 8, event.point.y - 8],
-                [event.point.x + 8, event.point.y + 8],
-              ],
-              {
-                layers: contributedLayerIds,
-              },
-            )
-          : [];
-      const contributedPickerItems = getRecordMapContributedFeaturePickerItems({
-        features: contributedFeatures,
-        renderedContributionLayers,
-      });
-      const allPickerItems = [...pickerItems, ...contributedPickerItems];
-
-      openPickerItems({
-        items: allPickerItems,
-        point: event.point,
-      });
-    };
-    const handleContributedLayerClick = (
-      event: maplibregl.MapMouseEvent & {
-        features?: RecordMapContributedFeatureHits;
-      },
-    ) => {
-      const contributedPickerItems = getRecordMapContributedFeaturePickerItems({
-        features: event.features,
-        renderedContributionLayers,
-      });
-      const allPickerItems = [
-        ...getRecordPickerItemsAtPoint(event.point),
-        ...contributedPickerItems,
-      ];
-
-      openPickerItems({
-        items: allPickerItems,
-        point: event.point,
-      });
+      openFeaturePickerAtPoint(event.point);
     };
     const setPointerCursor = () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -294,13 +362,6 @@ export const useRecordMapVectorTileLayers = ({
     };
 
     map.on('click', handleMapClick);
-    renderedContributionLayers
-      .flatMap((renderedLayer) => renderedLayer.layerIds)
-      .forEach((layerId) => {
-        if (hasLayer(map, layerId)) {
-          map.on('click', layerId, handleContributedLayerClick);
-        }
-      });
 
     if (map.isStyleLoaded()) {
       addTileLayersWithFreshToken();
@@ -319,13 +380,6 @@ export const useRecordMapVectorTileLayers = ({
     return () => {
       map.off('load', addTileLayersWithFreshToken);
       map.off('click', handleMapClick);
-      renderedContributionLayers
-        .flatMap((renderedLayer) => renderedLayer.layerIds)
-        .forEach((layerId) => {
-          if (hasLayer(map, layerId)) {
-            map.off('click', layerId, handleContributedLayerClick);
-          }
-        });
       map.off('dragstart', closePickerOnMapChange);
       map.off('movestart', closePickerOnMapChange);
       map.off('zoomstart', closePickerOnMapChange);
@@ -344,10 +398,7 @@ export const useRecordMapVectorTileLayers = ({
     };
   }, [
     map,
-    objectNameSingular,
-    onContributedFeatureClick,
-    onFeatureClick,
-    renderedContributionLayers,
+    openFeaturePickerAtPoint,
     tileJson,
     tileSourceFilter,
     tileSourceViewId,
@@ -356,6 +407,7 @@ export const useRecordMapVectorTileLayers = ({
   return {
     closeFeaturePicker,
     featurePicker,
+    openFeaturePickerAtPoint,
     openRecordFeature,
   };
 };

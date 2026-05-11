@@ -11,6 +11,7 @@ import { useRecordMapContributedLayers } from '@/object-record/record-map/hooks/
 import { useRecordMapContributionFrontComponentResolver } from '@/object-record/record-map/hooks/useRecordMapContributionFrontComponentResolver';
 import { useRecordMapContributions } from '@/object-record/record-map/hooks/useRecordMapContributions';
 import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
+import { type RecordMapSelectedContributionFeature } from '@/object-record/record-map/types/RecordMapContribution';
 import { type RecordMapContributedFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { type RecordMapTileSource } from '@/object-record/record-map/types/RecordMapTileSource';
@@ -89,6 +90,8 @@ export const RecordMap = ({
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
   const { enqueueErrorSnackBar } = useSnackBar();
   const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
+  const [selectedContributionFeature, setSelectedContributionFeature] =
+    useState<RecordMapSelectedContributionFeature | null>(null);
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
   const shouldRenderMap =
@@ -116,12 +119,14 @@ export const RecordMap = ({
   const { renderedContributionLayers } = useRecordMapContributedLayers({
     layerContributions,
     map,
+    selectedContributionFeature,
   });
   const resolveFrontComponentId =
     useRecordMapContributionFrontComponentResolver();
 
   const handleRecordClick = useCallback(
     (recordId: string) => {
+      setSelectedContributionFeature(null);
       openRecordFromIndexView({ recordId });
     },
     [openRecordFromIndexView],
@@ -129,6 +134,11 @@ export const RecordMap = ({
 
   const handleContributedFeatureClick = useCallback(
     async (item: RecordMapContributedFeaturePickerItem) => {
+      setSelectedContributionFeature({
+        contributionId: item.contributionId,
+        featureId: item.featureId,
+      });
+
       const featureSelectionAction = item.contribution.featureSelectionAction;
 
       if (featureSelectionAction?.type !== 'OPEN_FRONT_COMPONENT') {
@@ -314,24 +324,31 @@ export const RecordMap = ({
     };
   }, [persistRecordMapCamera, tileSourceViewId]);
 
+  const {
+    closeFeaturePicker,
+    featurePicker,
+    openFeaturePickerAtPoint,
+    openRecordFeature,
+  } = useRecordMapVectorTileLayers({
+    areAddressMarkersRendered: !isDefined(tileSource),
+    map,
+    objectNameSingular,
+    onContributedFeatureClick: handleContributedFeatureClick,
+    onFeatureClick: handleRecordClick,
+    recordMapPoints,
+    renderedContributionLayers,
+    tileJson,
+    tileSourceFilter,
+    tileSourceViewId,
+  });
+
   useRecordMapAddressMarkers({
     map,
+    onMarkerClick: openFeaturePickerAtPoint,
     onRecordClick: handleRecordClick,
     recordMapPoints,
     tileSource,
   });
-
-  const { closeFeaturePicker, featurePicker, openRecordFeature } =
-    useRecordMapVectorTileLayers({
-      map,
-      objectNameSingular,
-      onContributedFeatureClick: handleContributedFeatureClick,
-      onFeatureClick: handleRecordClick,
-      renderedContributionLayers,
-      tileJson,
-      tileSourceFilter,
-      tileSourceViewId,
-    });
 
   useEffect(() => {
     if (
