@@ -1,11 +1,10 @@
 import { RECORD_MAP_CONTRIBUTIONS_UPDATED_EVENT } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import { useRecordMapContributions } from '@/object-record/record-map/hooks/useRecordMapContributions';
+import { useRecordMapContributionFrontComponentResolver } from '@/object-record/record-map/hooks/useRecordMapContributionFrontComponentResolver';
 import { FrontComponentRenderer } from '@/front-components/components/FrontComponentRenderer';
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { styled } from '@linaria/react';
-import { useQuery } from '@apollo/client/react';
 import { isDefined } from 'twenty-shared/utils';
-import { FindOneApplicationByUniversalIdentifierDocument } from '~/generated-metadata/graphql';
 
 const StyledControls = styled.div`
   align-items: center;
@@ -14,38 +13,25 @@ const StyledControls = styled.div`
 `;
 
 const RecordMapAppControl = ({
-  applicationUniversalIdentifier,
   contributionId,
-  frontComponentUniversalIdentifier,
+  frontComponentId,
   onRefreshMapContributions,
   params,
   viewId,
 }: {
-  applicationUniversalIdentifier: string;
   contributionId: string;
-  frontComponentUniversalIdentifier: string;
+  frontComponentId: string | null;
   onRefreshMapContributions: () => void;
   params?: Record<string, string>;
   viewId: string;
 }) => {
-  const { data } = useQuery(FindOneApplicationByUniversalIdentifierDocument, {
-    variables: {
-      universalIdentifier: applicationUniversalIdentifier,
-    },
-  });
-
-  const frontComponent = data?.findOneApplication?.frontComponents.find(
-    (candidate) =>
-      candidate.universalIdentifier === frontComponentUniversalIdentifier,
-  );
-
-  if (!isDefined(frontComponent)) {
+  if (!isDefined(frontComponentId)) {
     return null;
   }
 
   return (
     <FrontComponentRenderer
-      frontComponentId={frontComponent.id}
+      frontComponentId={frontComponentId}
       onRefreshMapContributions={onRefreshMapContributions}
       params={{
         ...params,
@@ -63,6 +49,8 @@ export const RecordMapAppControls = () => {
     useRecordMapContributions({
       tileSourceViewId,
     });
+  const resolveFrontComponentId =
+    useRecordMapContributionFrontComponentResolver();
 
   if (!isDefined(tileSourceViewId) || controlContributions.length === 0) {
     return null;
@@ -82,13 +70,8 @@ export const RecordMapAppControls = () => {
       {controlContributions.map((controlContribution) => (
         <RecordMapAppControl
           key={controlContribution.contributionId}
-          applicationUniversalIdentifier={
-            controlContribution.applicationUniversalIdentifier
-          }
           contributionId={controlContribution.contributionId}
-          frontComponentUniversalIdentifier={
-            controlContribution.frontComponentUniversalIdentifier
-          }
+          frontComponentId={resolveFrontComponentId(controlContribution)}
           onRefreshMapContributions={handleRefreshMapContributions}
           params={controlContribution.params}
           viewId={tileSourceViewId}
