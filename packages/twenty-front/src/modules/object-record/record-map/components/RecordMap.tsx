@@ -8,6 +8,7 @@ import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap'
 import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
 import { useRecordMapAddressMarkers } from '@/object-record/record-map/hooks/useRecordMapAddressMarkers';
 import { useRecordMapContributedLayers } from '@/object-record/record-map/hooks/useRecordMapContributedLayers';
+import { useRecordMapContributionFrontComponentResolver } from '@/object-record/record-map/hooks/useRecordMapContributionFrontComponentResolver';
 import { useRecordMapContributions } from '@/object-record/record-map/hooks/useRecordMapContributions';
 import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
 import { type RecordMapContributedFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
@@ -22,7 +23,6 @@ import {
   writeRecordMapCamera,
 } from '@/object-record/record-map/utils/recordMapCamera';
 import { styled } from '@linaria/react';
-import { useApolloClient } from '@apollo/client/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
@@ -30,7 +30,6 @@ import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { useDebouncedCallback } from 'use-debounce';
 import { IconMap } from 'twenty-ui/display';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
-import { FindOneApplicationByUniversalIdentifierDocument } from '~/generated-metadata/graphql';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -88,7 +87,6 @@ export const RecordMap = ({
   // oxlint-disable-next-line twenty/no-state-useref
   const shouldPersistNextMoveRef = useRef(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
-  const apolloClient = useApolloClient();
   const { enqueueErrorSnackBar } = useSnackBar();
   const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
 
@@ -119,6 +117,8 @@ export const RecordMap = ({
     layerContributions,
     map,
   });
+  const resolveFrontComponentId =
+    useRecordMapContributionFrontComponentResolver();
 
   const handleRecordClick = useCallback(
     (recordId: string) => {
@@ -135,19 +135,9 @@ export const RecordMap = ({
         return;
       }
 
-      const { data } = await apolloClient.query({
-        query: FindOneApplicationByUniversalIdentifierDocument,
-        variables: {
-          universalIdentifier: featureSelectionAction.applicationUniversalIdentifier,
-        },
-      });
-      const frontComponent = data?.findOneApplication?.frontComponents.find(
-        (candidate) =>
-          candidate.universalIdentifier ===
-          featureSelectionAction.frontComponentUniversalIdentifier,
-      );
+      const frontComponentId = resolveFrontComponentId(featureSelectionAction);
 
-      if (!isDefined(frontComponent)) {
+      if (!isDefined(frontComponentId)) {
         enqueueErrorSnackBar({
           message: 'Unable to open map feature.',
         });
@@ -156,7 +146,7 @@ export const RecordMap = ({
       }
 
       openFrontComponentInSidePanel({
-        frontComponentId: frontComponent.id,
+        frontComponentId,
         pageIcon: IconMap,
         pageTitle: item.title,
         params: {
@@ -167,7 +157,11 @@ export const RecordMap = ({
         },
       });
     },
-    [apolloClient, enqueueErrorSnackBar, openFrontComponentInSidePanel],
+    [
+      enqueueErrorSnackBar,
+      openFrontComponentInSidePanel,
+      resolveFrontComponentId,
+    ],
   );
 
   const persistRecordMapCamera = useDebouncedCallback(
