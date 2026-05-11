@@ -4,6 +4,7 @@ import {
   type RecordMapLayerContribution,
   type RecordMapRenderedContributionLayer,
 } from '@/object-record/record-map/types/RecordMapContribution';
+import { resolveRecordMapContributionFillColor } from '@/object-record/record-map/utils/resolveRecordMapContributionFillColor';
 import { useEffect, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -80,7 +81,7 @@ const addContributedLayer = ({
         source: sourceId,
         'source-layer': contribution.sourceLayerName,
         paint: {
-          'fill-color': style.fillColor,
+          'fill-color': resolveRecordMapContributionFillColor(style),
           'fill-opacity': style.fillOpacity ?? 0.24,
         },
       },

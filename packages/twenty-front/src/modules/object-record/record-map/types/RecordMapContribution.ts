@@ -2,6 +2,7 @@ export type RecordMapLayerContributionStyle =
   | {
       type: 'fill';
       fillColor: string;
+      fillColorProperty?: string;
       fillOpacity?: number;
       lineColor?: string;
       lineOpacity?: number;
