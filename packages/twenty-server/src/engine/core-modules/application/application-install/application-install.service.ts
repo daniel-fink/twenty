@@ -20,6 +20,7 @@ import { ApplicationRegistrationEntity } from 'src/engine/core-modules/applicati
 import { ApplicationRegistrationSourceType } from 'src/engine/core-modules/application/application-registration/enums/application-registration-source-type.enum';
 import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
 import { ApplicationService } from 'src/engine/core-modules/application/application.service';
+import { getApplicationInstallFileMimeType } from 'src/engine/core-modules/application/application-install/utils/get-application-install-file-mime-type.util';
 import { ApplicationPackageFetcherService } from 'src/engine/core-modules/application/application-package/application-package-fetcher.service';
 import {
   ApplicationVersionValidationService,
@@ -501,7 +502,10 @@ export class ApplicationInstallService {
 
       await this.fileStorageService.writeFile({
         sourceFile: sanitizedContent,
-        mimeType,
+        mimeType: getApplicationInstallFileMimeType({
+          fileFolder,
+          relativePath,
+        }) ?? mimeType,
         fileFolder,
         applicationUniversalIdentifier,
         workspaceId,
