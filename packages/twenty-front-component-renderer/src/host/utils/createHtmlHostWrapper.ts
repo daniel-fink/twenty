@@ -274,7 +274,7 @@ const filterProps = <T extends object>(props: T): T => {
 
 type WrapperProps = { children?: React.ReactNode } & Record<string, unknown>;
 
-const FORCED_PROPS_BY_TAG: Record<string, Record<string, unknown>> = {
+const DEFAULT_PROPS_BY_TAG: Record<string, Record<string, unknown>> = {
   iframe: { sandbox: '' },
 };
 
@@ -288,6 +288,14 @@ const TEXT_LIKE_INPUT_TYPES = new Set([
   'number',
   '',
 ]);
+
+const applyDefaultProps = (
+  props: Record<string, unknown>,
+  defaultProps: Record<string, unknown> | undefined,
+) => ({
+  ...defaultProps,
+  ...props,
+});
 
 const isTextLikeInputType = (type: unknown): boolean => {
   const inputType = isString(type) ? type.toLowerCase() : '';
@@ -320,7 +328,7 @@ const syncValuePreservingCaret = (
 const createCaretPreservingElement = (
   htmlTag: 'input' | 'textarea',
   reactProps: Record<string, unknown>,
-  forcedProps: Record<string, unknown> | undefined,
+  defaultProps: Record<string, unknown> | undefined,
 ) => {
   const { value, defaultValue, ...rest } = reactProps;
   const initialValue = isNonEmptyString(defaultValue)
@@ -330,8 +338,7 @@ const createCaretPreservingElement = (
       : undefined;
 
   return React.createElement(htmlTag, {
-    ...rest,
-    ...forcedProps,
+    ...applyDefaultProps(rest, defaultProps),
     defaultValue: initialValue,
     ref: (node: CaretPreservingElement | null) => {
       if (!isDefined(node)) {
@@ -345,7 +352,7 @@ const createCaretPreservingElement = (
 };
 
 export const createHtmlHostWrapper = (htmlTag: string) => {
-  const forcedProps = FORCED_PROPS_BY_TAG[htmlTag];
+  const defaultProps = DEFAULT_PROPS_BY_TAG[htmlTag];
   const isVoid = VOID_ELEMENTS.has(htmlTag);
 
   return ({ children, ...props }: WrapperProps) => {
@@ -355,12 +362,12 @@ export const createHtmlHostWrapper = (htmlTag: string) => {
       htmlTag === 'textarea' ||
       (htmlTag === 'input' && isTextLikeInputType(reactProps.type))
     ) {
-      return createCaretPreservingElement(htmlTag, reactProps, forcedProps);
+      return createCaretPreservingElement(htmlTag, reactProps, defaultProps);
     }
 
     return React.createElement(
       htmlTag,
-      { ...reactProps, ...forcedProps },
+      applyDefaultProps(reactProps, defaultProps),
       isVoid ? undefined : children,
     );
   };
