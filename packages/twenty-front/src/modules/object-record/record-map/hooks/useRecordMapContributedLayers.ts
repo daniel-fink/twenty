@@ -43,6 +43,7 @@ const removeSelectedContributionLayers = ({
     getRecordMapSelectedContributionLayerIds(contributionId);
 
   for (const layerId of [
+    selectedLayerIds.activeOutlineLayerId,
     selectedLayerIds.fillLayerId,
     selectedLayerIds.outlineLayerId,
   ]) {
@@ -327,8 +328,9 @@ export const useRecordMapContributedLayers = ({
     }
 
     const selectedLayers = getRecordMapSelectedContributionLayers({
+      activeFeatureId: selectedContributionFeature.activeFeatureId,
       contribution: selectedRenderedLayer.contribution,
-      featureId: selectedContributionFeature.featureId,
+      featureIds: selectedContributionFeature.featureIds,
     });
 
     for (const layer of selectedLayers) {

@@ -20,6 +20,7 @@ const baseContribution = {
     type: 'OPEN_FRONT_COMPONENT' as const,
   },
   featureIdProperty: 'selectedFeatureValue',
+  isMultiSelectEnabled: false,
   isVisible: true,
   position: 10,
   sourceLayerName: 'source-layer',
@@ -48,7 +49,15 @@ const createContribution = ({
   },
 });
 
-type MapClickHandler = (event: { point: { x: number; y: number } }) => void;
+type MapClickHandler = (event: {
+  originalEvent?: {
+    altKey?: boolean;
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    shiftKey?: boolean;
+  };
+  point: { x: number; y: number };
+}) => void;
 
 const createMapMock = () => {
   const clickHandlers: MapClickHandler[] = [];
@@ -231,4 +240,127 @@ describe('useRecordMapVectorTileLayers', () => {
       expect.any(Function),
     );
   });
+
+  it.each([
+    ['Ctrl-click', { ctrlKey: true }],
+    ['Cmd-click', { metaKey: true }],
+    ['Shift-click fallback', { shiftKey: true }],
+  ])(
+    'passes %s toggle intent to contributed feature selection',
+    async (_label, originalEvent) => {
+      const { clickHandlers, map } = createMapMock();
+      const onFeatureClick = jest.fn();
+      const onContributedFeatureClick = jest.fn();
+      const parcel = createContribution({
+        contributionId: 'view-1:parcel',
+        displayName: 'Parcels',
+        layerId: 'parcel',
+      });
+
+      (map.getLayer as jest.Mock).mockImplementation((layerId: string) =>
+        layerId === 'parcel-hit' ? {} : undefined,
+      );
+
+      renderHook(() =>
+        useRecordMapVectorTileLayers({
+          areAddressMarkersRendered: false,
+          map,
+          objectNameSingular: 'company',
+          onContributedFeatureClick,
+          onFeatureClick,
+          recordMapPoints: [],
+          renderedContributionLayers: [
+            {
+              contribution: parcel,
+              hitLayerIds: ['parcel-hit'],
+              layerIds: ['parcel-fill'],
+            },
+          ],
+          tileJson: null,
+          tileSourceFilter: '{}',
+          tileSourceViewId: undefined,
+        }),
+      );
+
+      await waitFor(() => expect(clickHandlers).toHaveLength(1));
+
+      act(() => {
+        clickHandlers[0]?.({
+          originalEvent,
+          point: { x: 10, y: 10 },
+        });
+      });
+
+      expect(onContributedFeatureClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          featureId: 'parcel-1',
+        }),
+        {
+          shouldToggleSelection: true,
+        },
+      );
+      expect(onFeatureClick).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['plain click', undefined],
+    ['Alt-click', { altKey: true }],
+  ])(
+    'does not pass toggle intent for %s contributed feature selection',
+    async (_label, originalEvent) => {
+      const { clickHandlers, map } = createMapMock();
+      const onFeatureClick = jest.fn();
+      const onContributedFeatureClick = jest.fn();
+      const parcel = createContribution({
+        contributionId: 'view-1:parcel',
+        displayName: 'Parcels',
+        layerId: 'parcel',
+      });
+
+      (map.getLayer as jest.Mock).mockImplementation((layerId: string) =>
+        layerId === 'parcel-hit' ? {} : undefined,
+      );
+
+      renderHook(() =>
+        useRecordMapVectorTileLayers({
+          areAddressMarkersRendered: false,
+          map,
+          objectNameSingular: 'company',
+          onContributedFeatureClick,
+          onFeatureClick,
+          recordMapPoints: [],
+          renderedContributionLayers: [
+            {
+              contribution: parcel,
+              hitLayerIds: ['parcel-hit'],
+              layerIds: ['parcel-fill'],
+            },
+          ],
+          tileJson: null,
+          tileSourceFilter: '{}',
+          tileSourceViewId: undefined,
+        }),
+      );
+
+      await waitFor(() => expect(clickHandlers).toHaveLength(1));
+
+      act(() => {
+        clickHandlers[0]?.({
+          originalEvent,
+          point: { x: 10, y: 10 },
+        });
+      });
+
+      expect(onContributedFeatureClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          featureId: 'parcel-1',
+        }),
+        {
+          shouldToggleSelection: false,
+        },
+      );
+      expect(onFeatureClick).not.toHaveBeenCalled();
+    },
+  );
 });

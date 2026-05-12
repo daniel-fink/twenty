@@ -28,4 +28,5 @@ export type RecordMapRecordFeaturePickerState = {
     x: number;
     y: number;
   };
+  shouldToggleSelection?: boolean;
 };

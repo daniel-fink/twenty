@@ -197,10 +197,7 @@ export class EventStreamResolver {
     );
 
     if (!isDefined(streamData)) {
-      throw new EventStreamException(
-        'Event stream does not exist',
-        EventStreamExceptionCode.EVENT_STREAM_DOES_NOT_EXIST,
-      );
+      return true;
     }
 
     const isAuthorized = await this.eventStreamService.isAuthorized({

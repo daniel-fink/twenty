@@ -50,6 +50,7 @@ export type RecordMapLayerContribution = {
   displayName: string;
   featureIdProperty?: string;
   featureSelectionAction?: RecordMapOpenFrontComponentAction;
+  isMultiSelectEnabled: boolean;
   isVisible: boolean;
   layerId: string;
   maxZoom?: number | null;
@@ -84,6 +85,7 @@ export type RecordMapRenderedContributionLayer = {
 };
 
 export type RecordMapSelectedContributionFeature = {
+  activeFeatureId: string;
   contributionId: string;
-  featureId: string;
+  featureIds: string[];
 };

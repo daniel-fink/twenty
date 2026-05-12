@@ -53,6 +53,11 @@ const hasSource = (map: maplibregl.Map, sourceId: string) => {
 const MAP_FEATURE_PICKER_QUERY_RADIUS = 8;
 const MAP_ADDRESS_MARKER_PICKER_RADIUS = 12;
 
+const isToggleSelectionClick = (event: maplibregl.MapMouseEvent) =>
+  event.originalEvent?.ctrlKey === true ||
+  event.originalEvent?.metaKey === true ||
+  event.originalEvent?.shiftKey === true;
+
 export const useRecordMapVectorTileLayers = ({
   areAddressMarkersRendered,
   map,
@@ -70,6 +75,7 @@ export const useRecordMapVectorTileLayers = ({
   objectNameSingular?: string;
   onContributedFeatureClick: (
     item: RecordMapContributedFeaturePickerItem,
+    options?: { shouldToggleSelection?: boolean },
   ) => void;
   onFeatureClick: (recordId: string) => void;
   recordMapPoints: RecordMapPoint[];
@@ -94,9 +100,11 @@ export const useRecordMapVectorTileLayers = ({
         return;
       }
 
-      onContributedFeatureClick(item);
+      onContributedFeatureClick(item, {
+        shouldToggleSelection: featurePicker?.shouldToggleSelection === true,
+      });
     },
-    [onContributedFeatureClick, onFeatureClick],
+    [featurePicker, onContributedFeatureClick, onFeatureClick],
   );
 
   const getRecordPickerItemsAtPoint = useCallback(
@@ -213,9 +221,11 @@ export const useRecordMapVectorTileLayers = ({
     ({
       items,
       point,
+      shouldToggleSelection,
     }: {
       items: RecordMapFeaturePickerItem[];
       point: maplibregl.Point;
+      shouldToggleSelection?: boolean;
     }) => {
       if (items.length === 0) {
         setFeaturePicker(null);
@@ -234,7 +244,9 @@ export const useRecordMapVectorTileLayers = ({
         if (firstPickerItem.type === 'record') {
           onFeatureClick(firstPickerItem.recordId);
         } else {
-          onContributedFeatureClick(firstPickerItem);
+          onContributedFeatureClick(firstPickerItem, {
+            shouldToggleSelection,
+          });
         }
 
         return;
@@ -246,13 +258,17 @@ export const useRecordMapVectorTileLayers = ({
           x: point.x,
           y: point.y,
         },
+        shouldToggleSelection,
       });
     },
     [onContributedFeatureClick, onFeatureClick],
   );
 
   const openFeaturePickerAtPoint = useCallback(
-    (point: maplibregl.Point) => {
+    (
+      point: maplibregl.Point,
+      options?: { shouldToggleSelection?: boolean },
+    ) => {
       openPickerItems({
         items: [
           ...getRecordPickerItemsAtPoint(point),
@@ -260,6 +276,7 @@ export const useRecordMapVectorTileLayers = ({
           ...getContributedPickerItemsAtPoint(point),
         ],
         point,
+        shouldToggleSelection: options?.shouldToggleSelection,
       });
     },
     [
@@ -285,7 +302,9 @@ export const useRecordMapVectorTileLayers = ({
         }`
       : null;
     const handleMapClick = (event: maplibregl.MapMouseEvent) => {
-      openFeaturePickerAtPoint(event.point);
+      openFeaturePickerAtPoint(event.point, {
+        shouldToggleSelection: isToggleSelectionClick(event),
+      });
     };
     const setPointerCursor = () => {
       map.getCanvas().style.cursor = 'pointer';

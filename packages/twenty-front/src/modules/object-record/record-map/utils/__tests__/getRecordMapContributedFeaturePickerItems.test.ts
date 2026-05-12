@@ -10,6 +10,7 @@ const contribution: RecordMapLayerContribution = {
     type: 'OPEN_FRONT_COMPONENT',
   },
   featureIdProperty: 'selectedFeatureValue',
+  isMultiSelectEnabled: false,
   isVisible: true,
   layerId: 'layer-1',
   position: 10,

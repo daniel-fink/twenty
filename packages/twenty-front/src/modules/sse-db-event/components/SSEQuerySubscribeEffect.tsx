@@ -1,6 +1,8 @@
 import { ADD_QUERY_TO_EVENT_STREAM_MUTATION } from '@/sse-db-event/graphql/mutations/AddQueryToEventStreamMutation';
 import { REMOVE_QUERY_FROM_EVENT_STREAM_MUTATION } from '@/sse-db-event/graphql/mutations/RemoveQueryFromEventStreamMutation';
 import { activeQueryListenersState } from '@/sse-db-event/states/activeQueryListenersState';
+import { isCreatingSseEventStreamState } from '@/sse-db-event/states/isCreatingSseEventStreamState';
+import { isDestroyingEventStreamState } from '@/sse-db-event/states/isDestroyingEventStreamState';
 import { requiredQueryListenersState } from '@/sse-db-event/states/requiredQueryListenersState';
 import { shouldDestroyEventStreamState } from '@/sse-db-event/states/shouldDestroyEventStreamState';
 import { sseEventStreamIdState } from '@/sse-db-event/states/sseEventStreamIdState';
@@ -42,7 +44,24 @@ export const SSEQuerySubscribeEffect = () => {
   const activeQueryListeners = useAtomStateValue(activeQueryListenersState);
 
   const updateQueryListeners = useCallback(async () => {
-    if (!isDefined(sseEventStreamId)) {
+    const currentSseEventStreamId = store.get(sseEventStreamIdState.atom);
+    const currentSseEventStreamReady = store.get(
+      sseEventStreamReadyState.atom,
+    );
+    const isCreatingSseEventStream = store.get(
+      isCreatingSseEventStreamState.atom,
+    );
+    const isDestroyingEventStream = store.get(
+      isDestroyingEventStreamState.atom,
+    );
+
+    if (
+      !isNonEmptyString(currentSseEventStreamId) ||
+      currentSseEventStreamId !== sseEventStreamId ||
+      !currentSseEventStreamReady ||
+      isCreatingSseEventStream ||
+      isDestroyingEventStream
+    ) {
       return;
     }
 
@@ -69,7 +88,7 @@ export const SSEQuerySubscribeEffect = () => {
         await addQueryToEventStream({
           variables: {
             input: {
-              eventStreamId: sseEventStreamId,
+              eventStreamId: currentSseEventStreamId,
               queryId: queryListenerToAdd.queryId,
               operationSignature: queryListenerToAdd.operationSignature,
             },
@@ -81,7 +100,7 @@ export const SSEQuerySubscribeEffect = () => {
         await removeQueryFromEventStream({
           variables: {
             input: {
-              eventStreamId: sseEventStreamId,
+              eventStreamId: currentSseEventStreamId,
               queryId: queryListenerToRemove.queryId,
             },
           },
@@ -104,6 +123,15 @@ export const SSEQuerySubscribeEffect = () => {
 
         throw new Error(`Unhandled error for event stream: ${error.message}`);
       }
+
+      return;
+    }
+
+    if (
+      store.get(sseEventStreamIdState.atom) !== currentSseEventStreamId ||
+      !store.get(sseEventStreamReadyState.atom)
+    ) {
+      return;
     }
 
     store.set(activeQueryListenersState.atom, requiredQueryListeners);
