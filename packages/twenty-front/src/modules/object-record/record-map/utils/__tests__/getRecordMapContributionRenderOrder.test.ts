@@ -7,6 +7,7 @@ const contribution = (
 ): RecordMapLayerContribution => ({
   contributionId,
   displayName: contributionId,
+  isMultiSelectEnabled: false,
   isVisible: true,
   layerId: contributionId,
   position,

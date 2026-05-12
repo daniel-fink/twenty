@@ -151,9 +151,11 @@ export class EventStreamResolver {
     );
 
     if (!isDefined(streamData)) {
-      return false;
+      throw new EventStreamException(
+        'Event stream does not exist',
+        EventStreamExceptionCode.EVENT_STREAM_DOES_NOT_EXIST,
+      );
     }
-
     const isAuthorized = await this.eventStreamService.isAuthorized({
       streamData,
       authContext: {
@@ -168,7 +170,6 @@ export class EventStreamResolver {
         EventStreamExceptionCode.NOT_AUTHORIZED,
       );
     }
-
     await this.eventStreamService.addQuery({
       workspaceId: workspace.id,
       eventStreamChannelId,
@@ -196,7 +197,7 @@ export class EventStreamResolver {
     );
 
     if (!isDefined(streamData)) {
-      return false;
+      return true;
     }
 
     const isAuthorized = await this.eventStreamService.isAuthorized({

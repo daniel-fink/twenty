@@ -5,6 +5,7 @@ const baseContribution: RecordMapLayerContribution = {
   contributionId: 'view-1:layer-1',
   displayName: 'Parcels',
   featureIdProperty: 'selectedFeatureValue',
+  isMultiSelectEnabled: false,
   isVisible: true,
   layerId: 'layer-1',
   position: 20,
@@ -33,11 +34,16 @@ describe('getRecordMapSelectedContributionLayers', () => {
             type: 'fill',
           },
         },
-        featureId: 'P-001',
+        activeFeatureId: 'P-001',
+        featureIds: ['P-001'],
       }),
     ).toEqual([
       expect.objectContaining({
-        filter: ['==', ['to-string', ['get', 'selectedFeatureValue']], 'P-001'],
+        filter: [
+          'in',
+          ['to-string', ['get', 'selectedFeatureValue']],
+          ['literal', ['P-001']],
+        ],
         paint: {
           'fill-color': '#44A8FF',
           'fill-opacity': 0.5,
@@ -45,12 +51,23 @@ describe('getRecordMapSelectedContributionLayers', () => {
         type: 'fill',
       }),
       expect.objectContaining({
-        filter: ['==', ['to-string', ['get', 'selectedFeatureValue']], 'P-001'],
+        filter: [
+          'in',
+          ['to-string', ['get', 'selectedFeatureValue']],
+          ['literal', ['P-001']],
+        ],
         paint: {
           'line-color': '#404040',
           'line-opacity': 1,
           'line-width': 3,
         },
+        type: 'line',
+      }),
+      expect.objectContaining({
+        filter: ['==', ['to-string', ['get', 'selectedFeatureValue']], 'P-001'],
+        paint: expect.objectContaining({
+          'line-width': 4,
+        }),
         type: 'line',
       }),
     ]);
@@ -67,8 +84,58 @@ describe('getRecordMapSelectedContributionLayers', () => {
             type: 'fill',
           },
         },
-        featureId: 'P-001',
+        activeFeatureId: 'P-001',
+        featureIds: ['P-001'],
       }),
     ).toEqual([]);
+  });
+
+  it('returns selected overlays for multiple feature ids and a distinct active outline', () => {
+    expect(
+      getRecordMapSelectedContributionLayers({
+        contribution: {
+          ...baseContribution,
+          style: {
+            fillColor: '#2563EB',
+            fillOpacity: 0,
+            lineColor: '#404040',
+            lineWidth: 1,
+            selectedStyle: {
+              fillColor: '#44A8FF',
+              fillOpacity: 0.5,
+              lineColor: '#404040',
+              lineWidth: 3,
+            },
+            type: 'fill',
+          },
+        },
+        activeFeatureId: 'P-002',
+        featureIds: ['P-001', 'P-002'],
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        filter: [
+          'in',
+          ['to-string', ['get', 'selectedFeatureValue']],
+          ['literal', ['P-001', 'P-002']],
+        ],
+        type: 'fill',
+      }),
+      expect.objectContaining({
+        filter: [
+          'in',
+          ['to-string', ['get', 'selectedFeatureValue']],
+          ['literal', ['P-001', 'P-002']],
+        ],
+        type: 'line',
+      }),
+      expect.objectContaining({
+        filter: ['==', ['to-string', ['get', 'selectedFeatureValue']], 'P-002'],
+        paint: expect.objectContaining({
+          'line-width': 4,
+        }),
+        type: 'line',
+      }),
+    ]);
   });
 });

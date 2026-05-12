@@ -8,6 +8,7 @@ import type maplibregl from 'maplibre-gl';
 const fillContribution = {
   contributionId: 'view-1:parcel',
   displayName: 'Parcels',
+  isMultiSelectEnabled: false,
   isVisible: true,
   layerId: 'parcel',
   position: 10,

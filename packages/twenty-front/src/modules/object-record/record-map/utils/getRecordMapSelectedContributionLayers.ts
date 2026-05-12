@@ -9,21 +9,28 @@ export const getRecordMapSelectedContributionLayerIds = (
   const layerPrefix = getRecordMapContributedLayerPrefix(contributionId);
 
   return {
+    activeOutlineLayerId: `${layerPrefix}-selected-active-outline`,
     fillLayerId: `${layerPrefix}-selected-fill`,
     outlineLayerId: `${layerPrefix}-selected-outline`,
   };
 };
 
 export const getRecordMapSelectedContributionLayers = ({
+  activeFeatureId,
   contribution,
-  featureId,
+  featureIds,
 }: {
+  activeFeatureId: string;
   contribution: RecordMapLayerContribution;
-  featureId: string;
+  featureIds: string[];
 }): maplibregl.LayerSpecification[] => {
   const style = contribution.style;
 
-  if (style?.type !== 'fill' || !style.selectedStyle) {
+  if (
+    style?.type !== 'fill' ||
+    !style.selectedStyle ||
+    featureIds.length === 0
+  ) {
     return [];
   }
 
@@ -36,9 +43,14 @@ export const getRecordMapSelectedContributionLayers = ({
   const featureIdProperty =
     contribution.featureIdProperty ?? 'selectedFeatureValue';
   const selectedFeatureFilter: maplibregl.FilterSpecification = [
+    'in',
+    ['to-string', ['get', featureIdProperty]],
+    ['literal', featureIds],
+  ];
+  const activeFeatureFilter: maplibregl.FilterSpecification = [
     '==',
     ['to-string', ['get', featureIdProperty]],
-    featureId,
+    activeFeatureId,
   ];
 
   return [
@@ -64,6 +76,19 @@ export const getRecordMapSelectedContributionLayers = ({
           style.selectedStyle.lineColor ?? style.lineColor ?? style.fillColor,
         'line-opacity': style.selectedStyle.lineOpacity ?? 1,
         'line-width': style.selectedStyle.lineWidth ?? 3,
+      },
+    },
+    {
+      id: layerIds.activeOutlineLayerId,
+      type: 'line',
+      source: sourceId,
+      'source-layer': `${contribution.sourceLayerName}-outline`,
+      filter: activeFeatureFilter,
+      paint: {
+        'line-color':
+          style.selectedStyle.lineColor ?? style.lineColor ?? style.fillColor,
+        'line-opacity': style.selectedStyle.lineOpacity ?? 1,
+        'line-width': (style.selectedStyle.lineWidth ?? 3) + 1,
       },
     },
   ];

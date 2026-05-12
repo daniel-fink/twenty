@@ -19,6 +19,7 @@ import {
   getPaddedRecordMapBounds,
   type RecordMapBounds,
 } from '@/object-record/record-map/utils/getPaddedRecordMapBounds';
+import { getNextRecordMapContributionSelection } from '@/object-record/record-map/utils/getNextRecordMapContributionSelection';
 import {
   readRecordMapCamera,
   writeRecordMapCamera,
@@ -27,6 +28,7 @@ import { styled } from '@linaria/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
+import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { useDebouncedCallback } from 'use-debounce';
 import { IconMap } from 'twenty-ui/display';
@@ -66,6 +68,21 @@ const StyledEmptyState = styled.div`
   text-align: center;
 `;
 
+const RECORD_MAP_MULTI_SELECT_LIMIT = 10;
+const RECORD_MAP_SELECTED_FEATURES_PARAM = 'selectedFeatures';
+
+const serializeSelectedFeatures = (
+  items: RecordMapContributedFeaturePickerItem[],
+) =>
+  JSON.stringify(
+    items.map((item) => ({
+      featureId: item.featureId,
+      layerId: item.layerId,
+      title: item.title,
+      viewId: item.viewId,
+    })),
+  );
+
 export const RecordMap = ({
   loading,
   objectNameSingular,
@@ -88,10 +105,14 @@ export const RecordMap = ({
   // oxlint-disable-next-line twenty/no-state-useref
   const shouldPersistNextMoveRef = useRef(false);
   const { openRecordFromIndexView } = useOpenRecordFromIndexView();
-  const { enqueueErrorSnackBar } = useSnackBar();
+  const { closeSidePanelMenu } = useSidePanelMenu();
+  const { enqueueErrorSnackBar, enqueueWarningSnackBar } = useSnackBar();
   const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
-  const [selectedContributionFeature, setSelectedContributionFeature] =
-    useState<RecordMapSelectedContributionFeature | null>(null);
+  const [selectedContributionItems, setSelectedContributionItems] = useState<
+    RecordMapContributedFeaturePickerItem[]
+  >([]);
+  const [activeContributionFeatureId, setActiveContributionFeatureId] =
+    useState<string | null>(null);
 
   const hasMapStyle = REACT_APP_MAP_VIEW_STYLE_URL !== '';
   const shouldRenderMap =
@@ -116,6 +137,28 @@ export const RecordMap = ({
     useRecordMapContributions({
       tileSourceViewId,
     });
+  const selectedContributionFeature = useMemo(() => {
+    if (
+      selectedContributionItems.length === 0 ||
+      !isDefined(activeContributionFeatureId)
+    ) {
+      return null;
+    }
+
+    const activeItem = selectedContributionItems.find(
+      (item) => item.featureId === activeContributionFeatureId,
+    );
+
+    if (!isDefined(activeItem)) {
+      return null;
+    }
+
+    return {
+      activeFeatureId: activeItem.featureId,
+      contributionId: activeItem.contributionId,
+      featureIds: selectedContributionItems.map((item) => item.featureId),
+    } satisfies RecordMapSelectedContributionFeature;
+  }, [activeContributionFeatureId, selectedContributionItems]);
   const { renderedContributionLayers } = useRecordMapContributedLayers({
     layerContributions,
     map,
@@ -126,19 +169,18 @@ export const RecordMap = ({
 
   const handleRecordClick = useCallback(
     (recordId: string) => {
-      setSelectedContributionFeature(null);
+      setSelectedContributionItems([]);
+      setActiveContributionFeatureId(null);
       openRecordFromIndexView({ recordId });
     },
     [openRecordFromIndexView],
   );
 
   const handleContributedFeatureClick = useCallback(
-    async (item: RecordMapContributedFeaturePickerItem) => {
-      setSelectedContributionFeature({
-        contributionId: item.contributionId,
-        featureId: item.featureId,
-      });
-
+    async (
+      item: RecordMapContributedFeaturePickerItem,
+      options?: { shouldToggleSelection?: boolean },
+    ) => {
       const featureSelectionAction = item.contribution.featureSelectionAction;
 
       if (featureSelectionAction?.type !== 'OPEN_FRONT_COMPONENT') {
@@ -155,22 +197,71 @@ export const RecordMap = ({
         return;
       }
 
-      openFrontComponentInSidePanel({
-        frontComponentId,
-        pageIcon: IconMap,
-        pageTitle: item.title,
-        params: {
-          ...featureSelectionAction.params,
-          featureId: item.featureId,
-          layerId: item.layerId,
-          viewId: item.viewId,
-        },
+      const openSelectionInSidePanel = (
+        nextItems: RecordMapContributedFeaturePickerItem[],
+        activeItem: RecordMapContributedFeaturePickerItem,
+      ) => {
+        const pageTitle =
+          nextItems.length > 1
+            ? `${nextItems.length} ${activeItem.contribution.displayName} selected`
+            : activeItem.title;
+
+        openFrontComponentInSidePanel({
+          frontComponentId,
+          pageIcon: IconMap,
+          pageTitle,
+          params: {
+            ...featureSelectionAction.params,
+            featureId: activeItem.featureId,
+            layerId: activeItem.layerId,
+            [RECORD_MAP_SELECTED_FEATURES_PARAM]:
+              serializeSelectedFeatures(nextItems),
+            viewId: activeItem.viewId,
+          },
+          resetNavigationStack: true,
+        });
+      };
+
+      const nextSelection = getNextRecordMapContributionSelection({
+        activeFeatureId: activeContributionFeatureId,
+        currentItems: selectedContributionItems,
+        item,
+        maxSelectedItems: RECORD_MAP_MULTI_SELECT_LIMIT,
+        shouldToggleSelection: options?.shouldToggleSelection === true,
       });
+
+      if (nextSelection.status === 'limit-exceeded') {
+        enqueueWarningSnackBar({
+          message: `You can select up to ${RECORD_MAP_MULTI_SELECT_LIMIT} ${item.contribution.displayName}.`,
+        });
+
+        return;
+      }
+
+      if (nextSelection.status === 'cleared') {
+        setSelectedContributionItems([]);
+        setActiveContributionFeatureId(null);
+        closeSidePanelMenu();
+
+        return;
+      }
+
+      if (!isDefined(nextSelection.activeItem)) {
+        return;
+      }
+
+      setSelectedContributionItems(nextSelection.items);
+      setActiveContributionFeatureId(nextSelection.activeItem.featureId);
+      openSelectionInSidePanel(nextSelection.items, nextSelection.activeItem);
     },
     [
+      activeContributionFeatureId,
+      closeSidePanelMenu,
       enqueueErrorSnackBar,
+      enqueueWarningSnackBar,
       openFrontComponentInSidePanel,
       resolveFrontComponentId,
+      selectedContributionItems,
     ],
   );
 
