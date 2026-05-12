@@ -36,6 +36,7 @@ import { UpgradeSequenceReaderService } from 'src/engine/core-modules/upgrade/se
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
+import { shouldSeedStandardWorkspaceRecords } from 'src/engine/core-modules/workspace/constants/workspace-seed-profile.constant';
 import { type ActivateWorkspaceInput } from 'src/engine/core-modules/workspace/dtos/activate-workspace-input';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import {
@@ -361,7 +362,7 @@ export class WorkspaceService extends TypeOrmQueryService<WorkspaceEntity> {
 
     await this.userWorkspaceService.createWorkspaceMember(workspace.id, user);
 
-    await this.prefillCreatedWorkspaceRecords({
+    await this.applyWorkspaceSeedProfile({
       workspaceId: workspace.id,
       schemaName: getWorkspaceSchemaName(workspace.id),
     });
@@ -752,7 +753,32 @@ export class WorkspaceService extends TypeOrmQueryService<WorkspaceEntity> {
     }
   }
 
-  private async prefillCreatedWorkspaceRecords({
+  private async applyWorkspaceSeedProfile({
+    workspaceId,
+    schemaName,
+  }: {
+    workspaceId: string;
+    schemaName: string;
+  }): Promise<void> {
+    const workspaceSeedProfile = this.twentyConfigService.get(
+      'WORKSPACE_SEED_PROFILE',
+    );
+
+    if (shouldSeedStandardWorkspaceRecords(workspaceSeedProfile)) {
+      await this.prefillStandardWorkspaceRecords({
+        workspaceId,
+        schemaName,
+      });
+    } else {
+      this.logger.log(
+        `Skipping standard workspace record seed for workspace ${workspaceId} because WORKSPACE_SEED_PROFILE=${workspaceSeedProfile}`,
+      );
+    }
+
+    await this.installPreInstalledAppsOnWorkspace(workspaceId);
+  }
+
+  private async prefillStandardWorkspaceRecords({
     workspaceId,
     schemaName,
   }: {
@@ -820,7 +846,11 @@ export class WorkspaceService extends TypeOrmQueryService<WorkspaceEntity> {
     } finally {
       await queryRunner.release();
     }
+  }
 
+  private async installPreInstalledAppsOnWorkspace(
+    workspaceId: string,
+  ): Promise<void> {
     try {
       await prefillWorkflowCommandMenuItems({
         workspaceId,
