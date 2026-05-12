@@ -427,6 +427,25 @@ export class LocalDriver implements LogicFunctionDriver {
       // Auto-generated. Do not edit.
       const { pathToFileURL } = require('node:url');
 
+      const sendAndExit = (message, exitCode) => {
+        if (!process.send) {
+          process.exit(exitCode);
+          return;
+        }
+
+        process.send(message, (error) => {
+          if (error) {
+            try {
+              process.stderr.write(String(error) + '\\n');
+            } catch {}
+            process.exit(1);
+            return;
+          }
+
+          process.exit(exitCode);
+        });
+      };
+
       (async () => {
         try {
           const builtUrl = pathToFileURL(${JSON.stringify(builtFileAbsPath)});
@@ -441,11 +460,9 @@ export class LocalDriver implements LogicFunctionDriver {
               if (!msg || msg.type !== 'run') return;
               try {
                 const out = await mod.${handlerName}(msg.payload);
-                process.send && process.send({ ok: true, result: out });
-                process.exit(0);
+                sendAndExit({ ok: true, result: out }, 0);
               } catch (err) {
-                process.send && process.send({ ok: false, error: String(err), stack: err?.stack });
-                process.exit(1);
+                sendAndExit({ ok: false, error: String(err), stack: err?.stack }, 1);
               }
             });
           } else {
@@ -459,11 +476,11 @@ export class LocalDriver implements LogicFunctionDriver {
         } catch (err) {
           const msg = String(err);
           if (process.send) {
-            process.send({ ok: false, error: msg, stack: err?.stack });
+            sendAndExit({ ok: false, error: msg, stack: err?.stack }, 1);
           } else {
             process.stdout.write(msg);
+            process.exit(1);
           }
-          process.exit(1);
         }
       })();
     `;
@@ -533,7 +550,12 @@ export class LocalDriver implements LogicFunctionDriver {
         if (settled) return;
         settled = true;
         if (code === 0) {
-          resolve({ ok: true, stdout, stderr });
+          resolve({
+            ok: false,
+            error: 'Exited with code 0 before sending a result',
+            stdout,
+            stderr,
+          });
         } else {
           resolve({
             ok: false,
