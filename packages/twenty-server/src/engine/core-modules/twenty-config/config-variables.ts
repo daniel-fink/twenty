@@ -3,6 +3,7 @@ import { type LogLevel, Logger } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import {
   IsDefined,
+  IsIn,
   IsOptional,
   IsUrl,
   ValidateIf,
@@ -42,6 +43,11 @@ import {
   ConfigVariableException,
   ConfigVariableExceptionCode,
 } from 'src/engine/core-modules/twenty-config/twenty-config.exception';
+import {
+  DEFAULT_WORKSPACE_SEED_PROFILE,
+  type WorkspaceSeedProfile,
+  WORKSPACE_SEED_PROFILES,
+} from 'src/engine/core-modules/workspace/constants/workspace-seed-profile.constant';
 import { type AiModelPreferences } from 'src/engine/metadata-modules/ai/ai-models/types/ai-model-preferences.type';
 import { type AiProvidersConfig } from 'src/engine/metadata-modules/ai/ai-models/types/ai-providers-config.type';
 import { loadDefaultModelPreferences } from 'src/engine/metadata-modules/ai/ai-models/utils/load-default-model-preferences.util';
@@ -91,6 +97,16 @@ export class ConfigVariables {
   })
   @IsOptional()
   WORKSPACE_SCHEMA_DDL_LOCKED = false;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.ADVANCED_SETTINGS,
+    description:
+      'Workspace seed profile applied during new workspace activation. Supported values: twenty-standard, whirlwind-default, metadata-only.',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  @IsIn(WORKSPACE_SEED_PROFILES)
+  WORKSPACE_SEED_PROFILE: WorkspaceSeedProfile = DEFAULT_WORKSPACE_SEED_PROFILE;
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.TOKENS_DURATION,
