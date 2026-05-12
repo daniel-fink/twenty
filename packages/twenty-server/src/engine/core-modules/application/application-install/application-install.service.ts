@@ -18,6 +18,7 @@ import { ApplicationRegistrationEntity } from 'src/engine/core-modules/applicati
 import { ApplicationRegistrationSourceType } from 'src/engine/core-modules/application/application-registration/enums/application-registration-source-type.enum';
 import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
 import { ApplicationService } from 'src/engine/core-modules/application/application.service';
+import { getApplicationInstallFileMimeType } from 'src/engine/core-modules/application/application-install/utils/get-application-install-file-mime-type.util';
 import { ApplicationPackageFetcherService } from 'src/engine/core-modules/application/application-package/application-package-fetcher.service';
 import { ApplicationSyncService } from 'src/engine/core-modules/application/application-manifest/application-sync.service';
 import { CacheLockService } from 'src/engine/core-modules/cache-lock/cache-lock.service';
@@ -454,11 +455,12 @@ export class ApplicationInstallService {
         );
       }
 
-      // TODO: mimeType should be defined, default to application/octet-stream, which won't be displayed
-      // inline by the browser (forced download) due to Content-Disposition security headers.
       await this.fileStorageService.writeFile({
         sourceFile: content,
-        mimeType: undefined,
+        mimeType: getApplicationInstallFileMimeType({
+          fileFolder,
+          relativePath,
+        }),
         fileFolder,
         applicationUniversalIdentifier,
         workspaceId,

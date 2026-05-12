@@ -1,5 +1,8 @@
 import { getContentDisposition } from 'src/engine/core-modules/file/utils/get-content-disposition.utils';
-import { setFileResponseHeaders } from 'src/engine/core-modules/file/utils/set-file-response-headers.utils';
+import {
+  setFileResponseHeaders,
+  setPublicAssetResponseHeaders,
+} from 'src/engine/core-modules/file/utils/set-file-response-headers.utils';
 
 const createMockResponse = () => ({
   setHeader: jest.fn(),
@@ -72,6 +75,55 @@ describe('setFileResponseHeaders', () => {
       );
     },
   );
+});
+
+describe('setPublicAssetResponseHeaders', () => {
+  it.each([
+    'application/javascript',
+    'text/javascript',
+    'text/css',
+    'font/woff',
+    'font/woff2',
+  ])(
+    'should set Content-Disposition: inline for public asset type %s',
+    (mimeType) => {
+      const res = createMockResponse();
+
+      setPublicAssetResponseHeaders(res as any, mimeType);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'inline',
+      );
+    },
+  );
+
+  it.each([
+    'text/html',
+    'image/svg+xml',
+    'application/xml',
+    'application/octet-stream',
+  ])(
+    'should set Content-Disposition: attachment for unsafe public asset type %s',
+    (mimeType) => {
+      const res = createMockResponse();
+
+      setPublicAssetResponseHeaders(res as any, mimeType);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment',
+      );
+    },
+  );
+
+  it('should preserve existing inline-safe media behavior for public assets', () => {
+    const res = createMockResponse();
+
+    setPublicAssetResponseHeaders(res as any, 'image/png');
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'inline');
+  });
 });
 
 describe('getContentDisposition', () => {

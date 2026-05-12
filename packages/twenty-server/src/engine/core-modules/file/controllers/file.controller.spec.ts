@@ -221,12 +221,12 @@ describe('FileController', () => {
   });
 
   describe('getPublicAssets', () => {
-    it('should call fileService.getFileStreamByPath and pipe with headers', async () => {
+    it('should call fileService.getFileStreamByPath and pipe with public asset headers', async () => {
       const mockStream = createMockStream();
 
       jest.spyOn(fileService, 'getFileStreamByPath').mockResolvedValue({
         stream: mockStream,
-        mimeType: 'image/png',
+        mimeType: 'text/javascript',
       });
 
       const mockRequest = {
@@ -250,7 +250,7 @@ describe('FileController', () => {
       });
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Type',
-        'image/png',
+        'text/javascript',
       );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'X-Content-Type-Options',

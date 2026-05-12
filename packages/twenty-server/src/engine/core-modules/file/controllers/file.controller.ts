@@ -28,7 +28,10 @@ import {
   SupportedFileFolder,
 } from 'src/engine/core-modules/file/guards/file-by-id.guard';
 import { FileService } from 'src/engine/core-modules/file/services/file.service';
-import { setFileResponseHeaders } from 'src/engine/core-modules/file/utils/set-file-response-headers.utils';
+import {
+  setFileResponseHeaders,
+  setPublicAssetResponseHeaders,
+} from 'src/engine/core-modules/file/utils/set-file-response-headers.utils';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { PublicEndpointGuard } from 'src/engine/guards/public-endpoint.guard';
 
@@ -56,7 +59,7 @@ export class FileController {
         filepath,
       });
 
-      setFileResponseHeaders(res, mimeType);
+      setPublicAssetResponseHeaders(res, mimeType);
 
       stream.on('error', () => {
         throw new FileException(
