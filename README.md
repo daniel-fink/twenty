@@ -27,7 +27,10 @@ branding patch. Emails rendered by `packages/twenty-emails` use the Whirlwind
 logo from the frontend static bundle, resolving the asset origin from
 `FRONTEND_URL` with `SERVER_URL` as the fallback. The shared email footer
 component intentionally remains mounted but currently renders blank so future
-Whirlwind footer content can be added in one place.
+Whirlwind footer content can be added in one place. Server modules that send
+these branded emails must import `DomainServerConfigModule` when they inject
+`DomainServerConfigService`; `WorkspaceCleanerModule` does this for suspended
+workspace warning and cleanup emails.
 
 # Why Twenty
 
