@@ -10,6 +10,7 @@ type PasswordUpdateNotifyEmailProps = {
   userName: string;
   email: string;
   link: string;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
 };
 
@@ -17,13 +18,14 @@ export const PasswordUpdateNotifyEmail = ({
   userName,
   email,
   link,
+  assetBaseUrl,
   locale,
 }: PasswordUpdateNotifyEmailProps) => {
   const i18n = createI18nInstance(locale);
   const formattedDate = i18n.date(new Date());
 
   return (
-    <BaseEmail locale={locale}>
+    <BaseEmail locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={i18n._('Password updated')} />
       <MainText>
         {userName?.length > 1 ? (
@@ -54,6 +56,7 @@ PasswordUpdateNotifyEmail.PreviewProps = {
   userName: 'John Doe',
   email: 'john.doe@example.com',
   link: 'https://app.twenty.com',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
 } as PasswordUpdateNotifyEmailProps;
 

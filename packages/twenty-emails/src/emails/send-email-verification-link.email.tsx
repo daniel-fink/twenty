@@ -8,12 +8,14 @@ import { type APP_LOCALES } from 'twenty-shared/translations';
 
 type SendEmailVerificationLinkEmailProps = {
   link: string;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
   isEmailUpdate?: boolean;
 };
 
 export const SendEmailVerificationLinkEmail = ({
   link,
+  assetBaseUrl,
   locale,
   isEmailUpdate = false,
 }: SendEmailVerificationLinkEmailProps) => {
@@ -29,7 +31,7 @@ export const SendEmailVerificationLinkEmail = ({
     : i18n._('Verify Email');
 
   return (
-    <BaseEmail width={333} locale={locale}>
+    <BaseEmail width={333} locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={title} />
       <MainText>
         <Trans id={bodyId} />
@@ -44,6 +46,7 @@ export const SendEmailVerificationLinkEmail = ({
 
 SendEmailVerificationLinkEmail.PreviewProps = {
   link: 'https://app.twenty.com/verify-email/123',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
   isEmailUpdate: false,
 };

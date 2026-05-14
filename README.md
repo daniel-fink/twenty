@@ -20,6 +20,15 @@
 
 <br />
 
+# Whirlwind Fork Notes
+
+This vendored checkout carries a Whirlwind-specific transactional email
+branding patch. Emails rendered by `packages/twenty-emails` use the Whirlwind
+logo from the frontend static bundle, resolving the asset origin from
+`FRONTEND_URL` with `SERVER_URL` as the fallback. The shared email footer
+component intentionally remains mounted but currently renders blank so future
+Whirlwind footer content can be added in one place.
+
 # Why Twenty
 
 Twenty gives technical teams the building blocks for a custom CRM that meets complex business needs and quickly adapts as the business evolves. Twenty is the CRM you build, ship, and version like the rest of your stack.

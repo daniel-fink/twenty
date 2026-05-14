@@ -1,14 +1,23 @@
 import { Img } from '@react-email/components';
 
+const WHIRLWIND_LOGO_PATH =
+  '/images/icons/whirlwind/whirlwind-logo-192.png';
+
 const logoStyle = {
   marginBottom: '40px',
 };
 
-export const Logo = () => {
+type LogoProps = {
+  assetBaseUrl: string;
+};
+
+export const Logo = ({ assetBaseUrl }: LogoProps) => {
+  const logoUrl = new URL(WHIRLWIND_LOGO_PATH, assetBaseUrl).toString();
+
   return (
     <Img
-      src="https://app.twenty.com/images/icons/windows11/Square150x150Logo.scale-100.png"
-      alt="Twenty logo"
+      src={logoUrl}
+      alt="Whirlwind logo"
       width="40"
       height="40"
       style={logoStyle}
