@@ -11,6 +11,7 @@ type PasswordResetLinkEmailProps = {
   duration: string;
   hasPassword: boolean;
   link: string;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
 };
 
@@ -18,6 +19,7 @@ export const PasswordResetLinkEmail = ({
   duration,
   hasPassword,
   link,
+  assetBaseUrl,
   locale,
 }: PasswordResetLinkEmailProps) => {
   const i18n = createI18nInstance(locale);
@@ -27,7 +29,7 @@ export const PasswordResetLinkEmail = ({
   const ctaLabel = hasPassword ? i18n._('Reset') : i18n._('Set');
 
   return (
-    <BaseEmail locale={locale}>
+    <BaseEmail locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={headline} />
       <MainText>
         <Trans
@@ -49,6 +51,7 @@ PasswordResetLinkEmail.PreviewProps = {
   duration: '24 hours',
   hasPassword: true,
   link: 'https://app.twenty.com/reset-password/123',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
 } as PasswordResetLinkEmailProps;
 

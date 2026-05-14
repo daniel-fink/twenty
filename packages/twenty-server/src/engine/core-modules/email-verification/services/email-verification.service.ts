@@ -87,6 +87,7 @@ export class EmailVerificationService {
 
     const emailData = {
       link: verificationLink.toString(),
+      assetBaseUrl: this.domainsServerConfigService.getFrontUrl().toString(),
       locale,
       isEmailUpdate:
         verificationTrigger === EmailVerificationTrigger.EMAIL_UPDATE,

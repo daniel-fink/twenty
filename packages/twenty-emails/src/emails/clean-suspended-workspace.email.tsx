@@ -10,6 +10,7 @@ type CleanSuspendedWorkspaceEmailProps = {
   daysSinceInactive: number;
   userName: string;
   workspaceDisplayName: string | undefined;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
 };
 
@@ -17,12 +18,13 @@ export const CleanSuspendedWorkspaceEmail = ({
   daysSinceInactive,
   userName,
   workspaceDisplayName,
+  assetBaseUrl,
   locale,
 }: CleanSuspendedWorkspaceEmailProps) => {
   const i18n = createI18nInstance(locale);
 
   return (
-    <BaseEmail width={333} locale={locale}>
+    <BaseEmail width={333} locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={i18n._('Deleted Workspace')} />
       <MainText>
         {userName?.length > 1 ? (
@@ -59,6 +61,7 @@ CleanSuspendedWorkspaceEmail.PreviewProps = {
   daysSinceInactive: 1,
   userName: 'John Doe',
   workspaceDisplayName: 'My Workspace',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
 };
 

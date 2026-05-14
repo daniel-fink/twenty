@@ -29,6 +29,7 @@ import { type EmailPasswordResetLinkDTO } from 'src/engine/core-modules/auth/dto
 import { type InvalidatePasswordDTO } from 'src/engine/core-modules/auth/dto/invalidate-password.dto';
 import { type ValidatePasswordResetTokenDTO } from 'src/engine/core-modules/auth/dto/validate-password-reset-token.dto';
 import { type PasswordResetToken } from 'src/engine/core-modules/auth/types/password-reset-token.type';
+import { DomainServerConfigService } from 'src/engine/core-modules/domain/domain-server-config/services/domain-server-config.service';
 import { WorkspaceDomainsService } from 'src/engine/core-modules/domain/workspace-domains/services/workspace-domains.service';
 import { EmailService } from 'src/engine/core-modules/email/email.service';
 import { I18nService } from 'src/engine/core-modules/i18n/i18n.service';
@@ -49,6 +50,7 @@ export class ResetPasswordService {
     private readonly emailService: EmailService,
     private readonly i18nService: I18nService,
     private readonly userService: UserService,
+    private readonly domainServerConfigService: DomainServerConfigService,
   ) {}
 
   async generatePasswordResetToken(
@@ -166,6 +168,7 @@ export class ResetPasswordService {
         },
       ),
       hasPassword,
+      assetBaseUrl: this.domainServerConfigService.getFrontUrl().toString(),
       locale,
     };
 

@@ -25,6 +25,7 @@ type SendApprovedAccessDomainValidationProps = {
     lastName: string;
   };
   serverUrl: string;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
 };
 
@@ -34,6 +35,7 @@ export const SendApprovedAccessDomainValidation = ({
   workspace,
   sender,
   serverUrl,
+  assetBaseUrl,
   locale,
 }: SendApprovedAccessDomainValidationProps) => {
   const i18n = createI18nInstance(locale);
@@ -45,7 +47,7 @@ export const SendApprovedAccessDomainValidation = ({
   const senderEmail = sender.email;
 
   return (
-    <BaseEmail width={333} locale={locale}>
+    <BaseEmail width={333} locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={i18n._('Validate domain')} />
       <MainText>
         <Trans
@@ -92,6 +94,7 @@ SendApprovedAccessDomainValidation.PreviewProps = {
     lastName: 'Doe',
   },
   serverUrl: 'https://app.twenty.com',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
 };
 

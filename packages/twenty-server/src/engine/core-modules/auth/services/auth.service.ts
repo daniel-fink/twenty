@@ -715,6 +715,7 @@ export class AuthService {
       userName: `${user.firstName} ${user.lastName}`,
       email: user.email,
       link: this.domainServerConfigService.getBaseUrl().toString(),
+      assetBaseUrl: this.domainServerConfigService.getFrontUrl().toString(),
       locale: firstUserWorkspace.locale,
     });
 

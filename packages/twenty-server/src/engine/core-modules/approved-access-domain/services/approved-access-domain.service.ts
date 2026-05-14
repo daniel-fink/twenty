@@ -18,6 +18,7 @@ import {
   type ApprovedAccessDomainJwtPayload,
   JwtTokenTypeEnum,
 } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { DomainServerConfigService } from 'src/engine/core-modules/domain/domain-server-config/services/domain-server-config.service';
 import { WorkspaceDomainsService } from 'src/engine/core-modules/domain/workspace-domains/services/workspace-domains.service';
 import { EmailService } from 'src/engine/core-modules/email/email.service';
 import { FileUrlService } from 'src/engine/core-modules/file/file-url/file-url.service';
@@ -43,6 +44,7 @@ export class ApprovedAccessDomainService {
     private readonly fileUrlService: FileUrlService,
     private readonly workspaceDomainsService: WorkspaceDomainsService,
     private readonly jwtWrapperService: JwtWrapperService,
+    private readonly domainServerConfigService: DomainServerConfigService,
   ) {}
 
   async sendApprovedAccessDomainValidationEmail(
@@ -108,6 +110,7 @@ export class ApprovedAccessDomainService {
         lastName: sender.name.lastName,
       },
       serverUrl: this.twentyConfigService.get('SERVER_URL'),
+      assetBaseUrl: this.domainServerConfigService.getFrontUrl().toString(),
       locale: sender.locale,
     });
     const html = await render(emailTemplate);

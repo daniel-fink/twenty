@@ -11,6 +11,7 @@ type WarnSuspendedWorkspaceEmailProps = {
   inactiveDaysBeforeDelete: number;
   userName: string;
   workspaceDisplayName: string | undefined;
+  assetBaseUrl: string;
   locale: keyof typeof APP_LOCALES;
 };
 
@@ -19,6 +20,7 @@ export const WarnSuspendedWorkspaceEmail = ({
   inactiveDaysBeforeDelete,
   userName,
   workspaceDisplayName,
+  assetBaseUrl,
   locale,
 }: WarnSuspendedWorkspaceEmailProps) => {
   const i18n = createI18nInstance(locale);
@@ -27,7 +29,7 @@ export const WarnSuspendedWorkspaceEmail = ({
   const remainingDays = daysLeft > 0 ? daysLeft : 0;
 
   return (
-    <BaseEmail width={333} locale={locale}>
+    <BaseEmail width={333} locale={locale} assetBaseUrl={assetBaseUrl}>
       <Title value={i18n._('Suspended Workspace')} />
       <MainText>
         {userName?.length > 1 ? (
@@ -71,6 +73,7 @@ WarnSuspendedWorkspaceEmail.PreviewProps = {
   inactiveDaysBeforeDelete: 14,
   userName: 'John Doe',
   workspaceDisplayName: 'Acme Inc.',
+  assetBaseUrl: 'https://app.twenty.com',
   locale: 'en',
 };
 

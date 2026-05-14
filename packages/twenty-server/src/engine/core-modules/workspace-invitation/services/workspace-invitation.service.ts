@@ -20,6 +20,7 @@ import {
   AuthException,
   AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
+import { DomainServerConfigService } from 'src/engine/core-modules/domain/domain-server-config/services/domain-server-config.service';
 import { WorkspaceDomainsService } from 'src/engine/core-modules/domain/workspace-domains/services/workspace-domains.service';
 import { EmailService } from 'src/engine/core-modules/email/email.service';
 import { FileUrlService } from 'src/engine/core-modules/file/file-url/file-url.service';
@@ -54,6 +55,7 @@ export class WorkspaceInvitationService {
     private readonly i18nService: I18nService,
     private readonly throttlerService: ThrottlerService,
     private readonly fileUrlService: FileUrlService,
+    private readonly domainServerConfigService: DomainServerConfigService,
   ) {}
 
   async validatePersonalInvitation({
@@ -334,6 +336,7 @@ export class WorkspaceInvitationService {
             lastName: sender.name.lastName,
           },
           serverUrl: this.twentyConfigService.get('SERVER_URL'),
+          assetBaseUrl: this.domainServerConfigService.getFrontUrl().toString(),
           locale: sender.locale,
         };
 
@@ -343,9 +346,7 @@ export class WorkspaceInvitationService {
           plainText: true,
         });
 
-        const joinTeamMsg = msg`Join your team on Twenty`;
-        const i18n = this.i18nService.getI18nInstance(sender.locale);
-        const subject = i18n._(joinTeamMsg);
+        const subject = 'Join Whirlwind';
 
         await this.emailService.send({
           from: `${sender.name.firstName} ${sender.name.lastName} (via Twenty) <${this.twentyConfigService.get('EMAIL_FROM_ADDRESS')}>`,
