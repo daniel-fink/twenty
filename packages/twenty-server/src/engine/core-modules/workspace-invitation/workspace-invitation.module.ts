@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { NestjsQueryTypeOrmModule } from '@ptc-org/nestjs-query-typeorm';
 
 import { AppTokenEntity } from 'src/engine/core-modules/app-token/app-token.entity';
+import { DomainServerConfigModule } from 'src/engine/core-modules/domain/domain-server-config/domain-server-config.module';
 import { WorkspaceDomainsModule } from 'src/engine/core-modules/domain/workspace-domains/workspace-domains.module';
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
 import { FileModule } from 'src/engine/core-modules/file/file.module';
@@ -29,6 +30,7 @@ import { RoleValidationModule } from 'src/engine/metadata-modules/role-validatio
     PermissionsModule,
     FeatureFlagModule,
     ThrottlerModule,
+    DomainServerConfigModule,
   ],
   exports: [WorkspaceInvitationService],
   providers: [WorkspaceInvitationService, WorkspaceInvitationResolver],

@@ -29,8 +29,9 @@ logo from the frontend static bundle, resolving the asset origin from
 component intentionally remains mounted but currently renders blank so future
 Whirlwind footer content can be added in one place. Server modules that send
 these branded emails must import `DomainServerConfigModule` when they inject
-`DomainServerConfigService`; `WorkspaceCleanerModule` does this for suspended
-workspace warning and cleanup emails.
+`DomainServerConfigService`; `ApprovedAccessDomainModule`,
+`WorkspaceInvitationModule`, and `WorkspaceCleanerModule` do this for approved
+domain, invite, suspended workspace warning, and cleanup emails.
 
 # Why Twenty
 
