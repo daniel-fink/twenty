@@ -1,4 +1,5 @@
 import { prepareBodyWithSignedUrls } from '@/blocknote-editor/utils/prepareBodyWithSignedUrls';
+import { createAppBlockProofBlocks } from '@/blocknote-editor/blocks/appBlockProof';
 
 describe('prepareBodyWithSignedUrls', () => {
   it('should return empty string as-is', () => {
@@ -42,5 +43,13 @@ describe('prepareBodyWithSignedUrls', () => {
     const result = JSON.parse(prepareBodyWithSignedUrls(input));
     expect(result[0].type).toBe('image');
     expect(result[0].props.url).toContain('example.com');
+  });
+
+  it('should preserve appBlock dataJson through the rich-text save payload path', () => {
+    const blocks = createAppBlockProofBlocks(50);
+
+    expect(
+      JSON.parse(prepareBodyWithSignedUrls(JSON.stringify(blocks))),
+    ).toEqual(blocks);
   });
 });
