@@ -30,6 +30,12 @@ export const AVAILABLE_WORKSPACE_FOR_AUTH_FRAGMENT = gql`
       customUrl
     }
     logo
+    workspaceRelationship {
+      parentWorkspaceId
+      childWorkspaceId
+      relationshipType
+      sourceId
+    }
     sso {
       type
       id

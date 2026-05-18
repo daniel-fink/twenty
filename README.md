@@ -33,6 +33,49 @@ these branded emails must import `DomainServerConfigModule` when they inject
 `WorkspaceInvitationModule`, and `WorkspaceCleanerModule` do this for approved
 domain, invite, suspended workspace warning, and cleanup emails.
 
+This vendored checkout also carries one generic admin-panel membership
+primitive for Whirlwind project workspace provisioning. The
+`ensureWorkspaceMembers` admin mutation reconciles active users from a source
+workspace into a target workspace through Twenty's native
+`UserWorkspaceService.addUserToWorkspaceIfUserNotInWorkspace` path. It is
+guarded by the existing admin-panel authorization surface, supports dry-run
+reporting, mirrors source admins to the target admin role, assigns other users
+to the target default role, and never removes or downgrades existing target
+members. Project-specific orchestration, scheduling, and retry state remain in
+Whirlwind's `services/workspace-provisioner`; no Twenty UI, event hook,
+scheduler, workspace graph table, or Whirlwind-specific project concept is
+added in core.
+
+The fork also carries one generic admin-panel application install primitive for
+Whirlwind tenant onboarding. The `ensureApplicationInstalledInWorkspace` admin
+mutation installs an existing application registration into a workspace by
+workspace id and application universal identifier, and `workspaceIdBySubdomain`
+resolves a workspace id for admin-only automation. Both are guarded by the
+existing admin-panel authorization surface, support idempotent tenant
+onboarding, and intentionally avoid Whirlwind-specific app scope policy in
+Twenty core. Scoped app decisions such as `global` versus `tenant-only` live in
+Whirlwind deployment scripts and `services/workspace-provisioner`.
+
+The fork keeps Twenty's multi-workspace app menu generic while adding compact
+child workspace relationship support. The `workspaceRelationship` core entity
+stores explicit parent workspace id, child workspace id, relationship type, and
+optional source id. The `ensureWorkspaceRelationship` admin mutation creates
+that relationship idempotently through the existing admin-panel authorization
+surface. Available workspace metadata exposes relationship details only for
+workspaces the current user can already access.
+
+The native workspace menu uses this generic relationship metadata to show direct
+children under "Child Workspaces" when the current workspace is the parent, and
+to keep an available parent workspace visible when the current workspace is a
+child. When the current workspace is a child, sibling children of the same
+parent are intentionally hidden from the direct workspace list; users navigate
+back through the visible parent workspace before choosing another child.
+Unrelated workspaces continue to use the native searchable "Other workspaces"
+list, and the default inline preview limit remains 10. Whirlwind
+project-specific meaning and orchestration stay in
+`services/workspace-provisioner`; Twenty core does not parse hosts, names, or
+Whirlwind project concepts.
+
 # Why Twenty
 
 Twenty gives technical teams the building blocks for a custom CRM that meets complex business needs and quickly adapts as the business evolves. Twenty is the CRM you build, ship, and version like the rest of your stack.
@@ -160,8 +203,6 @@ Want to go deeper? Read the <a href="https://docs.twenty.com/user-guide/introduc
 - <a href="https://nestjs.com/"><img src="./packages/twenty-website-new/public/images/readme/stack-nestjs.svg" width="14" height="14"/> NestJS</a>, with <a href="https://bullmq.io/">BullMQ</a>, <a href="https://www.postgresql.org/"><img src="./packages/twenty-website-new/public/images/readme/stack-postgresql.svg" width="14" height="14"/> PostgreSQL</a>, <a href="https://redis.io/"><img src="./packages/twenty-website-new/public/images/readme/stack-redis.svg" width="14" height="14"/> Redis</a>
 - <a href="https://reactjs.org/"><img src="./packages/twenty-website-new/public/images/readme/stack-react.svg" width="14" height="14"/> React</a>, with <a href="https://jotai.org/">Jotai</a>, <a href="https://linaria.dev/">Linaria</a> and <a href="https://lingui.dev/">Lingui</a>
 
-
-
 # Thanks
 
 <p align="center">
@@ -174,8 +215,7 @@ Want to go deeper? Read the <a href="https://docs.twenty.com/user-guide/introduc
   <a href="https://crowdin.com/"><img src="./packages/twenty-website-new/public/images/readme/crowdin.webp" height="28" alt="Crowdin" /></a>
 </p>
 
-  Thanks to these amazing services that we use and recommend for UI testing (Chromatic), code review (Greptile), catching bugs (Sentry) and translating (Crowdin).
-
+Thanks to these amazing services that we use and recommend for UI testing (Chromatic), code review (Greptile), catching bugs (Sentry) and translating (Crowdin).
 
 # Join the Community
 

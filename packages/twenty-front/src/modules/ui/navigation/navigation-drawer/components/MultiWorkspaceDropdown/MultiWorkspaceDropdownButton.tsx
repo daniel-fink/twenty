@@ -2,6 +2,7 @@ import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/st
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { MultiWorkspaceDropdownClickableComponent } from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/MultiWorkspaceDropdownClickableComponent';
 import { MultiWorkspaceDropdownDefaultComponents } from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/MultiWorkspaceDropdownDefaultComponents';
+import { MultiWorkspaceDropdownChildWorkspacesComponents } from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/MultiWorkspaceDropdownChildWorkspacesComponents';
 import { MultiWorkspaceDropdownThemesComponents } from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/MultiWorkspaceDropdownThemesComponents';
 import { MultiWorkspaceDropdownWorkspacesListComponents } from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/MultiWorkspaceDropdownWorkspacesListComponents';
 import { MULTI_WORKSPACE_DROPDOWN_ID } from '@/ui/navigation/navigation-drawer/constants/MultiWorkspaceDropdownId';
@@ -24,6 +25,8 @@ export const MultiWorkspaceDropdownButton = () => {
         return MultiWorkspaceDropdownThemesComponents;
       case 'workspaces-list':
         return MultiWorkspaceDropdownWorkspacesListComponents;
+      case 'child-workspaces-list':
+        return MultiWorkspaceDropdownChildWorkspacesComponents;
       default:
         return MultiWorkspaceDropdownDefaultComponents;
     }

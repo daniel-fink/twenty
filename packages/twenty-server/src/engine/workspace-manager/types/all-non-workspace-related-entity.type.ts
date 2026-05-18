@@ -5,6 +5,7 @@ import { type BillingProductEntity } from 'src/engine/core-modules/billing/entit
 import { type BillingSubscriptionItemEntity } from 'src/engine/core-modules/billing/entities/billing-subscription-item.entity';
 import { type TwoFactorAuthenticationMethodEntity } from 'src/engine/core-modules/two-factor-authentication/entities/two-factor-authentication-method.entity';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
+import { type WorkspaceRelationshipEntity } from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { type AgentMessagePartEntity } from 'src/engine/metadata-modules/ai/ai-agent-execution/entities/agent-message-part.entity';
 import { type AgentMessageEntity } from 'src/engine/metadata-modules/ai/ai-agent-execution/entities/agent-message.entity';
@@ -38,4 +39,5 @@ export type AllNonWorkspaceRelatedEntity =
   | BillingSubscriptionItemEntity
   | TwoFactorAuthenticationMethodEntity
   | UserEntity
+  | WorkspaceRelationshipEntity
   | WorkspaceEntity;

@@ -19,7 +19,13 @@ import { AdminPanelSigningKeyService } from 'src/engine/core-modules/admin-panel
 import { AdminPanelStatisticsService } from 'src/engine/core-modules/admin-panel/services/admin-panel-statistics.service';
 import { AdminPanelUserLookupService } from 'src/engine/core-modules/admin-panel/services/admin-panel-user-lookup.service';
 import { AdminPanelVersionService } from 'src/engine/core-modules/admin-panel/services/admin-panel-version.service';
+import { AdminPanelApplicationInstallService } from 'src/engine/core-modules/admin-panel/services/admin-panel-application-install.service';
+import { AdminPanelWorkspaceMemberService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-member.service';
+import { AdminPanelWorkspaceRelationshipService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-relationship.service';
+import { ApplicationInstallModule } from 'src/engine/core-modules/application/application-install/application-install.module';
 import { ApplicationRegistrationModule } from 'src/engine/core-modules/application/application-registration/application-registration.module';
+import { ApplicationRegistrationEntity } from 'src/engine/core-modules/application/application-registration/application-registration.entity';
+import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
 import { AuditModule } from 'src/engine/core-modules/audit/audit.module';
 import { AuthModule } from 'src/engine/core-modules/auth/auth.module';
 import { BillingModule } from 'src/engine/core-modules/billing/billing.module';
@@ -39,13 +45,18 @@ import { TelemetryModule } from 'src/engine/core-modules/telemetry/telemetry.mod
 import { UpgradeModule } from 'src/engine/core-modules/upgrade/upgrade.module';
 import { UsageModule } from 'src/engine/core-modules/usage/usage.module';
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
+import { UserWorkspaceModule } from 'src/engine/core-modules/user-workspace/user-workspace.module';
 import { UserVarsModule } from 'src/engine/core-modules/user/user-vars/user-vars.module';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { UserModule } from 'src/engine/core-modules/user/user.module';
+import { WorkspaceRelationshipEntity } from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { AgentMessageEntity } from 'src/engine/metadata-modules/ai/ai-agent-execution/entities/agent-message.entity';
 import { AgentChatThreadEntity } from 'src/engine/metadata-modules/ai/ai-chat/entities/agent-chat-thread.entity';
 import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permissions.module';
+import { RoleTargetEntity } from 'src/engine/metadata-modules/role-target/role-target.entity';
+import { RoleEntity } from 'src/engine/metadata-modules/role/role.entity';
+import { UserRoleModule } from 'src/engine/metadata-modules/user-role/user-role.module';
 
 @Module({
   imports: [
@@ -53,11 +64,16 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
       UserEntity,
       WorkspaceEntity,
       UserWorkspaceEntity,
+      WorkspaceRelationshipEntity,
+      ApplicationEntity,
+      ApplicationRegistrationEntity,
       FeatureFlagEntity,
       AgentChatThreadEntity,
       AgentMessageEntity,
       BillingCustomerEntity,
       BillingPriceEntity,
+      RoleEntity,
+      RoleTargetEntity,
     ]),
     AuthModule,
     BillingModule,
@@ -73,12 +89,15 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
     PermissionsModule,
     SecureHttpClientModule,
     ApplicationRegistrationModule,
+    ApplicationInstallModule,
     UsageModule,
     KeyValuePairModule,
     UserVarsModule,
     UpgradeModule,
     UserModule,
     JwtModule,
+    UserWorkspaceModule,
+    UserRoleModule,
   ],
   providers: [
     AdminPanelResolver,
@@ -90,6 +109,9 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
     AdminPanelConfigService,
     AdminPanelSigningKeyService,
     AdminPanelVersionService,
+    AdminPanelWorkspaceMemberService,
+    AdminPanelApplicationInstallService,
+    AdminPanelWorkspaceRelationshipService,
     AdminPanelHealthService,
     AdminPanelQueueService,
     MaintenanceModeService,
