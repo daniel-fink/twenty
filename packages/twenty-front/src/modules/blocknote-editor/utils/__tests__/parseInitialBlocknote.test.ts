@@ -1,4 +1,5 @@
 import { parseInitialBlocknote } from '@/blocknote-editor/utils/parseInitialBlocknote';
+import { createAppBlockProofBlocks } from '@/blocknote-editor/blocks/appBlockProof';
 
 describe('parseInitialBlocknote', () => {
   it('should parse valid JSON array string', () => {
@@ -43,5 +44,11 @@ describe('parseInitialBlocknote', () => {
     parseInitialBlocknote('invalid', 'Custom context');
     expect(consoleSpy).toHaveBeenCalledWith('Custom context');
     consoleSpy.mockRestore();
+  });
+
+  it('should preserve appBlock props when parsing persisted blocknote JSON', () => {
+    const blocks = createAppBlockProofBlocks(50);
+
+    expect(parseInitialBlocknote(JSON.stringify(blocks))).toEqual(blocks);
   });
 });
