@@ -11,8 +11,14 @@ import { AdminPanelConfigService } from 'src/engine/core-modules/admin-panel/ser
 import { AdminPanelStatisticsService } from 'src/engine/core-modules/admin-panel/services/admin-panel-statistics.service';
 import { AdminPanelUserLookupService } from 'src/engine/core-modules/admin-panel/services/admin-panel-user-lookup.service';
 import { AdminPanelVersionService } from 'src/engine/core-modules/admin-panel/services/admin-panel-version.service';
+import { AdminPanelWorkspaceMemberService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-member.service';
+import { AdminPanelApplicationInstallService } from 'src/engine/core-modules/admin-panel/services/admin-panel-application-install.service';
+import { AdminPanelWorkspaceRelationshipService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-relationship.service';
 import { MaintenanceModeService } from 'src/engine/core-modules/admin-panel/maintenance-mode.service';
+import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
+import { ApplicationInstallModule } from 'src/engine/core-modules/application/application-install/application-install.module';
 import { ApplicationRegistrationModule } from 'src/engine/core-modules/application/application-registration/application-registration.module';
+import { ApplicationRegistrationEntity } from 'src/engine/core-modules/application/application-registration/application-registration.entity';
 import { AuditModule } from 'src/engine/core-modules/audit/audit.module';
 import { AuthModule } from 'src/engine/core-modules/auth/auth.module';
 import { BillingModule } from 'src/engine/core-modules/billing/billing.module';
@@ -37,11 +43,16 @@ import { UserModule } from 'src/engine/core-modules/user/user.module';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { UserVarsModule } from 'src/engine/core-modules/user/user-vars/user-vars.module';
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
+import { UserWorkspaceModule } from 'src/engine/core-modules/user-workspace/user-workspace.module';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import { WorkspaceRelationshipEntity } from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 import { AgentChatThreadEntity } from 'src/engine/metadata-modules/ai/ai-chat/entities/agent-chat-thread.entity';
 import { AgentMessageEntity } from 'src/engine/metadata-modules/ai/ai-agent-execution/entities/agent-message.entity';
 import { KeyValuePairModule } from 'src/engine/core-modules/key-value-pair/key-value-pair.module';
 import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permissions.module';
+import { RoleTargetEntity } from 'src/engine/metadata-modules/role-target/role-target.entity';
+import { RoleEntity } from 'src/engine/metadata-modules/role/role.entity';
+import { UserRoleModule } from 'src/engine/metadata-modules/user-role/user-role.module';
 
 @Module({
   imports: [
@@ -49,11 +60,16 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
       UserEntity,
       WorkspaceEntity,
       UserWorkspaceEntity,
+      WorkspaceRelationshipEntity,
+      ApplicationEntity,
+      ApplicationRegistrationEntity,
       FeatureFlagEntity,
       AgentChatThreadEntity,
       AgentMessageEntity,
       BillingCustomerEntity,
       BillingPriceEntity,
+      RoleEntity,
+      RoleTargetEntity,
     ]),
     AuthModule,
     BillingModule,
@@ -69,10 +85,13 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
     PermissionsModule,
     SecureHttpClientModule,
     ApplicationRegistrationModule,
+    ApplicationInstallModule,
     UsageModule,
     KeyValuePairModule,
     UserVarsModule,
     UserModule,
+    UserWorkspaceModule,
+    UserRoleModule,
   ],
   providers: [
     AdminPanelResolver,
@@ -82,6 +101,9 @@ import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permi
     AdminPanelChatService,
     AdminPanelConfigService,
     AdminPanelVersionService,
+    AdminPanelWorkspaceMemberService,
+    AdminPanelApplicationInstallService,
+    AdminPanelWorkspaceRelationshipService,
     AdminPanelHealthService,
     AdminPanelQueueService,
     MaintenanceModeService,

@@ -17,7 +17,8 @@ import { type ObjectPermissions } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { type ColorScheme } from 'twenty-ui/input';
 import { useApolloClient } from '@apollo/client/react';
-import { GetCurrentUserDocument } from '~/generated-metadata/graphql';
+import { GET_CURRENT_USER } from '@/users/graphql/queries/getCurrentUser';
+import { type GetCurrentUserQuery } from '~/generated-metadata/graphql';
 import { getWorkspaceUrl } from '~/utils/getWorkspaceUrl';
 import { dynamicActivate } from '~/utils/i18n/dynamicActivate';
 
@@ -45,8 +46,8 @@ export const useLoadCurrentUser = () => {
   const client = useApolloClient();
 
   const loadCurrentUser = useCallback(async () => {
-    const currentUserResult = await client.query({
-      query: GetCurrentUserDocument,
+    const currentUserResult = await client.query<GetCurrentUserQuery>({
+      query: GET_CURRENT_USER,
       fetchPolicy: 'network-only',
     });
 

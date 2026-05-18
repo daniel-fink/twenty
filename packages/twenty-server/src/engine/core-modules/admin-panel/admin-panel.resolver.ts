@@ -3,7 +3,7 @@ import { Args, Int, Mutation, Query } from '@nestjs/graphql';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import GraphQLJSON from 'graphql-type-json';
-import { In, type Repository } from 'typeorm';
+import { In, IsNull, type Repository } from 'typeorm';
 import { isDefined } from 'twenty-shared/utils';
 import { PermissionFlagType } from 'twenty-shared/constants';
 
@@ -17,6 +17,9 @@ import { AdminPanelConfigService } from 'src/engine/core-modules/admin-panel/ser
 import { AdminPanelStatisticsService } from 'src/engine/core-modules/admin-panel/services/admin-panel-statistics.service';
 import { AdminPanelUserLookupService } from 'src/engine/core-modules/admin-panel/services/admin-panel-user-lookup.service';
 import { AdminPanelVersionService } from 'src/engine/core-modules/admin-panel/services/admin-panel-version.service';
+import { AdminPanelWorkspaceMemberService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-member.service';
+import { AdminPanelApplicationInstallService } from 'src/engine/core-modules/admin-panel/services/admin-panel-application-install.service';
+import { AdminPanelWorkspaceRelationshipService } from 'src/engine/core-modules/admin-panel/services/admin-panel-workspace-relationship.service';
 import { MaintenanceModeService } from 'src/engine/core-modules/admin-panel/maintenance-mode.service';
 import { AdminPanelRecentUserDTO } from 'src/engine/core-modules/admin-panel/dtos/admin-panel-recent-user.dto';
 import { AdminPanelTopWorkspaceDTO } from 'src/engine/core-modules/admin-panel/dtos/admin-panel-top-workspace.dto';
@@ -74,6 +77,11 @@ import { ModelsDevProviderSuggestionDTO } from './dtos/models-dev-provider-sugge
 import { QueueMetricsDataDTO } from './dtos/queue-metrics-data.dto';
 import { SetMaintenanceModeInput } from './dtos/set-maintenance-mode.input';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
+import { EnsureWorkspaceMembersInput } from 'src/engine/core-modules/admin-panel/dtos/ensure-workspace-members.input';
+import { EnsureWorkspaceMembersResultDTO } from 'src/engine/core-modules/admin-panel/dtos/ensure-workspace-members-result.dto';
+import { EnsureApplicationInstalledResultDTO } from 'src/engine/core-modules/admin-panel/dtos/ensure-application-installed-result.dto';
+import { EnsureWorkspaceRelationshipResultDTO } from 'src/engine/core-modules/admin-panel/dtos/ensure-workspace-relationship-result.dto';
+import { WorkspaceRelationshipType } from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 
 @UsePipes(ResolverValidationPipe)
 @AdminResolver()
@@ -105,6 +113,9 @@ export class AdminPanelResolver {
     private readonly modelsDevCatalogService: ModelsDevCatalogService,
     private readonly usageAnalyticsService: UsageAnalyticsService,
     private readonly maintenanceModeService: MaintenanceModeService,
+    private readonly adminPanelWorkspaceMemberService: AdminPanelWorkspaceMemberService,
+    private readonly adminPanelApplicationInstallService: AdminPanelApplicationInstallService,
+    private readonly adminPanelWorkspaceRelationshipService: AdminPanelWorkspaceRelationshipService,
     @InjectRepository(WorkspaceEntity)
     private readonly workspaceRepository: Repository<WorkspaceEntity>,
   ) {}
@@ -143,6 +154,70 @@ export class AdminPanelResolver {
     searchTerm: string,
   ): Promise<AdminPanelTopWorkspaceDTO[]> {
     return this.adminStatisticsService.getTopWorkspaces(searchTerm);
+  }
+
+  @UseGuards(AdminPanelGuard)
+  @Mutation(() => EnsureWorkspaceMembersResultDTO)
+  async ensureWorkspaceMembers(
+    @Args() input: EnsureWorkspaceMembersInput,
+  ): Promise<EnsureWorkspaceMembersResultDTO> {
+    return this.adminPanelWorkspaceMemberService.ensureWorkspaceMembers(input);
+  }
+
+  @UseGuards(AdminPanelGuard)
+  @Query(() => UUIDScalarType, { nullable: true })
+  async workspaceIdBySubdomain(
+    @Args('subdomain', { type: () => String }) subdomain: string,
+  ): Promise<string | null> {
+    const workspace = await this.workspaceRepository.findOne({
+      where: {
+        deletedAt: IsNull(),
+        subdomain,
+      },
+    });
+
+    return workspace?.id ?? null;
+  }
+
+  @UseGuards(AdminPanelGuard)
+  @Mutation(() => EnsureApplicationInstalledResultDTO)
+  async ensureApplicationInstalledInWorkspace(
+    @Args('applicationUniversalIdentifier', { type: () => UUIDScalarType })
+    applicationUniversalIdentifier: string,
+    @Args('workspaceId', { type: () => UUIDScalarType })
+    workspaceId: string,
+    @Args('dryRun', { nullable: true, type: () => Boolean })
+    dryRun?: boolean,
+  ): Promise<EnsureApplicationInstalledResultDTO> {
+    return this.adminPanelApplicationInstallService.ensureApplicationInstalledInWorkspace(
+      {
+        applicationUniversalIdentifier,
+        dryRun,
+        workspaceId,
+      },
+    );
+  }
+
+  @UseGuards(AdminPanelGuard)
+  @Mutation(() => EnsureWorkspaceRelationshipResultDTO)
+  async ensureWorkspaceRelationship(
+    @Args('parentWorkspaceId', { type: () => UUIDScalarType })
+    parentWorkspaceId: string,
+    @Args('childWorkspaceId', { type: () => UUIDScalarType })
+    childWorkspaceId: string,
+    @Args('relationshipType', { type: () => WorkspaceRelationshipType })
+    relationshipType: WorkspaceRelationshipType,
+    @Args('sourceId', { nullable: true, type: () => String })
+    sourceId?: string,
+  ): Promise<EnsureWorkspaceRelationshipResultDTO> {
+    return this.adminPanelWorkspaceRelationshipService.ensureWorkspaceRelationship(
+      {
+        childWorkspaceId,
+        parentWorkspaceId,
+        relationshipType,
+        sourceId,
+      },
+    );
   }
 
   @UseGuards(AdminPanelGuard)

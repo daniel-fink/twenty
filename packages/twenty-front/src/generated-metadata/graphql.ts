@@ -449,7 +449,16 @@ export type AvailableWorkspace = {
   logo?: Maybe<Scalars['String']>;
   personalInviteToken?: Maybe<Scalars['String']>;
   sso: Array<SsoConnection>;
+  workspaceRelationship?: Maybe<AvailableWorkspaceRelationship>;
   workspaceUrls: WorkspaceUrls;
+};
+
+export type AvailableWorkspaceRelationship = {
+  __typename?: 'AvailableWorkspaceRelationship';
+  childWorkspaceId: Scalars['UUID'];
+  parentWorkspaceId: Scalars['UUID'];
+  relationshipType: WorkspaceRelationshipType;
+  sourceId?: Maybe<Scalars['String']>;
 };
 
 export type AvailableWorkspaces = {
@@ -457,6 +466,10 @@ export type AvailableWorkspaces = {
   availableWorkspacesForSignIn: Array<AvailableWorkspace>;
   availableWorkspacesForSignUp: Array<AvailableWorkspace>;
 };
+
+export enum WorkspaceRelationshipType {
+  CHILD = 'CHILD'
+}
 
 export type AvailableWorkspacesAndAccessTokens = {
   __typename?: 'AvailableWorkspacesAndAccessTokens';

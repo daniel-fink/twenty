@@ -9,6 +9,7 @@ import {
   SSOIdentityProviderStatus,
 } from 'src/engine/core-modules/sso/workspace-sso-identity-provider.entity';
 import { WorkspaceUrlsDTO } from 'src/engine/core-modules/workspace/dtos/workspace-urls.dto';
+import { WorkspaceRelationshipType } from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 
 @ObjectType('SSOConnection')
 class SSOConnectionDTO {
@@ -26,6 +27,21 @@ class SSOConnectionDTO {
 
   @Field(() => SSOIdentityProviderStatus)
   status: SSOConfiguration['status'];
+}
+
+@ObjectType('AvailableWorkspaceRelationship')
+export class AvailableWorkspaceRelationshipDTO {
+  @Field(() => UUIDScalarType)
+  parentWorkspaceId: string;
+
+  @Field(() => UUIDScalarType)
+  childWorkspaceId: string;
+
+  @Field(() => WorkspaceRelationshipType)
+  relationshipType: WorkspaceRelationshipType;
+
+  @Field(() => String, { nullable: true })
+  sourceId?: string | null;
 }
 
 @ObjectType('AvailableWorkspace')
@@ -53,6 +69,9 @@ export class AvailableWorkspace {
 
   @Field(() => [SSOConnectionDTO])
   sso: SSOConnectionDTO[];
+
+  @Field(() => AvailableWorkspaceRelationshipDTO, { nullable: true })
+  workspaceRelationship?: AvailableWorkspaceRelationshipDTO | null;
 }
 
 @ObjectType('AvailableWorkspaces')

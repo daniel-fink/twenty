@@ -20,6 +20,10 @@ import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/use
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { WorkspaceInvitationService } from 'src/engine/core-modules/workspace-invitation/services/workspace-invitation.service';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import {
+  WorkspaceRelationshipEntity,
+  WorkspaceRelationshipType,
+} from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
 import { PermissionsException } from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { RoleTargetEntity } from 'src/engine/metadata-modules/role-target/role-target.entity';
@@ -31,6 +35,7 @@ import { type WorkspaceRepository } from 'src/engine/twenty-orm/repository/works
 describe('UserWorkspaceService', () => {
   let service: UserWorkspaceService;
   let userWorkspaceRepository: Repository<UserWorkspaceEntity>;
+  let workspaceRelationshipRepository: Repository<WorkspaceRelationshipEntity>;
   let userRepository: Repository<UserEntity>;
   let workspaceInvitationService: WorkspaceInvitationService;
   let approvedAccessDomainService: ApprovedAccessDomainService;
@@ -70,6 +75,12 @@ describe('UserWorkspaceService', () => {
           provide: getRepositoryToken(RoleTargetEntity),
           useValue: {
             findOneOrFail: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(WorkspaceRelationshipEntity),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
           },
         },
         {
@@ -157,6 +168,9 @@ describe('UserWorkspaceService', () => {
     service = module.get<UserWorkspaceService>(UserWorkspaceService);
     userWorkspaceRepository = module.get(
       getRepositoryToken(UserWorkspaceEntity),
+    );
+    workspaceRelationshipRepository = module.get(
+      getRepositoryToken(WorkspaceRelationshipEntity),
     );
     userRepository = module.get(getRepositoryToken(UserEntity));
     workspaceInvitationService = module.get<WorkspaceInvitationService>(
@@ -550,10 +564,12 @@ describe('UserWorkspaceService', () => {
           {
             workspaceId: workspace1.id,
             workspace: workspace1,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
           },
           {
             workspaceId: workspace2.id,
             workspace: workspace2,
+            createdAt: new Date('2026-01-02T00:00:00.000Z'),
           },
         ],
       } as UserEntity;
@@ -588,11 +604,168 @@ describe('UserWorkspaceService', () => {
 
       expect(result).toEqual({
         availableWorkspacesForSignIn: [
-          { workspace: workspace1 },
           { workspace: workspace2 },
+          { workspace: workspace1 },
         ],
         availableWorkspacesForSignUp: [],
       });
+    });
+
+    it('should attach direct child workspace relationships in parent workspace context', async () => {
+      const email = 'test@example.com';
+      const parentWorkspace = {
+        id: 'parent-workspace-id',
+        displayName: 'Parent Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const childWorkspace = {
+        id: 'child-workspace-id',
+        displayName: 'Child Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const user = {
+        email,
+        userWorkspaces: [
+          {
+            workspaceId: parentWorkspace.id,
+            workspace: parentWorkspace,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          {
+            workspaceId: childWorkspace.id,
+            workspace: childWorkspace,
+            createdAt: new Date('2026-01-02T00:00:00.000Z'),
+          },
+        ],
+      } as UserEntity;
+      const relationship = {
+        childWorkspaceId: childWorkspace.id,
+        parentWorkspaceId: parentWorkspace.id,
+        relationshipType: WorkspaceRelationshipType.CHILD,
+        sourceId: 'source-id',
+      } as WorkspaceRelationshipEntity;
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+      jest
+        .spyOn(workspaceRelationshipRepository, 'find')
+        .mockResolvedValue([relationship]);
+      jest
+        .spyOn(
+          approvedAccessDomainService,
+          'findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain',
+        )
+        .mockResolvedValue([]);
+      jest
+        .spyOn(workspaceInvitationService, 'findInvitationsByEmail')
+        .mockResolvedValue([]);
+
+      const result = await service.findAvailableWorkspacesByEmail(email, {
+        currentWorkspaceId: parentWorkspace.id,
+      });
+
+      expect(workspaceRelationshipRepository.find).toHaveBeenCalledWith({
+        where: {
+          childWorkspaceId: expect.anything(),
+          parentWorkspaceId: expect.anything(),
+          relationshipType: WorkspaceRelationshipType.CHILD,
+        },
+      });
+      expect(result.availableWorkspacesForSignIn).toEqual([
+        { workspace: childWorkspace, workspaceRelationship: relationship },
+        { workspace: parentWorkspace },
+      ]);
+    });
+
+    it('should attach the direct parent relationship and sibling child relationships in child workspace context', async () => {
+      const email = 'test@example.com';
+      const parentWorkspace = {
+        id: 'parent-workspace-id',
+        displayName: 'Parent Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const childWorkspace = {
+        id: 'child-workspace-id',
+        displayName: 'Child Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const siblingWorkspace = {
+        id: 'sibling-workspace-id',
+        displayName: 'Sibling Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const unrelatedWorkspace = {
+        id: 'unrelated-workspace-id',
+        displayName: 'Unrelated Workspace',
+        workspaceSSOIdentityProviders: [],
+      } as unknown as WorkspaceEntity;
+      const user = {
+        email,
+        userWorkspaces: [
+          {
+            workspaceId: parentWorkspace.id,
+            workspace: parentWorkspace,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          {
+            workspaceId: childWorkspace.id,
+            workspace: childWorkspace,
+            createdAt: new Date('2026-01-02T00:00:00.000Z'),
+          },
+          {
+            workspaceId: siblingWorkspace.id,
+            workspace: siblingWorkspace,
+            createdAt: new Date('2026-01-03T00:00:00.000Z'),
+          },
+          {
+            workspaceId: unrelatedWorkspace.id,
+            workspace: unrelatedWorkspace,
+            createdAt: new Date('2026-01-04T00:00:00.000Z'),
+          },
+        ],
+      } as UserEntity;
+      const childRelationship = {
+        childWorkspaceId: childWorkspace.id,
+        parentWorkspaceId: parentWorkspace.id,
+        relationshipType: WorkspaceRelationshipType.CHILD,
+        sourceId: 'child-source-id',
+      } as WorkspaceRelationshipEntity;
+      const siblingRelationship = {
+        childWorkspaceId: siblingWorkspace.id,
+        parentWorkspaceId: parentWorkspace.id,
+        relationshipType: WorkspaceRelationshipType.CHILD,
+        sourceId: 'sibling-source-id',
+      } as WorkspaceRelationshipEntity;
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+      jest
+        .spyOn(workspaceRelationshipRepository, 'find')
+        .mockResolvedValue([childRelationship, siblingRelationship]);
+      jest
+        .spyOn(
+          approvedAccessDomainService,
+          'findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain',
+        )
+        .mockResolvedValue([]);
+      jest
+        .spyOn(workspaceInvitationService, 'findInvitationsByEmail')
+        .mockResolvedValue([]);
+
+      const result = await service.findAvailableWorkspacesByEmail(email, {
+        currentWorkspaceId: childWorkspace.id,
+      });
+
+      expect(result.availableWorkspacesForSignIn).toEqual([
+        { workspace: unrelatedWorkspace },
+        {
+          workspace: siblingWorkspace,
+          workspaceRelationship: siblingRelationship,
+        },
+        { workspace: childWorkspace, workspaceRelationship: childRelationship },
+        {
+          workspace: parentWorkspace,
+          workspaceRelationship: childRelationship,
+        },
+      ]);
     });
 
     it('should find available workspaces including approved domain workspace for an email', async () => {

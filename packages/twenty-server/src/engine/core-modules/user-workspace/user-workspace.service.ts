@@ -5,7 +5,7 @@ import { TypeOrmQueryService } from '@ptc-org/nestjs-query-typeorm';
 import { type APP_LOCALES, SOURCE_LOCALE } from 'twenty-shared/translations';
 import { FileFolder } from 'twenty-shared/types';
 import { assertIsDefinedOrThrow, isDefined } from 'twenty-shared/utils';
-import { IsNull, Not, type QueryRunner, type Repository } from 'typeorm';
+import { In, IsNull, Not, type QueryRunner, type Repository } from 'typeorm';
 
 import { CoreEntityCacheService } from 'src/engine/core-entity-cache/services/core-entity-cache.service';
 import { FileStorageExceptionCode } from 'src/engine/core-modules/file-storage/interfaces/file-storage-exception';
@@ -28,6 +28,10 @@ import { UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { WorkspaceInvitationService } from 'src/engine/core-modules/workspace-invitation/services/workspace-invitation.service';
 import { AuthProviderEnum } from 'src/engine/core-modules/workspace/types/workspace.type';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import {
+  WorkspaceRelationshipEntity,
+  WorkspaceRelationshipType,
+} from 'src/engine/core-modules/workspace/workspace-relationship.entity';
 import { workspaceValidator } from 'src/engine/core-modules/workspace/workspace.validate';
 import {
   PermissionsException,
@@ -53,6 +57,8 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(RoleTargetEntity)
     private readonly roleTargetRepository: Repository<RoleTargetEntity>,
+    @InjectRepository(WorkspaceRelationshipEntity)
+    private readonly workspaceRelationshipRepository: Repository<WorkspaceRelationshipEntity>,
     private readonly roleValidationService: RoleValidationService,
     private readonly workspaceInvitationService: WorkspaceInvitationService,
     private readonly workspaceDomainsService: WorkspaceDomainsService,
@@ -327,7 +333,12 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
     }
   }
 
-  async findAvailableWorkspacesByEmail(email: string) {
+  async findAvailableWorkspacesByEmail(
+    email: string,
+    options?: {
+      currentWorkspaceId?: string;
+    },
+  ) {
     const user = await this.userRepository.findOne({
       where: {
         email,
@@ -343,7 +354,13 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
     });
 
     const alreadyMemberWorkspaces = user
-      ? user.userWorkspaces.map(({ workspace }) => ({ workspace }))
+      ? [...user.userWorkspaces]
+          .sort(
+            (left, right) =>
+              new Date(right.createdAt ?? 0).getTime() -
+              new Date(left.createdAt ?? 0).getTime(),
+          )
+          .map(({ workspace }) => ({ workspace }))
       : [];
 
     const alreadyMemberWorkspacesIds = alreadyMemberWorkspaces.map(
@@ -379,12 +396,94 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
       }));
 
     return {
-      availableWorkspacesForSignIn: alreadyMemberWorkspaces,
+      availableWorkspacesForSignIn:
+        await this.attachWorkspaceRelationshipsToAvailableWorkspaces({
+          workspaces: alreadyMemberWorkspaces,
+          currentWorkspaceId: options?.currentWorkspaceId,
+        }),
       availableWorkspacesForSignUp: [
         ...workspacesFromApprovedAccessDomain,
         ...workspacesFromInvitations,
       ],
     };
+  }
+
+  private async attachWorkspaceRelationshipsToAvailableWorkspaces<
+    T extends { workspace: WorkspaceEntity },
+  >({
+    workspaces,
+    currentWorkspaceId,
+  }: {
+    workspaces: T[];
+    currentWorkspaceId?: string;
+  }): Promise<Array<T & { workspaceRelationship?: WorkspaceRelationshipEntity }>> {
+    if (workspaces.length === 0) {
+      return workspaces;
+    }
+
+    const workspaceIds = workspaces.map(({ workspace }) => workspace.id);
+
+    const relationships = await this.workspaceRelationshipRepository.find({
+      where: {
+        childWorkspaceId: In(workspaceIds),
+        parentWorkspaceId: In(workspaceIds),
+        relationshipType: WorkspaceRelationshipType.CHILD,
+      },
+    });
+
+    const relationshipByWorkspaceId = new Map<
+      string,
+      WorkspaceRelationshipEntity
+    >();
+
+    if (!isDefined(currentWorkspaceId)) {
+      for (const relationship of relationships) {
+        relationshipByWorkspaceId.set(
+          relationship.childWorkspaceId,
+          relationship,
+        );
+      }
+    } else {
+      const currentParentRelationship = relationships.find(
+        (relationship) => relationship.childWorkspaceId === currentWorkspaceId,
+      );
+
+      const currentParentWorkspaceId =
+        currentParentRelationship?.parentWorkspaceId;
+
+      for (const relationship of relationships) {
+        if (relationship.parentWorkspaceId === currentWorkspaceId) {
+          relationshipByWorkspaceId.set(
+            relationship.childWorkspaceId,
+            relationship,
+          );
+        }
+
+        if (relationship === currentParentRelationship) {
+          relationshipByWorkspaceId.set(
+            relationship.parentWorkspaceId,
+            relationship,
+          );
+        }
+
+        if (
+          isDefined(currentParentWorkspaceId) &&
+          relationship.parentWorkspaceId === currentParentWorkspaceId
+        ) {
+          relationshipByWorkspaceId.set(
+            relationship.childWorkspaceId,
+            relationship,
+          );
+        }
+      }
+    }
+
+    return workspaces.map((workspace) => ({
+      ...workspace,
+      workspaceRelationship: relationshipByWorkspaceId.get(
+        workspace.workspace.id,
+      ),
+    }));
   }
 
   async getUserWorkspaceForUserOrThrow({
@@ -526,10 +625,21 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
     return savedFile?.url;
   }
 
-  castWorkspaceToAvailableWorkspace(workspace: WorkspaceEntity) {
+  castWorkspaceToAvailableWorkspace(
+    workspace: WorkspaceEntity,
+    workspaceRelationship?: WorkspaceRelationshipEntity,
+  ) {
     return {
       id: workspace.id,
       displayName: workspace.displayName,
+      workspaceRelationship: isDefined(workspaceRelationship)
+        ? {
+            childWorkspaceId: workspaceRelationship.childWorkspaceId,
+            parentWorkspaceId: workspaceRelationship.parentWorkspaceId,
+            relationshipType: workspaceRelationship.relationshipType,
+            sourceId: workspaceRelationship.sourceId,
+          }
+        : null,
       workspaceUrls: this.workspaceDomainsService.getWorkspaceUrls(workspace),
       logo: isDefined(workspace.logoFileId)
         ? this.fileUrlService.signFileByIdUrl({
@@ -568,6 +678,7 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
       availableWorkspacesForSignIn: Array<{
         workspace: WorkspaceEntity;
         appToken?: AppTokenEntity;
+        workspaceRelationship?: WorkspaceRelationshipEntity;
       }>;
     },
     user: Pick<UserEntity, 'email'>,
@@ -585,9 +696,12 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspaceEntit
         ),
       availableWorkspacesForSignIn: await Promise.all(
         availableWorkspaces.availableWorkspacesForSignIn.map(
-          async ({ workspace }) => {
+          async ({ workspace, workspaceRelationship }) => {
             return {
-              ...this.castWorkspaceToAvailableWorkspace(workspace),
+              ...this.castWorkspaceToAvailableWorkspace(
+                workspace,
+                workspaceRelationship,
+              ),
               loginToken: workspaceValidator.isAuthEnabled(
                 authProvider,
                 workspace,

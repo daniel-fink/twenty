@@ -11,6 +11,7 @@ import { useInitializeFormatPreferences } from '@/localization/hooks/useInitiali
 import { getDateFnsLocale } from '@/ui/field/display/utils/getDateFnsLocale';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
+import { GET_CURRENT_USER } from '@/users/graphql/queries/getCurrentUser';
 import { type ColorScheme } from '@/workspace-member/types/WorkspaceMember';
 import { enUS } from 'date-fns/locale';
 import { useStore } from 'jotai';
@@ -20,8 +21,8 @@ import { type ObjectPermissions } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useQuery } from '@apollo/client/react';
 import {
+  type GetCurrentUserQuery,
   type WorkspaceMember,
-  GetCurrentUserDocument,
 } from '~/generated-metadata/graphql';
 import { dateLocaleState } from '~/localization/states/dateLocaleState';
 import { dynamicActivate } from '~/utils/i18n/dynamicActivate';
@@ -67,12 +68,10 @@ export const UserMetadataProviderInitialEffect = () => {
 
   const shouldSkipUserQuery = !hasAccessTokenPair || isDefined(currentUser);
 
-  const { data: userQueryData, loading: userQueryLoading } = useQuery(
-    GetCurrentUserDocument,
-    {
+  const { data: userQueryData, loading: userQueryLoading } =
+    useQuery<GetCurrentUserQuery>(GET_CURRENT_USER, {
       skip: shouldSkipUserQuery,
-    },
-  );
+    });
 
   useEffect(() => {
     if (isInitialized) {
