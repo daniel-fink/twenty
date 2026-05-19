@@ -4,7 +4,11 @@ import { MAIN_CONTEXT_STORE_INSTANCE_ID } from '@/context-store/constants/MainCo
 import { contextStoreRecordShowParentViewComponentState } from '@/context-store/states/contextStoreRecordShowParentViewComponentState';
 import { currentRecordFilterGroupsComponentState } from '@/object-record/record-filter-group/states/currentRecordFilterGroupsComponentState';
 import { currentRecordFiltersComponentState } from '@/object-record/record-filter/states/currentRecordFiltersComponentState';
-import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
+import {
+  type RecordIndexContextValue,
+  useRecordIndexContext,
+  useRecordIndexContextOrThrow,
+} from '@/object-record/record-index/contexts/RecordIndexContext';
 import { recordIndexOpenRecordInState } from '@/object-record/record-index/states/recordIndexOpenRecordInState';
 import { currentRecordSortsComponentState } from '@/object-record/record-sort/states/currentRecordSortsComponentState';
 import { canOpenObjectInSidePanel } from '@/object-record/utils/canOpenObjectInSidePanel';
@@ -16,10 +20,19 @@ import { AppPath } from 'twenty-shared/types';
 import { useIsMobile } from 'twenty-ui/utilities';
 import { useNavigateApp } from '~/hooks/useNavigateApp';
 
-export const useOpenRecordFromIndexView = () => {
-  const { recordIndexId } = useRecordIndexContextOrThrow();
+const FALLBACK_RECORD_INDEX_ID = 'fallback-record-index';
 
-  const { objectNameSingular } = useRecordIndexContextOrThrow();
+const useOpenRecordFromIndexViewInternal = ({
+  fallbackObjectNameSingular,
+  recordIndexContext,
+}: {
+  fallbackObjectNameSingular?: string;
+  recordIndexContext: RecordIndexContextValue | undefined;
+}) => {
+  const recordIndexId =
+    recordIndexContext?.recordIndexId ?? FALLBACK_RECORD_INDEX_ID;
+  const objectNameSingular =
+    recordIndexContext?.objectNameSingular ?? fallbackObjectNameSingular;
 
   const navigate = useNavigateApp();
   const { openRecordInSidePanel } = useOpenRecordInSidePanel();
@@ -47,6 +60,20 @@ export const useOpenRecordFromIndexView = () => {
 
   const openRecordFromIndexView = useCallback(
     ({ recordId }: { recordId: string }) => {
+      if (objectNameSingular === undefined) {
+        return;
+      }
+
+      if (recordIndexContext === undefined) {
+        closeSidePanelMenu();
+        navigate(AppPath.RecordShowPage, {
+          objectNameSingular,
+          objectRecordId: recordId,
+        });
+
+        return;
+      }
+
       const recordIndexOpenRecordIn = store.get(
         recordIndexOpenRecordInState.atom,
       );
@@ -93,6 +120,7 @@ export const useOpenRecordFromIndexView = () => {
       currentRecordSorts,
       currentRecordFilterGroups,
       recordIndexId,
+      recordIndexContext,
       objectNameSingular,
       navigate,
       openRecordInSidePanel,
@@ -103,4 +131,25 @@ export const useOpenRecordFromIndexView = () => {
   );
 
   return { openRecordFromIndexView };
+};
+
+export const useOpenRecordFromIndexView = () => {
+  const recordIndexContext = useRecordIndexContextOrThrow();
+
+  return useOpenRecordFromIndexViewInternal({
+    recordIndexContext,
+  });
+};
+
+export const useOpenRecordFromIndexViewOptional = ({
+  fallbackObjectNameSingular,
+}: {
+  fallbackObjectNameSingular?: string;
+}) => {
+  const recordIndexContext = useRecordIndexContext();
+
+  return useOpenRecordFromIndexViewInternal({
+    fallbackObjectNameSingular,
+    recordIndexContext,
+  });
 };

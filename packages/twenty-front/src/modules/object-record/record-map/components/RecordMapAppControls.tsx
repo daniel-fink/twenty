@@ -2,6 +2,10 @@ import { RECORD_MAP_CONTRIBUTIONS_UPDATED_EVENT } from '@/object-record/record-m
 import { useRecordMapContributions } from '@/object-record/record-map/hooks/useRecordMapContributions';
 import { useRecordMapContributionFrontComponentResolver } from '@/object-record/record-map/hooks/useRecordMapContributionFrontComponentResolver';
 import { FrontComponentRenderer } from '@/front-components/components/FrontComponentRenderer';
+import {
+  type RecordMapControlContribution,
+  type RecordMapContributionScope,
+} from '@/object-record/record-map/types/RecordMapContribution';
 import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { styled } from '@linaria/react';
 import { isDefined } from 'twenty-shared/utils';
@@ -17,12 +21,14 @@ const RecordMapAppControl = ({
   frontComponentId,
   onRefreshMapContributions,
   params,
+  recordMapScope,
   viewId,
 }: {
   contributionId: string;
   frontComponentId: string | null;
   onRefreshMapContributions: () => void;
   params?: Record<string, string>;
+  recordMapScope?: RecordMapContributionScope;
   viewId: string;
 }) => {
   if (!isDefined(frontComponentId)) {
@@ -36,47 +42,106 @@ const RecordMapAppControl = ({
       params={{
         ...params,
         contributionId,
+        ...(isDefined(recordMapScope)
+          ? { recordMapScope: JSON.stringify(recordMapScope) }
+          : {}),
         viewId,
       }}
     />
   );
 };
 
-export const RecordMapAppControls = () => {
-  const { currentView } = useGetCurrentViewOnly();
-  const tileSourceViewId = currentView?.id;
-  const { controlContributions, refreshMapContributions } =
-    useRecordMapContributions({
-      tileSourceViewId,
-    });
+type RecordMapAppControlsBaseProps = {
+  controlContributions?: RecordMapControlContribution[];
+  dispatchContributionUpdatedEvent?: boolean;
+  recordMapScope?: RecordMapContributionScope;
+  refreshMapContributions?: () => void;
+  tileSourceViewId?: string;
+};
+
+const RecordMapAppControlsBase = ({
+  controlContributions,
+  dispatchContributionUpdatedEvent = true,
+  recordMapScope,
+  refreshMapContributions,
+  tileSourceViewId,
+}: RecordMapAppControlsBaseProps) => {
+  const resolvedTileSourceViewId = tileSourceViewId;
+  const shouldFetchControls =
+    !isDefined(controlContributions) ||
+    !isDefined(refreshMapContributions);
+  const internalContributions = useRecordMapContributions({
+    recordMapScope,
+    tileSourceViewId: shouldFetchControls ? resolvedTileSourceViewId : undefined,
+  });
   const resolveFrontComponentId =
     useRecordMapContributionFrontComponentResolver();
+  const resolvedControlContributions =
+    controlContributions ?? internalContributions.controlContributions;
+  const resolvedRefreshMapContributions =
+    refreshMapContributions ?? internalContributions.refreshMapContributions;
 
-  if (!isDefined(tileSourceViewId) || controlContributions.length === 0) {
+  if (
+    !isDefined(resolvedTileSourceViewId) ||
+    resolvedControlContributions.length === 0
+  ) {
     return null;
   }
 
   const handleRefreshMapContributions = () => {
-    refreshMapContributions();
+    resolvedRefreshMapContributions();
+    if (!dispatchContributionUpdatedEvent) {
+      return;
+    }
+
     window.dispatchEvent(
       new CustomEvent(RECORD_MAP_CONTRIBUTIONS_UPDATED_EVENT, {
-        detail: { viewId: tileSourceViewId },
+        detail: { viewId: resolvedTileSourceViewId },
       }),
     );
   };
 
   return (
     <StyledControls>
-      {controlContributions.map((controlContribution) => (
+      {resolvedControlContributions.map((controlContribution) => (
         <RecordMapAppControl
           key={controlContribution.contributionId}
           contributionId={controlContribution.contributionId}
           frontComponentId={resolveFrontComponentId(controlContribution)}
           onRefreshMapContributions={handleRefreshMapContributions}
           params={controlContribution.params}
-          viewId={tileSourceViewId}
+          recordMapScope={recordMapScope}
+          viewId={resolvedTileSourceViewId}
         />
       ))}
     </StyledControls>
+  );
+};
+
+const CurrentViewRecordMapAppControls = (
+  props: Omit<RecordMapAppControlsBaseProps, 'tileSourceViewId'>,
+) => {
+  const { currentView } = useGetCurrentViewOnly();
+
+  return (
+    <RecordMapAppControlsBase
+      {...props}
+      tileSourceViewId={currentView?.id}
+    />
+  );
+};
+
+export const RecordMapAppControls = (props: RecordMapAppControlsBaseProps) => {
+  if (isDefined(props.tileSourceViewId)) {
+    return <RecordMapAppControlsBase {...props} />;
+  }
+
+  return (
+    <CurrentViewRecordMapAppControls
+      controlContributions={props.controlContributions}
+      dispatchContributionUpdatedEvent={props.dispatchContributionUpdatedEvent}
+      recordMapScope={props.recordMapScope}
+      refreshMapContributions={props.refreshMapContributions}
+    />
   );
 };

@@ -51,6 +51,7 @@ export type RecordMapLayerContribution = {
   featureIdProperty?: string;
   featureSelectionAction?: RecordMapOpenFrontComponentAction;
   isMultiSelectEnabled: boolean;
+  isPinnedOverlay?: boolean;
   isVisible: boolean;
   layerId: string;
   maxZoom?: number | null;
@@ -69,6 +70,12 @@ export type RecordMapControlContribution = {
   frontComponentUniversalIdentifier: string;
   params?: Record<string, string>;
   position: number;
+};
+
+export type RecordMapContributionScope = {
+  objectNameSingular: string;
+  recordId: string;
+  type: 'record';
 };
 
 export type RecordMapContributionsResponse = {

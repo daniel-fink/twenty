@@ -16,5 +16,7 @@ export const createRequiredContext = <TContext>(debugName: string) => {
     return context;
   };
 
-  return [Context.Provider, useRequiredContextOrThrow] as const;
+  const useOptionalContext = (): TContext | undefined => useContext(Context);
+
+  return [Context.Provider, useRequiredContextOrThrow, useOptionalContext] as const;
 };

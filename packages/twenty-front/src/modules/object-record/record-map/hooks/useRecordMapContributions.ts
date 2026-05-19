@@ -4,6 +4,7 @@ import { ensureTokenPairIsFresh } from '@/apollo/utils/ensureTokenPairIsFresh';
 import { RECORD_MAP_EXTENSION_CONTRIBUTION_ROUTES } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import {
   type RecordMapControlContribution,
+  type RecordMapContributionScope,
   type RecordMapLayerContribution,
   type RecordMapContributionsResponse,
 } from '@/object-record/record-map/types/RecordMapContribution';
@@ -14,10 +15,12 @@ const postContributionRoute = async ({
   abortController,
   forceRenewal = false,
   route,
+  recordMapScope,
   viewId,
 }: {
   abortController: AbortController;
   forceRenewal?: boolean;
+  recordMapScope?: RecordMapContributionScope;
   route: string;
   viewId: string;
 }) => {
@@ -25,7 +28,10 @@ const postContributionRoute = async ({
   const token = tokenPair?.accessOrWorkspaceAgnosticToken?.token;
 
   return fetch(`${REACT_APP_SERVER_BASE_URL}${route}`, {
-    body: JSON.stringify({ viewId }),
+    body: JSON.stringify({
+      ...(isDefined(recordMapScope) ? { recordMapScope } : {}),
+      viewId,
+    }),
     headers: {
       'content-type': 'application/json',
       ...(token ? { authorization: `Bearer ${token}` } : {}),
@@ -38,14 +44,17 @@ const postContributionRoute = async ({
 const fetchContributionRoute = async ({
   abortController,
   route,
+  recordMapScope,
   viewId,
 }: {
   abortController: AbortController;
+  recordMapScope?: RecordMapContributionScope;
   route: string;
   viewId: string;
 }) => {
   const response = await postContributionRoute({
     abortController,
+    recordMapScope,
     route,
     viewId,
   });
@@ -54,6 +63,7 @@ const fetchContributionRoute = async ({
       ? await postContributionRoute({
           abortController,
           forceRenewal: true,
+          recordMapScope,
           route,
           viewId,
         })
@@ -78,8 +88,10 @@ const fetchContributionRoute = async ({
 };
 
 export const useRecordMapContributions = ({
+  recordMapScope,
   tileSourceViewId,
 }: {
+  recordMapScope?: RecordMapContributionScope;
   tileSourceViewId?: string;
 }) => {
   const [layerContributions, setLayerContributions] = useState<
@@ -103,6 +115,7 @@ export const useRecordMapContributions = ({
       RECORD_MAP_EXTENSION_CONTRIBUTION_ROUTES.map((route) =>
         fetchContributionRoute({
           abortController,
+          recordMapScope,
           route,
           viewId: tileSourceViewId,
         }),
@@ -138,7 +151,7 @@ export const useRecordMapContributions = ({
     return () => {
       abortController.abort();
     };
-  }, [tileSourceViewId]);
+  }, [recordMapScope, tileSourceViewId]);
 
   useEffect(() => {
     return refreshMapContributions();

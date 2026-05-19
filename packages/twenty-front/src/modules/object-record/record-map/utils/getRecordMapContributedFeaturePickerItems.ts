@@ -88,7 +88,11 @@ export const getRecordMapContributedFeaturePickerItems = ({
 
     const title = feature.properties?.[titleProperty];
     const normalizedFeatureId = String(featureId);
-    const itemKey = `${renderedLayer.contribution.contributionId}:${normalizedFeatureId}`;
+    const itemKey = [
+      renderedLayer.contribution.viewId,
+      renderedLayer.contribution.layerId,
+      normalizedFeatureId,
+    ].join(':');
 
     if (dedupedItems.has(itemKey)) {
       continue;
