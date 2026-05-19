@@ -6,6 +6,10 @@ import { BlockEditor } from '@/blocknote-editor/components/BlockEditor';
 import { BLOCK_EDITOR_GLOBAL_HOTKEYS_CONFIG } from '@/blocknote-editor/constants/BlockEditorGlobalHotkeysConfig';
 import { useAttachmentSync } from '@/blocknote-editor/hooks/useAttachmentSync';
 import { useReplaceBlockEditorContent } from '@/blocknote-editor/hooks/useReplaceBlockEditorContent';
+import {
+  isAppBlockProofReadonlyInDev,
+  useSeedAppBlockProofInDev,
+} from '@/blocknote-editor/hooks/useSeedAppBlockProofInDev';
 import { parseInitialBlocknote } from '@/blocknote-editor/utils/parseInitialBlocknote';
 import { prepareBodyWithSignedUrls } from '@/blocknote-editor/utils/prepareBodyWithSignedUrls';
 import { type Attachment } from '@/activities/files/types/Attachment';
@@ -219,6 +223,11 @@ export const RichTextFieldEditor = ({
     editorRef.current = editor;
   }
 
+  useSeedAppBlockProofInDev({
+    editor,
+    onSeed: handleBodyChange,
+  });
+
   const { replaceBlockEditorContent } = useReplaceBlockEditorContent(
     editor,
     fieldName,
@@ -273,7 +282,7 @@ export const RichTextFieldEditor = ({
       onBlur={handleBlockEditorBlur}
       onChange={handleEditorChange}
       editor={editor}
-      readonly={isRecordFieldReadOnly}
+      readonly={isRecordFieldReadOnly || isAppBlockProofReadonlyInDev()}
     />
   );
 };

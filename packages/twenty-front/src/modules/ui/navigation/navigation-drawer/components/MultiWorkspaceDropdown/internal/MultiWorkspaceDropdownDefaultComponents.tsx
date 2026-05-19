@@ -3,7 +3,6 @@ import { DEFAULT_WORKSPACE_LOGO } from '@/ui/navigation/navigation-drawer/consta
 import { useAuth } from '@/auth/hooks/useAuth';
 import { availableWorkspacesState } from '@/auth/states/availableWorkspacesState';
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
-import { countAvailableWorkspaces } from '@/auth/utils/availableWorkspacesUtils';
 import { supportChatState } from '@/client-config/states/supportChatState';
 import { useBuildWorkspaceUrl } from '@/domain-manager/hooks/useBuildWorkspaceUrl';
 import { useRedirectToWorkspaceDomain } from '@/domain-manager/hooks/useRedirectToWorkspaceDomain';
@@ -16,6 +15,11 @@ import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/Drop
 import { DropdownMenuSeparator } from '@/ui/layout/dropdown/components/DropdownMenuSeparator';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
 import { useOpenSettingsMenu } from '@/navigation/hooks/useOpenSettings';
+import {
+  isChildWorkspaceOfParentWorkspace,
+  isChildWorkspaceOfCurrentWorkspace,
+  isParentWorkspaceOfCurrentWorkspace,
+} from '@/ui/navigation/navigation-drawer/components/MultiWorkspaceDropdown/internal/utils/workspaceRelationshipUtils';
 import { MULTI_WORKSPACE_DROPDOWN_ID } from '@/ui/navigation/navigation-drawer/constants/MultiWorkspaceDropdownId';
 import { multiWorkspaceDropdownState } from '@/ui/navigation/navigation-drawer/states/multiWorkspaceDropdownState';
 import { useColorScheme } from '@/ui/theme/hooks/useColorScheme';
@@ -35,6 +39,7 @@ import {
   IconMessage,
   IconPlus,
   IconSettings,
+  IconSitemap,
   IconSwitchHorizontal,
   IconUserPlus,
 } from 'twenty-ui/display';
@@ -56,13 +61,13 @@ const StyledDescription = styled.div`
   padding-left: ${themeCssVariables.spacing[1]};
 `;
 
+const DEFAULT_WORKSPACE_PREVIEW_LIMIT = 10;
+
 export const MultiWorkspaceDropdownDefaultComponents = () => {
   const currentWorkspace = useAtomStateValue(currentWorkspaceState);
   const { t } = useLingui();
   const { redirectToWorkspaceDomain } = useRedirectToWorkspaceDomain();
   const availableWorkspaces = useAtomStateValue(availableWorkspacesState);
-  const availableWorkspacesCount =
-    countAvailableWorkspaces(availableWorkspaces);
   const { buildWorkspaceUrl } = useBuildWorkspaceUrl();
   const { closeDropdown } = useCloseDropdown();
   const { signOut } = useAuth();
@@ -82,6 +87,52 @@ export const MultiWorkspaceDropdownDefaultComponents = () => {
   );
 
   const { openSettingsMenu } = useOpenSettingsMenu();
+
+  const availableSignInWorkspaces =
+    availableWorkspaces.availableWorkspacesForSignIn.filter(
+      ({ id }) => id !== currentWorkspace?.id,
+    );
+
+  const childAvailableWorkspaces = availableSignInWorkspaces.filter(
+    (availableWorkspace) =>
+      isChildWorkspaceOfCurrentWorkspace({
+        availableWorkspace,
+        currentWorkspaceId: currentWorkspace?.id,
+      }),
+  );
+
+  const parentAvailableWorkspaces = availableSignInWorkspaces.filter(
+    (availableWorkspace) =>
+      isParentWorkspaceOfCurrentWorkspace({
+        availableWorkspace,
+        currentWorkspaceId: currentWorkspace?.id,
+      }),
+  );
+
+  const currentParentWorkspaceId =
+    parentAvailableWorkspaces[0]?.workspaceRelationship?.parentWorkspaceId;
+
+  const otherAvailableWorkspaces = [
+    ...parentAvailableWorkspaces,
+    ...availableSignInWorkspaces.filter(
+      (availableWorkspace) =>
+        !isChildWorkspaceOfCurrentWorkspace({
+          availableWorkspace,
+          currentWorkspaceId: currentWorkspace?.id,
+        }) &&
+        !isParentWorkspaceOfCurrentWorkspace({
+          availableWorkspace,
+          currentWorkspaceId: currentWorkspace?.id,
+        }) &&
+        !isChildWorkspaceOfParentWorkspace({
+          availableWorkspace,
+          parentWorkspaceId: currentParentWorkspaceId,
+        }),
+    ),
+    ...availableWorkspaces.availableWorkspacesForSignUp.filter(
+      ({ id }) => id !== currentWorkspace?.id,
+    ),
+  ];
 
   const handleSupport = () => {
     window.FrontChat?.('show');
@@ -158,15 +209,22 @@ export const MultiWorkspaceDropdownDefaultComponents = () => {
       >
         {currentWorkspace?.displayName}
       </DropdownMenuHeader>
-      {availableWorkspacesCount > 1 && (
+      {(childAvailableWorkspaces.length > 0 ||
+        otherAvailableWorkspaces.length > 0) && (
         <>
           <DropdownMenuItemsContainer>
-            {[
-              ...availableWorkspaces.availableWorkspacesForSignIn,
-              ...availableWorkspaces.availableWorkspacesForSignUp,
-            ]
-              .filter(({ id }) => id !== currentWorkspace?.id)
-              .slice(0, 3)
+            {childAvailableWorkspaces.length > 0 && (
+              <MenuItem
+                LeftIcon={IconSitemap}
+                text={t`Child Workspaces`}
+                onClick={() =>
+                  setMultiWorkspaceDropdown('child-workspaces-list')
+                }
+                hasSubMenu={true}
+              />
+            )}
+            {otherAvailableWorkspaces
+              .slice(0, DEFAULT_WORKSPACE_PREVIEW_LIMIT)
               .map((availableWorkspace) => (
                 <UndecoratedLink
                   key={availableWorkspace.id}
@@ -192,7 +250,8 @@ export const MultiWorkspaceDropdownDefaultComponents = () => {
                   />
                 </UndecoratedLink>
               ))}
-            {availableWorkspacesCount > 4 && (
+            {otherAvailableWorkspaces.length >
+              DEFAULT_WORKSPACE_PREVIEW_LIMIT && (
               <MenuItem
                 LeftIcon={IconSwitchHorizontal}
                 text={t`Other workspaces`}
