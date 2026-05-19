@@ -1,4 +1,5 @@
 import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
+import { useQuery } from '@apollo/client/react';
 import {
   type FrontComponentExecutionContext,
   type FrontComponentHostCommunicationApi,
@@ -10,6 +11,7 @@ import { useCommandMenuConfirmationModal } from '@/command-menu-item/confirmatio
 import { useUnmountCommand } from '@/command-menu-item/engine-command/hooks/useUnmountEngineCommand';
 import { commandMenuItemProgressFamilyState } from '@/command-menu-item/states/commandMenuItemProgressFamilyState';
 import { useRequestApplicationTokenRefresh } from '@/front-components/hooks/useRequestApplicationTokenRefresh';
+import { useOpenFrontComponentInSidePanel } from '@/side-panel/hooks/useOpenFrontComponentInSidePanel';
 import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { sidePanelSearchState } from '@/side-panel/states/sidePanelSearchState';
@@ -18,6 +20,7 @@ import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomState
 import { useSetAtomFamilyState } from '@/ui/utilities/state/jotai/hooks/useSetAtomFamilyState';
 import { assertUnreachable, isDefined } from 'twenty-shared/utils';
 import { useIcons } from 'twenty-ui/display';
+import { FindManyFrontComponentsDocument } from '~/generated-metadata/graphql';
 import { useNavigateApp } from '~/hooks/useNavigateApp';
 
 export const useFrontComponentExecutionContext = ({
@@ -41,6 +44,8 @@ export const useFrontComponentExecutionContext = ({
   const { requestAccessTokenRefresh } = useRequestApplicationTokenRefresh({
     frontComponentId,
   });
+  const { data: frontComponentsData } = useQuery(FindManyFrontComponentsDocument);
+  const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
   const { openConfirmationModal } = useCommandMenuConfirmationModal();
   const { navigateSidePanel } = useNavigateSidePanel();
   const setSidePanelSearch = useSetAtomState(sidePanelSearchState);
@@ -83,6 +88,36 @@ export const useFrontComponentExecutionContext = ({
       if (shouldResetSearchState === true) {
         setSidePanelSearch('');
       }
+    };
+
+  const openFrontComponentInSidePanelFromHost: FrontComponentHostCommunicationApi['openFrontComponentInSidePanel'] =
+    async ({
+      frontComponentId: targetFrontComponentId,
+      frontComponentUniversalIdentifier,
+      pageTitle,
+      pageIcon,
+      params,
+      resetNavigationStack,
+    }) => {
+      const resolvedFrontComponentId =
+        targetFrontComponentId ??
+        frontComponentsData?.frontComponents.find(
+          (frontComponent) =>
+            frontComponent.universalIdentifier ===
+            frontComponentUniversalIdentifier,
+        )?.id;
+
+      if (!isDefined(resolvedFrontComponentId)) {
+        throw new Error('Unable to resolve front component');
+      }
+
+      openFrontComponentInSidePanel({
+        frontComponentId: resolvedFrontComponentId,
+        pageIcon: getIcon(pageIcon),
+        pageTitle,
+        params,
+        resetNavigationStack,
+      });
     };
 
   const openCommandConfirmationModal: FrontComponentHostCommunicationApi['openCommandConfirmationModal'] =
@@ -166,6 +201,7 @@ export const useFrontComponentExecutionContext = ({
       navigate,
       requestAccessTokenRefresh,
       openSidePanelPage,
+      openFrontComponentInSidePanel: openFrontComponentInSidePanelFromHost,
       openCommandConfirmationModal,
       enqueueSnackbar,
       unmountFrontComponent,

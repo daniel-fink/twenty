@@ -148,6 +148,8 @@ const initializeHostCommunicationApi: WorkerExports['initializeHostCommunication
       hostApi.requestAccessTokenRefresh;
     frontComponentHostCommunicationApi.openSidePanelPage =
       hostApi.openSidePanelPage;
+    frontComponentHostCommunicationApi.openFrontComponentInSidePanel =
+      hostApi.openFrontComponentInSidePanel;
     frontComponentHostCommunicationApi.openCommandConfirmationModal =
       createOpenCommandConfirmationModalAdapter(hostApi);
     frontComponentHostCommunicationApi.unmountFrontComponent =

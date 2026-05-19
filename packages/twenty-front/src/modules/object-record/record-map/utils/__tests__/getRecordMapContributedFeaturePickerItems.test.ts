@@ -126,6 +126,48 @@ describe('getRecordMapContributedFeaturePickerItems', () => {
     ]);
   });
 
+  it('dedupes base and pinned overlay hits for the same contributed feature', () => {
+    const overlayContribution: RecordMapLayerContribution = {
+      ...contribution,
+      contributionId: 'opportunity:record-1:layer-1',
+      isPinnedOverlay: true,
+      position: Number.MAX_SAFE_INTEGER,
+    };
+
+    expect(
+      getRecordMapContributedFeaturePickerItems({
+        features: [
+          {
+            layer: { id: 'overlay-fill-hit' },
+            properties: {
+              selectedFeatureValue: 'P-001',
+              title: 'Parcel P-001',
+            },
+          },
+          {
+            layer: { id: 'reference-fill-hit' },
+            properties: {
+              selectedFeatureValue: 'P-001',
+              title: 'Parcel P-001',
+            },
+          },
+        ],
+        renderedContributionLayers: [
+          {
+            contribution: overlayContribution,
+            hitLayerIds: ['overlay-fill-hit'],
+            layerIds: ['overlay-fill'],
+          },
+          {
+            contribution,
+            hitLayerIds: ['reference-fill-hit'],
+            layerIds: ['reference-fill'],
+          },
+        ],
+      }),
+    ).toHaveLength(1);
+  });
+
   it('uses palette swatch gradients before static fill colors', () => {
     expect(
       getFirstSwatchColor(

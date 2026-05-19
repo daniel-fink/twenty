@@ -3,7 +3,7 @@ import { REACT_APP_MAP_VIEW_STYLE_URL } from '~/config';
 import { RECORD_MAP_CONTRIBUTIONS_UPDATED_EVENT } from '@/object-record/record-map/constants/record-map-contribution.constants';
 import { RecordMapControls } from '@/object-record/record-map/components/RecordMapControls';
 import { RecordMapRecordFeaturePicker } from '@/object-record/record-map/components/RecordMapRecordFeaturePicker';
-import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
+import { useOpenRecordFromIndexViewOptional } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useMapLibreMap } from '@/object-record/record-map/hooks/useMapLibreMap';
 import { useMapTileMetadata } from '@/object-record/record-map/hooks/useMapTileMetadata';
 import { useRecordMapAddressMarkers } from '@/object-record/record-map/hooks/useRecordMapAddressMarkers';
@@ -11,7 +11,11 @@ import { useRecordMapContributedLayers } from '@/object-record/record-map/hooks/
 import { useRecordMapContributionFrontComponentResolver } from '@/object-record/record-map/hooks/useRecordMapContributionFrontComponentResolver';
 import { useRecordMapContributions } from '@/object-record/record-map/hooks/useRecordMapContributions';
 import { useRecordMapVectorTileLayers } from '@/object-record/record-map/hooks/useRecordMapVectorTileLayers';
-import { type RecordMapSelectedContributionFeature } from '@/object-record/record-map/types/RecordMapContribution';
+import {
+  type RecordMapContributionScope,
+  type RecordMapLayerContribution,
+  type RecordMapSelectedContributionFeature,
+} from '@/object-record/record-map/types/RecordMapContribution';
 import { type RecordMapContributedFeaturePickerItem } from '@/object-record/record-map/types/RecordMapRecordFeaturePicker';
 import { type RecordMapPoint } from '@/object-record/record-map/types/RecordMapPoint';
 import { type RecordMapTileSource } from '@/object-record/record-map/types/RecordMapTileSource';
@@ -70,6 +74,7 @@ const StyledEmptyState = styled.div`
 
 const RECORD_MAP_MULTI_SELECT_LIMIT = 10;
 const RECORD_MAP_SELECTED_FEATURES_PARAM = 'selectedFeatures';
+const EMPTY_PINNED_OVERLAY_CONTRIBUTIONS: RecordMapLayerContribution[] = [];
 
 const serializeSelectedFeatures = (
   items: RecordMapContributedFeaturePickerItem[],
@@ -84,15 +89,27 @@ const serializeSelectedFeatures = (
   );
 
 export const RecordMap = ({
+  cameraPersistenceKey,
+  initialBounds,
+  layerContributions: controlledLayerContributions,
   loading,
   objectNameSingular,
+  pinnedOverlayContributions = EMPTY_PINNED_OVERLAY_CONTRIBUTIONS,
+  recordMapScope,
   recordMapPoints,
+  refreshMapContributions: controlledRefreshMapContributions,
   tileSource,
   onSearchThisArea,
 }: {
+  cameraPersistenceKey?: string;
+  initialBounds?: RecordMapBounds | null;
+  layerContributions?: RecordMapLayerContribution[];
   loading: boolean;
   objectNameSingular?: string;
+  pinnedOverlayContributions?: RecordMapLayerContribution[];
+  recordMapScope?: RecordMapContributionScope;
   recordMapPoints: RecordMapPoint[];
+  refreshMapContributions?: () => void;
   tileSource?: RecordMapTileSource;
   onSearchThisArea?: (bounds: RecordMapBounds) => void;
 }) => {
@@ -104,7 +121,9 @@ export const RecordMap = ({
   const isFittingTileBoundsRef = useRef(false);
   // oxlint-disable-next-line twenty/no-state-useref
   const shouldPersistNextMoveRef = useRef(false);
-  const { openRecordFromIndexView } = useOpenRecordFromIndexView();
+  const { openRecordFromIndexView } = useOpenRecordFromIndexViewOptional({
+    fallbackObjectNameSingular: objectNameSingular,
+  });
   const { closeSidePanelMenu } = useSidePanelMenu();
   const { enqueueErrorSnackBar, enqueueWarningSnackBar } = useSnackBar();
   const { openFrontComponentInSidePanel } = useOpenFrontComponentInSidePanel();
@@ -120,9 +139,10 @@ export const RecordMap = ({
     (isDefined(tileSource) || loading || recordMapPoints.length > 0);
   const tileSourceViewId = tileSource?.viewId;
   const tileSourceFilter = JSON.stringify(tileSource?.filter ?? {});
+  const mapCameraStorageKey = cameraPersistenceKey ?? tileSourceViewId;
   const persistedMapCamera = useMemo(
-    () => readRecordMapCamera(tileSourceViewId),
-    [tileSourceViewId],
+    () => readRecordMapCamera(mapCameraStorageKey),
+    [mapCameraStorageKey],
   );
   const { map } = useMapLibreMap({
     initialCamera: persistedMapCamera,
@@ -133,10 +153,22 @@ export const RecordMap = ({
     tileSourceFilter,
     tileSourceViewId,
   });
-  const { layerContributions, refreshMapContributions } =
-    useRecordMapContributions({
-      tileSourceViewId,
-    });
+  const shouldFetchMapContributions = !isDefined(controlledLayerContributions);
+  const internalMapContributions = useRecordMapContributions({
+    recordMapScope,
+    tileSourceViewId: shouldFetchMapContributions ? tileSourceViewId : undefined,
+  });
+  const layerContributions =
+    controlledLayerContributions ?? internalMapContributions.layerContributions;
+  const refreshMapContributions =
+    controlledRefreshMapContributions ??
+    internalMapContributions.refreshMapContributions;
+  const mapLayerContributions = useMemo(
+    () => [...layerContributions, ...pinnedOverlayContributions],
+    [layerContributions, pinnedOverlayContributions],
+  );
+  const fitBounds = initialBounds ?? tileBounds?.bounds ?? null;
+  const fitBoundsKey = JSON.stringify(fitBounds ?? null);
   const selectedContributionFeature = useMemo(() => {
     if (
       selectedContributionItems.length === 0 ||
@@ -160,7 +192,7 @@ export const RecordMap = ({
     } satisfies RecordMapSelectedContributionFeature;
   }, [activeContributionFeatureId, selectedContributionItems]);
   const { renderedContributionLayers } = useRecordMapContributedLayers({
-    layerContributions,
+    layerContributions: mapLayerContributions,
     map,
     selectedContributionFeature,
   });
@@ -297,7 +329,7 @@ export const RecordMap = ({
   );
 
   const persistCurrentMapCamera = useCallback(() => {
-    if (!isDefined(map) || !isDefined(tileSourceViewId)) {
+    if (!isDefined(map) || !isDefined(mapCameraStorageKey)) {
       return;
     }
 
@@ -308,14 +340,14 @@ export const RecordMap = ({
       latitude: center.lat,
       longitude: center.lng,
       pitch: map.getPitch(),
-      viewId: tileSourceViewId,
+      viewId: mapCameraStorageKey,
       zoom: map.getZoom(),
     });
-  }, [map, persistRecordMapCamera, tileSourceViewId]);
+  }, [map, mapCameraStorageKey, persistRecordMapCamera]);
 
   const fitMapToTileBounds = useCallback(
     (options?: { persistCamera: boolean }) => {
-      if (!isDefined(map) || !isDefined(tileBounds?.bounds)) {
+      if (!isDefined(map) || !isDefined(fitBounds)) {
         return;
       }
 
@@ -333,24 +365,24 @@ export const RecordMap = ({
         isFittingTileBoundsRef.current = false;
       }, 750);
 
-      map.fitBounds(getPaddedRecordMapBounds(tileBounds.bounds), {
+      map.fitBounds(getPaddedRecordMapBounds(fitBounds), {
         padding: 64,
-        maxZoom: 12,
+        maxZoom: isDefined(initialBounds) ? 18 : 12,
         essential: true,
       });
     },
-    [map, tileBounds],
+    [fitBounds, initialBounds, map],
   );
 
   useEffect(() => {
     setHasAutoFitTileBounds(false);
     setHasUserMovedTileMap(false);
     shouldPersistNextMoveRef.current = false;
-  }, [tileSourceViewId]);
+  }, [mapCameraStorageKey]);
 
   useEffect(() => {
     setHasAutoFitTileBounds(false);
-  }, [tileSourceFilter]);
+  }, [fitBoundsKey, tileSourceFilter]);
 
   useEffect(() => {
     const handleMapContributionsUpdated = (event: Event) => {
@@ -381,7 +413,10 @@ export const RecordMap = ({
     }
 
     const markUserMovedMap = () => {
-      if (!isFittingTileBoundsRef.current) {
+      if (
+        !isFittingTileBoundsRef.current &&
+        (!isDefined(initialBounds) || hasAutoFitTileBounds)
+      ) {
         setHasUserMovedTileMap(true);
         shouldPersistNextMoveRef.current = true;
       }
@@ -407,7 +442,13 @@ export const RecordMap = ({
       map.off('rotatestart', markUserMovedMap);
       map.off('zoomstart', markUserMovedMap);
     };
-  }, [map, persistCurrentMapCamera, tileSourceViewId]);
+  }, [
+    hasAutoFitTileBounds,
+    initialBounds,
+    map,
+    persistCurrentMapCamera,
+    tileSourceViewId,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -443,8 +484,8 @@ export const RecordMap = ({
 
   useEffect(() => {
     if (
-      !isDefined(tileBounds?.bounds) ||
-      isDefined(persistedMapCamera) ||
+      !isDefined(fitBounds) ||
+      (!isDefined(initialBounds) && isDefined(persistedMapCamera)) ||
       hasUserMovedTileMap ||
       hasAutoFitTileBounds
     ) {
@@ -455,10 +496,11 @@ export const RecordMap = ({
     setHasAutoFitTileBounds(true);
   }, [
     fitMapToTileBounds,
+    fitBounds,
     hasAutoFitTileBounds,
     hasUserMovedTileMap,
+    initialBounds,
     persistedMapCamera,
-    tileBounds,
   ]);
 
   if (!hasMapStyle) {
@@ -482,7 +524,7 @@ export const RecordMap = ({
       <StyledMapCanvas ref={setMapContainerElement} />
       {isDefined(tileSource) && (
         <RecordMapControls
-          canFitToTileBounds={isDefined(tileBounds?.bounds)}
+          canFitToTileBounds={isDefined(fitBounds)}
           map={map}
           onFitToTileBounds={() => fitMapToTileBounds({ persistCamera: true })}
           onSearchThisArea={onSearchThisArea}

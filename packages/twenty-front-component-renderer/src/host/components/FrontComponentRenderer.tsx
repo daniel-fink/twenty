@@ -11,12 +11,66 @@ import {
   type RemoteReceiver,
   RemoteRootRenderer,
 } from '@remote-dom/react/host';
-import { useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
 import { ThemeProvider } from 'twenty-ui/theme-constants';
 import { FrontComponentWorkerEffect } from '../../remote/components/FrontComponentWorkerEffect';
 import { componentRegistry } from '../generated/host-component-registry';
+
+const FRONT_COMPONENT_IFRAME_HOST_API_MESSAGE_TYPE =
+  'twenty-front-component-host-api';
+
+type OpenFrontComponentInSidePanelPayload = Parameters<
+  FrontComponentHostCommunicationApi['openFrontComponentInSidePanel']
+>[0];
+
+type FrontComponentIframeHostApiMessage = {
+  action: 'openFrontComponentInSidePanel';
+  payload: OpenFrontComponentInSidePanelPayload;
+  type: typeof FRONT_COMPONENT_IFRAME_HOST_API_MESSAGE_TYPE;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isStringRecord = (value: unknown): value is Record<string, string> =>
+  isRecord(value) &&
+  Object.values(value).every((entry) => typeof entry === 'string');
+
+const isOpenFrontComponentInSidePanelPayload = (
+  value: unknown,
+): value is OpenFrontComponentInSidePanelPayload => {
+  if (!isRecord(value) || typeof value.pageTitle !== 'string') {
+    return false;
+  }
+
+  return (
+    (value.applicationUniversalIdentifier === undefined ||
+      typeof value.applicationUniversalIdentifier === 'string') &&
+    (value.frontComponentId === undefined ||
+      typeof value.frontComponentId === 'string') &&
+    (value.frontComponentUniversalIdentifier === undefined ||
+      typeof value.frontComponentUniversalIdentifier === 'string') &&
+    (value.pageIcon === undefined || typeof value.pageIcon === 'string') &&
+    (value.params === undefined || isStringRecord(value.params)) &&
+    (value.resetNavigationStack === undefined ||
+      typeof value.resetNavigationStack === 'boolean')
+  );
+};
+
+const isFrontComponentIframeHostApiMessage = (
+  value: unknown,
+): value is FrontComponentIframeHostApiMessage =>
+  isRecord(value) &&
+  value.type === FRONT_COMPONENT_IFRAME_HOST_API_MESSAGE_TYPE &&
+  value.action === 'openFrontComponentInSidePanel' &&
+  isOpenFrontComponentInSidePanelPayload(value.payload);
 
 type FrontComponentContentProps = {
   componentUrl: string;
@@ -39,6 +93,7 @@ export const FrontComponentRenderer = ({
   onError,
   colorScheme,
 }: FrontComponentContentProps) => {
+  const remoteRootContainerRef = useRef<HTMLDivElement | null>(null);
   const [receiver, setReceiver] = useState<RemoteReceiver | null>(null);
   const [thread, setThread] = useState<ThreadWebWorker<
     WorkerExports,
@@ -71,6 +126,39 @@ export const FrontComponentRenderer = ({
     sdkClientUrls,
     executionContext.frontComponentId,
   ]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const remoteRootContainer = remoteRootContainerRef.current;
+
+      if (!isDefined(remoteRootContainer) || !isDefined(event.source)) {
+        return;
+      }
+
+      const isFromDescendantIframe = Array.from(
+        remoteRootContainer.querySelectorAll('iframe'),
+      ).some((iframe) => iframe.contentWindow === event.source);
+
+      if (
+        !isFromDescendantIframe ||
+        !isFrontComponentIframeHostApiMessage(event.data)
+      ) {
+        return;
+      }
+
+      frontComponentHostCommunicationApi
+        .openFrontComponentInSidePanel(event.data.payload)
+        .catch((messageError: Error) => {
+          setError(messageError);
+        });
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [frontComponentHostCommunicationApi]);
 
   return (
     <>
@@ -119,12 +207,14 @@ export const FrontComponentRenderer = ({
       )}
 
       {isDefined(receiver) && isExecutionContextInitialized && (
-        <ThemeProvider colorScheme={colorScheme}>
-          <RemoteRootRenderer
-            receiver={receiver}
-            components={componentRegistry}
-          />
-        </ThemeProvider>
+        <div ref={remoteRootContainerRef} style={{ display: 'contents' }}>
+          <ThemeProvider colorScheme={colorScheme}>
+            <RemoteRootRenderer
+              receiver={receiver}
+              components={componentRegistry}
+            />
+          </ThemeProvider>
+        </div>
       )}
     </>
   );

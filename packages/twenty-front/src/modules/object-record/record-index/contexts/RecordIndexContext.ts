@@ -27,5 +27,8 @@ export type RecordIndexContextValue = {
   >;
 };
 
-export const [RecordIndexContextProvider, useRecordIndexContextOrThrow] =
-  createRequiredContext<RecordIndexContextValue>('RecordIndexContext');
+export const [
+  RecordIndexContextProvider,
+  useRecordIndexContextOrThrow,
+  useRecordIndexContext,
+] = createRequiredContext<RecordIndexContextValue>('RecordIndexContext');

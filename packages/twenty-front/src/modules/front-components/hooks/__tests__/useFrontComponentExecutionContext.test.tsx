@@ -6,6 +6,7 @@ const mockNavigateApp = jest.fn();
 const mockRequestAccessTokenRefresh = jest.fn();
 const mockOpenConfirmationModal = jest.fn();
 const mockNavigateSidePanel = jest.fn();
+const mockOpenFrontComponentInSidePanel = jest.fn();
 const mockSetSidePanelSearch = jest.fn();
 const mockGetIcon = jest.fn((name: string) => `icon-${name}`);
 const mockUnmountEngineCommand = jest.fn();
@@ -17,6 +18,14 @@ const mockCloseSidePanelMenu = jest.fn();
 const mockSetCommandMenuItemProgress = jest.fn();
 
 let mockCurrentUser: { id: string } | null = { id: 'user-123' };
+let mockFrontComponents: Array<{
+  id: string;
+  universalIdentifier?: string | null;
+}> = [];
+
+jest.mock('@apollo/client/react', () => ({
+  useQuery: () => ({ data: { frontComponents: mockFrontComponents } }),
+}));
 
 jest.mock('~/hooks/useNavigateApp', () => ({
   useNavigateApp: () => mockNavigateApp,
@@ -40,6 +49,12 @@ jest.mock(
 jest.mock('@/side-panel/hooks/useNavigateSidePanel', () => ({
   useNavigateSidePanel: () => ({
     navigateSidePanel: mockNavigateSidePanel,
+  }),
+}));
+
+jest.mock('@/side-panel/hooks/useOpenFrontComponentInSidePanel', () => ({
+  useOpenFrontComponentInSidePanel: () => ({
+    openFrontComponentInSidePanel: mockOpenFrontComponentInSidePanel,
   }),
 }));
 
@@ -90,6 +105,12 @@ describe('useFrontComponentExecutionContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUser = { id: 'user-123' };
+    mockFrontComponents = [
+      {
+        id: 'resolved-front-component-id',
+        universalIdentifier: 'target-front-component-universal-id',
+      },
+    ];
   });
 
   describe('executionContext', () => {
@@ -204,6 +225,82 @@ describe('useFrontComponentExecutionContext', () => {
       });
 
       expect(mockSetSidePanelSearch).toHaveBeenCalledWith('');
+    });
+  });
+
+  describe('openFrontComponentInSidePanel', () => {
+    it('should open a front component by front component id', async () => {
+      const { result } = renderHook(() =>
+        useFrontComponentExecutionContext({
+          frontComponentId: FRONT_COMPONENT_ID,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.frontComponentHostCommunicationApi.openFrontComponentInSidePanel(
+          {
+            frontComponentId: 'target-front-component-id',
+            pageTitle: 'Parcel',
+            pageIcon: 'IconMap',
+            params: { featureId: 'feature-1' },
+            resetNavigationStack: true,
+          },
+        );
+      });
+
+      expect(mockOpenFrontComponentInSidePanel).toHaveBeenCalledWith({
+        frontComponentId: 'target-front-component-id',
+        pageIcon: 'icon-IconMap',
+        pageTitle: 'Parcel',
+        params: { featureId: 'feature-1' },
+        resetNavigationStack: true,
+      });
+    });
+
+    it('should resolve a front component by universal identifier', async () => {
+      const { result } = renderHook(() =>
+        useFrontComponentExecutionContext({
+          frontComponentId: FRONT_COMPONENT_ID,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.frontComponentHostCommunicationApi.openFrontComponentInSidePanel(
+          {
+            frontComponentUniversalIdentifier:
+              'target-front-component-universal-id',
+            pageTitle: 'Parcel',
+            pageIcon: 'IconMap',
+          },
+        );
+      });
+
+      expect(mockOpenFrontComponentInSidePanel).toHaveBeenCalledWith({
+        frontComponentId: 'resolved-front-component-id',
+        pageIcon: 'icon-IconMap',
+        pageTitle: 'Parcel',
+        params: undefined,
+        resetNavigationStack: undefined,
+      });
+    });
+
+    it('should reject when the front component cannot be resolved', async () => {
+      mockFrontComponents = [];
+
+      const { result } = renderHook(() =>
+        useFrontComponentExecutionContext({
+          frontComponentId: FRONT_COMPONENT_ID,
+        }),
+      );
+
+      await expect(
+        result.current.frontComponentHostCommunicationApi.openFrontComponentInSidePanel(
+          {
+            frontComponentUniversalIdentifier: 'missing',
+            pageTitle: 'Parcel',
+          },
+        ),
+      ).rejects.toThrow('Unable to resolve front component');
     });
   });
 

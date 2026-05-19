@@ -32,6 +32,7 @@ export { closeSidePanel } from './functions/closeSidePanel';
 export { enqueueSnackbar } from './functions/enqueueSnackbar';
 export { navigate } from './functions/navigate';
 export { openCommandConfirmationModal } from './functions/openCommandConfirmationModal';
+export { openFrontComponentInSidePanel } from './functions/openFrontComponentInSidePanel';
 export { openSidePanelPage } from './functions/openSidePanelPage';
 export { refreshMapContributions } from './functions/refreshMapContributions';
 export { unmountFrontComponent } from './functions/unmountFrontComponent';
@@ -50,6 +51,7 @@ export type {
   NavigateFunction,
   OpenCommandConfirmationModalFunction,
   OpenCommandConfirmationModalHostFunction,
+  OpenFrontComponentInSidePanelFunction,
   OpenSidePanelPageFunction,
   RefreshMapContributionsFunction,
   RequestAccessTokenRefreshFunction,

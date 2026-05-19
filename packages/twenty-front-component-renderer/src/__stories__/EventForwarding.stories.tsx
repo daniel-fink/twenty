@@ -11,9 +11,11 @@ const createHostApiMocks = () => ({
   navigate: fn().mockResolvedValue(undefined),
   enqueueSnackbar: fn().mockResolvedValue(undefined),
   openSidePanelPage: fn().mockResolvedValue(undefined),
+  openFrontComponentInSidePanel: fn().mockResolvedValue(undefined),
   closeSidePanel: fn().mockResolvedValue(undefined),
   unmountFrontComponent: fn().mockResolvedValue(undefined),
   updateProgress: fn().mockResolvedValue(undefined),
+  refreshMapContributions: fn().mockResolvedValue(undefined),
   requestAccessTokenRefresh: fn().mockResolvedValue('refreshed-token'),
   openCommandConfirmationModal: fn().mockResolvedValue(undefined),
 });

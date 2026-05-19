@@ -4,6 +4,10 @@ import { useFrontComponentExecutionContext } from '@/front-components/hooks/useF
 import { useOnFrontComponentUpdated } from '@/front-components/hooks/useOnFrontComponentUpdated';
 import { frontComponentApplicationTokenPairComponentState } from '@/front-components/states/frontComponentApplicationTokenPairComponentState';
 import { getFrontComponentUrl } from '@/front-components/utils/getFrontComponentUrl';
+import {
+  OPPORTUNITY_RECORD_MAP_FRONT_COMPONENT_NAME,
+  OpportunityRecordMapFrontComponentHost,
+} from '@/object-record/record-map/components/OpportunityRecordMapFrontComponentHost';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
 import { t } from '@lingui/core/macro';
@@ -105,6 +109,15 @@ export const FrontComponentRenderer = ({
   const usesSdkClient = data.frontComponent.usesSdkClient;
 
   const accessToken = applicationTokenPair.applicationAccessToken.token;
+
+  if (data.frontComponent.name === OPPORTUNITY_RECORD_MAP_FRONT_COMPONENT_NAME) {
+    return (
+      <OpportunityRecordMapFrontComponentHost
+        applicationAccessToken={accessToken}
+        recordId={recordId}
+      />
+    );
+  }
 
   if (usesSdkClient) {
     return (
