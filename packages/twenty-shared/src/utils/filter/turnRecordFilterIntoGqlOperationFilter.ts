@@ -211,43 +211,43 @@ const buildDirectFieldGqlOperationFilter = ({
       switch (recordFilter.operand) {
         case RecordFilterOperand.WITHIN_DISTANCE:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               withinDistance: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.WITHIN_BBOX:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               withinBbox: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.INTERSECTS:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               intersects: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.CONTAINS_GEOMETRY:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               contains: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.WITHIN_GEOMETRY:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               within: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.NEAR:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               near: parseGeometryFilterValue(recordFilter.value),
             } as GeometryFilter,
           };
         case RecordFilterOperand.IS:
           return {
-            [correspondingFieldMetadataItem.name]: {
+            [fieldMetadataItem.name]: {
               is: recordFilter.value,
             } as GeometryFilter,
           };
