@@ -11,12 +11,7 @@ import {
   type RemoteReceiver,
   RemoteRootRenderer,
 } from '@remote-dom/react/host';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
 import { ThemeProvider } from 'twenty-ui/theme-constants';
