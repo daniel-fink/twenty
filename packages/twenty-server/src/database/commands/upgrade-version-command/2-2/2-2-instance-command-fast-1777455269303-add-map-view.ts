@@ -10,29 +10,58 @@ export class AddMapViewFastInstanceCommand implements FastInstanceCommand {
       `ALTER TYPE "core"."view_type_enum" ADD VALUE IF NOT EXISTS 'MAP' AFTER 'CALENDAR'`,
     );
     await queryRunner.query(
-      `ALTER TABLE "core"."view" ADD "mapFieldMetadataId" uuid`,
+      `ALTER TABLE "core"."view" ADD COLUMN IF NOT EXISTS "mapFieldMetadataId" uuid`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_VIEW_MAP_FIELD_METADATA" ON "core"."view" ("mapFieldMetadataId")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_VIEW_MAP_FIELD_METADATA" ON "core"."view" ("mapFieldMetadataId")`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "core"."view" ADD CONSTRAINT "FK_VIEW_MAP_FIELD_METADATA" FOREIGN KEY ("mapFieldMetadataId") REFERENCES "core"."fieldMetadata"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "core"."view" ADD CONSTRAINT "CHK_VIEW_MAP_INTEGRITY" CHECK (("type"::text != 'MAP' OR "mapFieldMetadataId" IS NOT NULL))`,
-    );
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'FK_VIEW_MAP_FIELD_METADATA'
+            AND connamespace = 'core'::regnamespace
+        ) THEN
+          ALTER TABLE "core"."view"
+            ADD CONSTRAINT "FK_VIEW_MAP_FIELD_METADATA"
+            FOREIGN KEY ("mapFieldMetadataId")
+            REFERENCES "core"."fieldMetadata"("id")
+            ON DELETE CASCADE
+            ON UPDATE NO ACTION;
+        END IF;
+      END $$;
+    `);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'CHK_VIEW_MAP_INTEGRITY'
+            AND connamespace = 'core'::regnamespace
+        ) THEN
+          ALTER TABLE "core"."view"
+            ADD CONSTRAINT "CHK_VIEW_MAP_INTEGRITY"
+            CHECK (("type"::text != 'MAP' OR "mapFieldMetadataId" IS NOT NULL));
+        END IF;
+      END $$;
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "core"."view" DROP CONSTRAINT "CHK_VIEW_MAP_INTEGRITY"`,
+      `ALTER TABLE "core"."view" DROP CONSTRAINT IF EXISTS "CHK_VIEW_MAP_INTEGRITY"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "core"."view" DROP CONSTRAINT "FK_VIEW_MAP_FIELD_METADATA"`,
+      `ALTER TABLE "core"."view" DROP CONSTRAINT IF EXISTS "FK_VIEW_MAP_FIELD_METADATA"`,
     );
-    await queryRunner.query(`DROP INDEX "core"."IDX_VIEW_MAP_FIELD_METADATA"`);
     await queryRunner.query(
-      `ALTER TABLE "core"."view" DROP COLUMN "mapFieldMetadataId"`,
+      `DROP INDEX IF EXISTS "core"."IDX_VIEW_MAP_FIELD_METADATA"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "core"."view" DROP COLUMN IF EXISTS "mapFieldMetadataId"`,
     );
     await queryRunner.query(
       `CREATE TYPE "core"."view_type_enum_old" AS ENUM('TABLE', 'KANBAN', 'CALENDAR', 'FIELDS_WIDGET', 'TABLE_WIDGET')`,
